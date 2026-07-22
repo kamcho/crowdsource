@@ -1,0 +1,76 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-currency="{{ display_currency }}" data-usd-kes-rate="{{ usd_to_kes_rate }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}My Account — CrowdSource Import{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+    <link rel="stylesheet" href="{% static 'css/landing.css' %}">
+    <link rel="stylesheet" href="{% static 'css/commerce.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="dashboard-layout dashboard-layout-user">
+    <div class="dashboard-shell">
+        {% include 'dashboard/partials/user_sidebar.html' %}
+        <div class="dashboard-sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+        <div class="dashboard-main">
+            <header class="dashboard-topbar">
+                <button type="button" class="dashboard-mobile-toggle" id="sidebarToggle" aria-label="Toggle navigation">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <h1 class="dashboard-topbar-title">{% block topbar_title %}Dashboard{% endblock %}</h1>
+                <div class="dashboard-topbar-search">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="search" placeholder="Search..." aria-label="Search">
+                </div>
+                <div class="dashboard-topbar-actions">
+                    {% include 'partials/currency_switcher.html' %}
+                    <a href="{% url 'cart_detail' %}" class="dashboard-topbar-icon-btn" aria-label="Cart">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                        {% if cart_item_count %}<span class="notify-dot" aria-hidden="true"></span>{% endif %}
+                    </a>
+                    <a href="{% url 'users:profile' %}" class="dashboard-topbar-profile">
+                        <div class="dashboard-user-avatar" aria-hidden="true">{{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}</div>
+                        <span class="dashboard-topbar-profile-name">{{ user.get_full_name }}</span>
+                    </a>
+                </div>
+            </header>
+
+            {% if messages %}
+            <div class="dashboard-messages">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}" role="alert">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="dashboard-content">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+    <script src="{% static 'js/currency.js' %}"></script>
+    <script>
+    (function () {
+        var layout = document.body;
+        var toggle = document.getElementById('sidebarToggle');
+        var overlay = document.getElementById('sidebarOverlay');
+        if (!toggle || !overlay) return;
+        toggle.addEventListener('click', function () {
+            layout.classList.toggle('sidebar-open');
+        });
+        overlay.addEventListener('click', function () {
+            layout.classList.remove('sidebar-open');
+        });
+    })();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

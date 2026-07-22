@@ -1,0 +1,100 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-currency="{{ display_currency }}" data-usd-kes-rate="{{ usd_to_kes_rate }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Join group buys to meet factory MOQ and import products from China at wholesale prices.">
+    <title>{% block title %}CrowdSource Import{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/category-drawer.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="{% url 'home:landing' %}" class="logo">
+                <span class="logo-mark" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" opacity=".9"/>
+                        <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                CrowdSource
+            </a>
+            <nav class="nav-links" aria-label="Main navigation">
+                {% include 'partials/currency_switcher.html' %}
+                <button type="button" class="nav-text-btn" data-category-drawer-open>Categories</button>
+                <a href="{% url 'home:product_browse' %}">Products</a>
+                <a href="{% url 'home:landing' %}#how-it-works">How It Works</a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'cart_detail' %}" class="nav-cart-link">Cart{% if cart_item_count %}<span class="nav-cart-count">{{ cart_item_count }}</span>{% endif %}</a>
+                <a href="{% url 'pledge_list' %}" class="btn btn-outline btn-sm">Pledges</a>
+                <a href="{% url 'order_list' %}" class="btn btn-outline btn-sm">Orders</a>
+                <a href="{% url 'users:profile' %}" class="btn btn-outline btn-sm">My Account</a>
+                {% if user.role == 'admin' %}
+                <a href="{% url 'core:admin_dashboard' %}" class="btn btn-primary btn-sm">Admin</a>
+                {% elif user.role == 'staff' %}
+                <a href="{% url 'core:admin_dashboard' %}" class="btn btn-primary btn-sm">Ops</a>
+                {% endif %}
+                <a href="{% url 'users:signout' %}" class="btn btn-secondary btn-sm">Sign Out</a>
+                {% else %}
+                <a href="{% url 'users:signin' %}" class="btn btn-outline btn-sm">Sign In</a>
+                <a href="{% url 'users:signup' %}" class="btn btn-primary btn-sm nav-cta">Sign Up</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    {% if messages %}
+    <div class="container messages-wrap">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}" role="alert">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-grid">
+            <div class="footer-brand">
+                <a href="{% url 'home:landing' %}" class="logo">
+                    <span class="logo-mark" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" opacity=".9"/>
+                            <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    CrowdSource
+                </a>
+                <p>Group buying platform for factory-direct imports from China. Meet MOQ together, save together.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Platform</h4>
+                <a href="{% url 'home:product_browse' %}">Browse Products</a>
+                <a href="{% url 'home:landing' %}#how-it-works">How It Works</a>
+                <a href="{% url 'users:profile' %}">My Account</a>
+            </div>
+            <div class="footer-col">
+                <h4>Support</h4>
+                <a href="#">Shipping FAQ</a>
+                <a href="#">MOQ Guide</a>
+                <a href="#">Contact Us</a>
+            </div>
+        </div>
+        <div class="container footer-bottom">
+            <p>&copy; {% now "Y" %} CrowdSource Import. All rights reserved.</p>
+        </div>
+    </footer>
+    {% include 'partials/category_drawer.html' %}
+    <script src="{% static 'js/currency.js' %}"></script>
+    <script src="{% static 'js/category-drawer.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

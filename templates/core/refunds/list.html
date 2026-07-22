@@ -1,0 +1,111 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static currency_tags %}
+
+{% block title %}Refunds — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/landing.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / Refunds</p>
+                <h1>Refunds</h1>
+                <p>Issue and mark refunds after repaying buyers. No automatic M-Pesa reversal in this environment.</p>
+            </div>
+            <div class="admin-header-actions">
+                <a href="{% url 'core:group_buy_list' %}" class="btn btn-outline">Group buys</a>
+            </div>
+        </div>
+
+        {% if mpesa_reversal_required %}
+        <div class="manage-alert manage-alert-warning refund-mpesa-alert">
+            <strong>Production reminder:</strong> Before marking any refund complete, trigger the M-Pesa Daraja reversal for the original payment in the Safaricom portal. This app only records refund status — it does not send money back automatically.
+        </div>
+        {% endif %}
+
+        <div class="admin-summary-bar">
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Pending</span>
+                <strong>{{ summary.pending }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Completed</span>
+                <strong>{{ summary.completed }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Cancelled</span>
+                <strong>{{ summary.cancelled }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Failed</span>
+                <strong>{{ summary.failed }}</strong>
+            </div>
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <div class="dashboard-section-header">
+                <h2 class="manage-section-title">All refunds</h2>
+                <div class="admin-filter-tabs">
+                    <a href="?status=pending" class="btn btn-outline btn-sm{% if status_filter == 'pending' %} is-active{% endif %}">Pending</a>
+                    <a href="?status=completed" class="btn btn-outline btn-sm{% if status_filter == 'completed' %} is-active{% endif %}">Completed</a>
+                    <a href="?status=all" class="btn btn-outline btn-sm{% if status_filter == 'all' %} is-active{% endif %}">All</a>
+                </div>
+            </div>
+
+            {% if refunds %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Reference</th>
+                            <th>Order</th>
+                            <th>Buyer</th>
+                            <th>Product</th>
+                            <th>Amount</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Reason</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for refund in refunds %}
+                        <tr>
+                            <td><code>{{ refund.reference }}</code></td>
+                            <td>#{{ refund.order_id }}</td>
+                            <td>{{ refund.order.user.get_full_name }}</td>
+                            <td>{{ refund.order.group_buy.product.name }}</td>
+                            <td>{% money refund.amount %}</td>
+                            <td>{{ refund.get_refund_type_display }}</td>
+                            <td><span class="status-badge status-badge-refund-{{ refund.status }}">{{ refund.get_status_display }}</span></td>
+                            <td>{{ refund.reason }}</td>
+                            <td>
+                                {% if refund.status == 'pending' %}
+                                <form method="post" class="refund-manage-actions">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="refund_id" value="{{ refund.pk }}">
+                                    <button type="submit" name="action" value="complete_refund" class="btn btn-primary btn-sm">Mark complete</button>
+                                    <button type="submit" name="action" value="cancel_refund" class="btn btn-outline btn-sm">Cancel</button>
+                                </form>
+                                {% else %}
+                                <span class="category-desc">{{ refund.completed_at|date:"M j, Y"|default:"—" }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="manage-section-lead">No refunds in this view.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

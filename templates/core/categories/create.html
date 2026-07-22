@@ -1,0 +1,68 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Add Category — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <h1>Add Category</h1>
+                {% if parent %}
+                <p>Creating a subcategory under <strong>{{ parent.get_breadcrumb }}</strong>.</p>
+                {% else %}
+                <p>Create a top-level category or choose a parent to nest it under.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="admin-card admin-card-narrow">
+            <form method="post" class="admin-form" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="form-errors">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="{{ form.parent.id_for_label }}">{{ form.parent.label }}</label>
+                    {{ form.parent }}
+                    <span class="field-hint">Leave empty for a top-level category (e.g. Electronics). Choose a parent to create a subcategory (e.g. Headphones under Audio).</span>
+                    {% if form.parent.errors %}<span class="field-error">{{ form.parent.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<span class="field-error">{{ form.name.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<span class="field-error">{{ form.description.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <div class="form-checkbox-row">
+                        {{ form.is_active }}
+                        <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+                    </div>
+                    {% if form.is_active.errors %}<span class="field-error">{{ form.is_active.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Create Category</button>
+                    <a href="{% url 'core:category_list' %}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

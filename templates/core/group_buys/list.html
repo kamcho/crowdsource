@@ -1,0 +1,166 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static currency_tags %}
+
+{% block title %}Group Buys — CrowdSource Import{% endblock %}
+{% block topbar_title %}Group buys{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/landing.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / Group buys</p>
+                <h1>Group buys</h1>
+                <p>Monitor MOQ progress, import batches, and paid orders across all campaigns.</p>
+            </div>
+            <div class="admin-header-actions">
+                <a href="{% url 'core:group_buy_create' %}" class="btn btn-primary">Create group buy</a>
+            </div>
+        </div>
+
+        <div class="admin-summary-bar">
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Total</span>
+                <strong>{{ summary.total }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Open</span>
+                <strong>{{ summary.open }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">MOQ reached</span>
+                <strong>{{ summary.moq_reached }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Importing</span>
+                <strong>{{ summary.importing }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Completed</span>
+                <strong>{{ summary.completed }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Cancelled</span>
+                <strong>{{ summary.cancelled }}</strong>
+            </div>
+        </div>
+
+        <div class="admin-filter-bar">
+            {% for value, label in status_filters %}
+            <a href="{% if value %}?status={{ value }}{% else %}{% url 'core:group_buy_list' %}{% endif %}"
+               class="admin-filter-chip{% if status_filter == value %} is-active{% endif %}">
+                {{ label }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <div class="admin-card">
+            {% if group_buys %}
+            <div class="data-table-wrap">
+                <table class="data-table group-buy-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>MOQ progress</th>
+                            <th>Pricing</th>
+                            <th>Group buy</th>
+                            <th>Import</th>
+                            <th>Backers</th>
+                            <th>Closes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for group_buy in group_buys %}
+                        {% widthratio group_buy.pledged_total group_buy.moq 100 as progress_pct %}
+                        <tr>
+                            <td>
+                                <div class="product-list-cell">
+                                    {% with image=group_buy.product.primary_image %}
+                                    {% if image %}
+                                    <img src="{{ image.file.url }}" alt="" class="product-list-thumb">
+                                    {% else %}
+                                    <span class="product-list-thumb product-list-thumb-empty">—</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                    <div>
+                                        <strong>{{ group_buy.product.name }}</strong>
+                                        <br><span class="category-desc">#{{ group_buy.pk }} · {{ group_buy.product.category.name }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="group-buy-progress-cell">
+                                <div class="group-buy-progress-meta">
+                                    <span>{{ group_buy.pledged_total }} / {{ group_buy.moq }} units</span>
+                                    <span class="progress-pct">{{ progress_pct }}%</span>
+                                </div>
+                                <div class="progress-bar progress-bar-sm">
+                                    <div class="progress-fill{% if group_buy.pledged_total >= group_buy.moq %} progress-fill-complete{% endif %}"
+                                         style="width: {% if progress_pct > 100 %}100{% else %}{{ progress_pct }}{% endif %}%"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <strong>{% money group_buy.unit_price %}</strong>
+                                <span class="category-desc">/ unit</span>
+                            </td>
+                            <td>
+                                <span class="status-badge status-badge-gb-{{ group_buy.status }}">
+                                    {{ group_buy.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if group_buy.import_batch %}
+                                <span class="status-badge status-badge-import-{{ group_buy.import_batch.status }}">
+                                    {{ group_buy.import_batch.get_status_display }}
+                                </span>
+                                {% if group_buy.import_batch.supplier %}
+                                <br><span class="category-desc">{{ group_buy.import_batch.supplier.name }}</span>
+                                {% endif %}
+                                {% if group_buy.import_batch.supplier_reference %}
+                                <br><span class="category-desc">Ref {{ group_buy.import_batch.supplier_reference }}</span>
+                                {% endif %}
+                                {% else %}
+                                <span class="category-desc">No batch</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ group_buy.backer_count }}</strong>
+                                <span class="category-desc">backers</span>
+                                {% if group_buy.paid_order_count %}
+                                <br><span class="category-desc">{{ group_buy.paid_order_count }} paid</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ group_buy.closes_at|date:"M j, Y" }}
+                                {% if group_buy.is_joinable %}
+                                <br><span class="category-desc text-success">Accepting pledges</span>
+                                {% endif %}
+                            </td>
+                            <td class="table-actions">
+                                <a href="{% url 'core:group_buy_manage' group_buy.pk %}" class="btn btn-primary btn-sm">Manage</a>
+                                <a href="{{ group_buy.product.get_absolute_url }}" class="btn btn-outline btn-sm">View</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-box">
+                <p>No group buys match this filter.</p>
+                <div class="admin-form-actions" style="justify-content: center;">
+                    <a href="{% url 'core:group_buy_list' %}" class="btn btn-outline">Show all</a>
+                    <a href="{% url 'core:group_buy_create' %}" class="btn btn-primary">Create group buy</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

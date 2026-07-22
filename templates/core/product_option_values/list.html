@@ -1,0 +1,57 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}{{ option.name }} Values — {{ product.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <h1>{{ option.name }} Values</h1>
+                <p>Choices for <strong>{{ option.name }}</strong> on {{ product.name }}.</p>
+            </div>
+            <a href="{% url 'core:product_option_value_create' option.pk %}" class="btn btn-primary">Add Value</a>
+        </div>
+
+        <div class="admin-card">
+            {% if values %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Value</th>
+                            <th>Sort</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in values %}
+                        <tr>
+                            <td><strong>{{ item.value }}</strong></td>
+                            <td>{{ item.sort_order }}</td>
+                            <td>{{ item.created_at|date:"M j, Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-box">
+                <p>No values yet. Add choices like Red, Blue, or XL for this option.</p>
+                <a href="{% url 'core:product_option_value_create' option.pk %}" class="btn btn-primary">Add Value</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <p class="category-summary">
+            <a href="{% url 'core:product_option_list' product.pk %}">← Back to options</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

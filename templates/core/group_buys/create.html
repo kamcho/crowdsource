@@ -1,0 +1,76 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Create Group Buy — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / <a href="{% url 'core:group_buy_list' %}">Group buys</a> / Create</p>
+                <h1>Create group buy</h1>
+                {% if product %}
+                <p>Launch a new campaign for <strong>{{ product.name }}</strong>.</p>
+                {% else %}
+                <p>Start a new crowd-buy campaign for an active product.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="admin-card admin-card-narrow">
+            <form method="post" class="admin-form" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="form-errors">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="{{ form.product.id_for_label }}">{{ form.product.label }}</label>
+                    {{ form.product }}
+                    {% if form.product.errors %}<span class="field-error">{{ form.product.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="{{ form.moq.id_for_label }}">{{ form.moq.label }}</label>
+                        {{ form.moq }}
+                        <span class="field-hint">Total units required across all buyers to unlock bulk import.</span>
+                        {% if form.moq.errors %}<span class="field-error">{{ form.moq.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.unit_price.id_for_label }}">{{ form.unit_price.label }}</label>
+                        {{ form.unit_price }}
+                        {% if form.unit_price.errors %}<span class="field-error">{{ form.unit_price.errors.0 }}</span>{% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="{{ form.closes_at.id_for_label }}">{{ form.closes_at.label }}</label>
+                        {{ form.closes_at }}
+                        <span class="field-hint">Last date buyers can join this group buy.</span>
+                        {% if form.closes_at.errors %}<span class="field-error">{{ form.closes_at.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+                        {{ form.status }}
+                        {% if form.status.errors %}<span class="field-error">{{ form.status.errors.0 }}</span>{% endif %}
+                    </div>
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Create group buy</button>
+                    <a href="{% url 'core:group_buy_list' %}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

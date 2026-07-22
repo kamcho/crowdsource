@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CrowdSource Import — Buy Together, Save More{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/landing.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<!-- Hero Section -->
+<section class="hero" id="hero">
+    <div class="hero-bg" aria-hidden="true">
+        <div class="hero-blob hero-blob-1"></div>
+        <div class="hero-blob hero-blob-2"></div>
+        <div class="hero-grid-pattern"></div>
+    </div>
+    <div class="container hero-inner">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="badge-dot"></span>
+                Factory-direct · Crowd-powered imports
+            </div>
+            <h1>
+                Import from China at
+                <span class="text-gradient">wholesale prices</span>
+                — together.
+            </h1>
+            <p class="hero-lead">
+                Can't meet the factory MOQ alone? Join others buying the same product.
+                Once the group hits minimum order quantity, everyone unlocks bulk pricing
+                and we handle sourcing, customs, and delivery.
+            </p>
+            <div class="hero-actions">
+                <a href="#products" class="btn btn-primary btn-lg">
+                    Explore Group Buys
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+                <a href="#how-it-works" class="btn btn-secondary btn-lg">How it works</a>
+            </div>
+            <ul class="hero-trust" aria-label="Platform benefits">
+                <li>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Verified suppliers
+                </li>
+                <li>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Up to 40% savings
+                </li>
+                <li>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <rect x="1" y="3" width="15" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+                        <path d="M16 8h4l3 5v3h-7V8z" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="5.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="18.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Door-to-door delivery
+                </li>
+            </ul>
+        </div>
+
+        <div class="hero-visual">
+            <div class="hero-card hero-card-main">
+                <div class="hero-card-top">
+                    <span class="live-tag"><span class="live-pulse"></span>Live group buy</span>
+                    <span class="hero-card-time">Closes in 4 days</span>
+                </div>
+                <div class="hero-card-product">
+                    <div class="hero-thumb hero-thumb-1"></div>
+                    <div>
+                        <h3>Wireless Earbuds Pro</h3>
+                        <p class="hero-card-category">Electronics</p>
+                    </div>
+                </div>
+                <div class="price-compare">
+                    <div class="price-item">
+                        <span>Retail</span>
+                        <del>$29.99</del>
+                    </div>
+                    <div class="price-item price-item-highlight">
+                        <span>Group price</span>
+                        <strong>$12.50</strong>
+                    </div>
+                </div>
+                <div class="progress-block">
+                    <div class="progress-header">
+                        <span>342 of 500 units</span>
+                        <span class="progress-pct">68%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 68%"></div>
+                    </div>
+                    <p class="progress-note"><strong>158 more</strong> buyers needed to unlock MOQ</p>
+                </div>
+                <div class="buyer-avatars">
+                    <div class="avatar-stack">
+                        <span class="avatar">A</span>
+                        <span class="avatar">K</span>
+                        <span class="avatar">M</span>
+                        <span class="avatar">+</span>
+                    </div>
+                    <span>24 people joined today</span>
+                </div>
+            </div>
+
+            <div class="hero-card hero-card-float hero-card-secondary">
+                <div class="mini-stat">
+                    <span class="mini-stat-icon success">✓</span>
+                    <div>
+                        <strong>MOQ Reached!</strong>
+                        <span>Stainless Steel Bottles</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-card hero-card-float hero-card-tertiary">
+                <div class="mini-stat">
+                    <span class="mini-stat-icon savings">%</span>
+                    <div>
+                        <strong>Save 58%</strong>
+                        <span>vs. local retail</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats strip -->
+<section class="stats-strip" aria-label="Platform statistics">
+    <div class="container stats-grid">
+        <div class="stat-card">
+            <strong>2,400+</strong>
+            <span>Active buyers</span>
+        </div>
+        <div class="stat-card">
+            <strong>180+</strong>
+            <span>Products sourced</span>
+        </div>
+        <div class="stat-card">
+            <strong>40%</strong>
+            <span>Avg. savings vs retail</span>
+        </div>
+        <div class="stat-card">
+            <strong>98%</strong>
+            <span>Orders delivered on time</span>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section class="how-it-works" id="how-it-works">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-label">Simple process</span>
+            <h2>How crowd sourcing works</h2>
+            <p>From browsing to doorstep — we make bulk importing effortless.</p>
+        </div>
+        <div class="steps">
+            <article class="step-card">
+                <div class="step-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+                        <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <span class="step-num">Step 1</span>
+                <h3>Browse & order</h3>
+                <p>Pick products from our catalog and choose how many units you want.</p>
+            </article>
+            <article class="step-card">
+                <div class="step-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <span class="step-num">Step 2</span>
+                <h3>We group buyers</h3>
+                <p>Your order joins others who want the same product until MOQ is met.</p>
+            </article>
+            <article class="step-card">
+                <div class="step-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" stroke="currentColor" stroke-width="2"/>
+                        <path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
+                <span class="step-num">Step 3</span>
+                <h3>Import & deliver</h3>
+                <p>We source from the factory, handle customs, and ship directly to you.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- Categories Section -->
+<section class="categories" id="categories">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-label">Browse by category</span>
+            <h2>Shop Alibaba-style</h2>
+            <p>Pick a parent on the left — subcategories appear in a grid on the right, Alibaba-style.</p>
+        </div>
+
+        {% if category_nav_tree %}
+        <div class="categories-preview">
+            {% for category in category_nav_tree %}
+            <button type="button" class="category-preview-card" data-category-drawer-open data-category-slug="{{ category.slug }}">
+                <span>{{ category.name }}</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            {% endfor %}
+        </div>
+        <div class="categories-open-btn">
+            <button type="button" class="btn btn-primary btn-lg" data-category-drawer-open>Browse all categories</button>
+        </div>
+        {% else %}
+        <p class="empty-state">Categories coming soon.</p>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Products Section -->
+<section class="products" id="products">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-label">Catalog</span>
+            <h2>Trending products</h2>
+            <p>Browse factory-direct products ready for crowd buying.</p>
+        </div>
+
+        <div class="product-grid">
+            {% include 'home/partials/product_cards.html' %}
+            {% if not products %}
+            <p class="empty-state">No products available yet. Check back soon!</p>
+            {% endif %}
+        </div>
+
+        {% if total_product_count > products|length %}
+        <div class="products-view-all-wrap">
+            <a href="{% url 'home:product_browse' %}" class="btn btn-outline btn-lg">View all {{ total_product_count }} products</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- CTA Banner -->
+<section class="cta-banner">
+    <div class="container cta-inner">
+        <div class="cta-content">
+            <h2>Ready to start saving?</h2>
+            <p>Join thousands of buyers importing smarter. No MOQ headaches — we handle the rest.</p>
+        </div>
+        <a href="#products" class="btn btn-white btn-lg">Browse Products</a>
+    </div>
+</section>
+
+{% endblock %}

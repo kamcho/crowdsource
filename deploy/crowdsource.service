@@ -1,0 +1,25 @@
+# systemd unit for CrowdSource Django (gunicorn WSGI)
+# Install to: /etc/systemd/system/crowdsource.service
+[Unit]
+Description=CrowdSource Import Django (gunicorn)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=notify
+User=crowdsource
+Group=www-data
+WorkingDirectory=/srv/crowdsource
+EnvironmentFile=/srv/crowdsource/.env
+
+RuntimeDirectory=crowdsource
+RuntimeDirectoryMode=0755
+
+ExecStart=/srv/crowdsource/.venv/bin/gunicorn -c /srv/crowdsource/deploy/gunicorn.conf.py config.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

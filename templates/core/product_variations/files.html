@@ -1,0 +1,90 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Variation Media — {{ variation.sku }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <h1>Variation Images</h1>
+                <p>Media for <strong>{{ variation.display_name }}</strong> · <code>{{ variation.sku }}</code></p>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            <form method="post" enctype="multipart/form-data" class="admin-form" novalidate>
+                {% csrf_token %}
+
+                <div class="formset-section">
+                    <div class="formset-header">
+                        <h2>Images &amp; videos</h2>
+                        <p class="field-hint">These images appear when buyers select this variation on the product page.</p>
+                    </div>
+
+                    {{ formset.management_form }}
+                    {% if formset.non_form_errors %}
+                    <div class="form-errors">{{ formset.non_form_errors }}</div>
+                    {% endif %}
+
+                    {% for file_form in formset %}
+                    <div class="formset-row">
+                        <div class="formset-row-header">
+                            <strong>Media {{ forloop.counter }}</strong>
+                            {% if file_form.instance.pk %}
+                            <label class="form-checkbox-row formset-delete">
+                                {{ file_form.DELETE }} Remove
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        {{ file_form.id }}
+
+                        <div class="form-row form-row-2">
+                            <div class="form-group">
+                                <label for="{{ file_form.file.id_for_label }}">{{ file_form.file.label }}</label>
+                                {{ file_form.file }}
+                                {% if file_form.file.errors %}<span class="field-error">{{ file_form.file.errors.0 }}</span>{% endif %}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ file_form.media_type.id_for_label }}">{{ file_form.media_type.label }}</label>
+                                {{ file_form.media_type }}
+                            </div>
+                        </div>
+
+                        <div class="form-row form-row-2">
+                            <div class="form-group">
+                                <label for="{{ file_form.caption.id_for_label }}">{{ file_form.caption.label }}</label>
+                                {{ file_form.caption }}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ file_form.sort_order.id_for_label }}">{{ file_form.sort_order.label }}</label>
+                                {{ file_form.sort_order }}
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-checkbox-row">
+                                {{ file_form.is_primary }}
+                                <label for="{{ file_form.is_primary.id_for_label }}">{{ file_form.is_primary.label }}</label>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Save Media</button>
+                    <a href="{% url 'core:product_variation_list' product.pk %}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

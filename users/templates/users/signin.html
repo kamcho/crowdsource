@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sign In — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Welcome back</h1>
+            <p>Sign in with your phone number or Google account.</p>
+        </div>
+
+        <form method="post" class="auth-form" novalidate>
+            {% csrf_token %}
+            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+            {% if form.non_field_errors %}
+            <div class="form-errors">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="{{ form.phone.id_for_label }}">Phone number</label>
+                {{ form.phone }}
+                {% if form.phone.errors %}<span class="field-error">{{ form.phone.errors.0 }}</span>{% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.password.id_for_label }}">Password</label>
+                {{ form.password }}
+                {% if form.password.errors %}<span class="field-error">{{ form.password.errors.0 }}</span>{% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg">Sign In</button>
+        </form>
+
+        {% include 'users/partials/google_signin.html' with google_divider_before='or continue with' %}
+
+        <p class="auth-switch">
+            Don't have an account? <a href="{% url 'users:signup' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Sign up</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

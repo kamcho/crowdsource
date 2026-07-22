@@ -1,0 +1,128 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Add Product — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <h1>Add Product</h1>
+                <p>Create a catalog product and attach images or videos.</p>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            <form method="post" enctype="multipart/form-data" class="admin-form" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="form-errors">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+                    {{ form.category }}
+                    {% if form.category.errors %}<span class="field-error">{{ form.category.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.supplier.id_for_label }}">{{ form.supplier.label }}</label>
+                    {{ form.supplier }}
+                    <span class="field-hint">Link this product to the factory or trader you source from.</span>
+                    {% if form.supplier.errors %}<span class="field-error">{{ form.supplier.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<span class="field-error">{{ form.name.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<span class="field-error">{{ form.description.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <div class="form-checkbox-row">
+                        {{ form.is_active }}
+                        <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+                    </div>
+                    {% if form.is_active.errors %}<span class="field-error">{{ form.is_active.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="formset-section">
+                    <div class="formset-header">
+                        <h2>Images &amp; videos</h2>
+                        <p class="field-hint">Upload product photos or demo videos. Mark one as primary for listings.</p>
+                    </div>
+
+                    {{ formset.management_form }}
+                    {% if formset.non_form_errors %}
+                    <div class="form-errors">{{ formset.non_form_errors }}</div>
+                    {% endif %}
+
+                    {% for file_form in formset %}
+                    <div class="formset-row">
+                        <div class="formset-row-header">
+                            <strong>Media {{ forloop.counter }}</strong>
+                            {% if file_form.instance.pk %}
+                            <label class="form-checkbox-row formset-delete">
+                                {{ file_form.DELETE }} Remove
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        {{ file_form.id }}
+
+                        <div class="form-row form-row-2">
+                            <div class="form-group">
+                                <label for="{{ file_form.file.id_for_label }}">{{ file_form.file.label }}</label>
+                                {{ file_form.file }}
+                                {% if file_form.file.errors %}<span class="field-error">{{ file_form.file.errors.0 }}</span>{% endif %}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ file_form.media_type.id_for_label }}">{{ file_form.media_type.label }}</label>
+                                {{ file_form.media_type }}
+                                {% if file_form.media_type.errors %}<span class="field-error">{{ file_form.media_type.errors.0 }}</span>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="form-row form-row-2">
+                            <div class="form-group">
+                                <label for="{{ file_form.caption.id_for_label }}">{{ file_form.caption.label }}</label>
+                                {{ file_form.caption }}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ file_form.sort_order.id_for_label }}">{{ file_form.sort_order.label }}</label>
+                                {{ file_form.sort_order }}
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-checkbox-row">
+                                {{ file_form.is_primary }}
+                                <label for="{{ file_form.is_primary.id_for_label }}">{{ file_form.is_primary.label }}</label>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Create Product</button>
+                    <a href="{% url 'core:product_list' %}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

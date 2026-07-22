@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Browse Products — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/landing.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="products-page-hero">
+    <div class="container">
+        <div class="products-page-header">
+            <div>
+                <span class="section-label">Catalog</span>
+                <h1>Browse products</h1>
+                <p>Factory-direct group buys — scroll to load more as you explore.</p>
+            </div>
+            <form class="products-search-form" method="get" role="search">
+                {% if category_slug %}<input type="hidden" name="category" value="{{ category_slug }}">{% endif %}
+                <input type="search" name="q" value="{{ search }}" placeholder="Search products..." aria-label="Search products">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section class="products-page-filters">
+    <div class="container">
+        <div class="products-filter-bar">
+            <span class="products-filter-label">Category</span>
+            <div class="products-filter-chips">
+                <a href="{% url 'home:product_browse' %}{% if search %}?q={{ search|urlencode }}{% endif %}" class="products-filter-chip{% if not category %} is-active{% endif %}">All</a>
+                {% for group in category_groups %}
+                <a href="{% url 'home:product_browse' %}?category={{ group.root.slug }}{% if search %}&amp;q={{ search|urlencode }}{% endif %}" class="products-filter-chip{% if category and category.pk == group.root.pk %} is-active{% endif %}">{{ group.root.name }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        <p class="products-result-count">{{ total_count }} product{{ total_count|pluralize }} found</p>
+    </div>
+</section>
+
+<section class="products products-page">
+    <div class="container">
+        <div
+            id="productGrid"
+            class="product-grid"
+            data-load-url="{% url 'home:product_browse_load' %}"
+            data-next-page="{% if page_obj.has_next %}{{ page_obj.next_page_number }}{% endif %}"
+            data-has-next="{% if page_obj.has_next %}true{% else %}false{% endif %}"
+            data-category="{{ category_slug }}"
+            data-search="{{ search }}"
+        >
+            {% include 'home/partials/product_cards.html' %}
+        </div>
+
+        <div id="productScrollSentinel" class="products-scroll-sentinel" aria-hidden="true"></div>
+
+        <div id="productScrollLoader" class="products-scroll-loader" hidden>
+            <span class="products-scroll-spinner" aria-hidden="true"></span>
+            <span>Loading more products…</span>
+        </div>
+
+        <div id="productScrollEnd" class="products-scroll-end"{% if page_obj.has_next %} hidden{% endif %}>
+            <p>You've seen all {{ total_count }} product{{ total_count|pluralize }}.</p>
+        </div>
+
+        {% if not products %}
+        <div class="products-empty-state">
+            <p>No products match your search. Try a different category or search term.</p>
+            <a href="{% url 'home:product_browse' %}" class="btn btn-primary">View all products</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/products.js' %}"></script>
+{% endblock %}

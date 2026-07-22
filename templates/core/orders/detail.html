@@ -1,0 +1,236 @@
+{% extends 'dashboard/user_base.html' %}
+{% load static %}
+{% load currency_tags %}
+
+{% block title %}Order #{{ order.pk }} — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/landing.css' %}">
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/commerce.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="container">
+        <div class="commerce-card order-detail-card">
+            <p class="commerce-breadcrumb"><a href="{% url 'order_list' %}">My orders</a> / #{{ order.pk }}</p>
+
+            <div class="order-card-header order-detail-header">
+                <div class="order-card-product">
+                    {% with image=order.product.primary_image %}
+                    {% if image %}
+                    <img src="{{ image.file.url }}" alt="" class="order-card-thumb order-detail-thumb">
+                    {% else %}
+                    <span class="order-card-thumb order-card-thumb-empty">—</span>
+                    {% endif %}
+                    {% endwith %}
+                    <div>
+                        <div class="order-card-id-row">
+                            <h1>Order #{{ order.pk }}</h1>
+                            <span class="status-badge status-badge-{{ order.status }}">{{ order.get_status_display }}</span>
+                        </div>
+                        <p class="order-card-product-name">
+                            <a href="{{ order.product.get_absolute_url }}">{{ order.product.name }}</a>
+                        </p>
+                        <p class="order-card-meta">
+                            Placed {{ order.created_at|date:"F j, Y, g:i A" }}
+                            · Group buy {{ order.group_buy.get_status_display|lower }}
+                        </p>
+                    </div>
+                </div>
+                <div class="order-card-total">
+                    <span class="order-card-total-label">Order total</span>
+                    <strong>{% money order.total_amount %}</strong>
+                </div>
+            </div>
+
+            {% if order.payment %}
+            <div class="order-detail-payment commerce-card-inner">
+                <span class="order-detail-payment-label">Payment</span>
+                <div class="order-detail-payment-body">
+                    <span class="status-badge status-badge-paid">Completed</span>
+                    {% if order.payment.provider == 'demo' %}
+                    <span class="status-badge status-badge-pending_payment">Demo — not M-Pesa</span>
+                    {% elif order.payment.provider == 'mpesa' %}
+                    <span class="status-badge status-badge-paid">M-Pesa</span>
+                    {% endif %}
+                    <code>{{ order.payment.reference }}</code>
+                    {% if order.payment.mpesa_receipt_number %}
+                    <span class="order-detail-payment-date">M-Pesa {{ order.payment.mpesa_receipt_number }}</span>
+                    {% endif %}
+                    {% if order.payment.amount_kes %}
+                    <span class="order-detail-payment-date">KES {{ order.payment.amount_kes }}</span>
+                    {% endif %}
+                    <span class="order-detail-payment-date">{{ order.payment.completed_at|date:"M j, Y" }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if order.refunds.all or order.refunded_amount > 0 %}
+            <div class="order-detail-payment commerce-card-inner">
+                <span class="order-detail-payment-label">Refunds</span>
+                <div class="order-detail-delivery">
+                    {% if order.refunded_amount > 0 %}
+                    <span>Refunded <strong>{% money order.refunded_amount %}</strong></span>
+                    {% endif %}
+                    {% if order.refundable_amount > 0 %}
+                    <span class="category-desc">{% money order.refundable_amount %} may still be refundable by ops.</span>
+                    {% endif %}
+                    {% if order.refunds.all %}
+                    <ul class="pledge-line-list order-line-list">
+                        {% for refund in order.refunds.all %}
+                        <li>
+                            <span class="pledge-line-label">
+                                <code>{{ refund.reference }}</code>
+                                · {{ refund.get_refund_type_display }}
+                            </span>
+                            <span class="status-badge status-badge-refund-{{ refund.status }}">{{ refund.get_status_display }}</span>
+                            <span class="pledge-line-subtotal">{% money refund.amount %}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% with batch=order.group_buy.import_batch %}
+            <div class="product-progress order-card-progress">
+                <div class="progress-header">
+                    <span>Group buy progress</span>
+                    <span class="progress-pct">{{ order.group_buy.progress_percent }}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill{% if order.group_buy.moq_reached %} progress-fill-complete{% endif %}" style="width: {{ order.group_buy.progress_percent }}%"></div>
+                </div>
+                <p class="progress-meta">
+                    {{ order.group_buy.pledged_units }} / {{ order.group_buy.moq }} units pledged
+                    {% if order.group_buy.moq_reached %} · MOQ reached{% endif %}
+                </p>
+            </div>
+
+            {% if batch %}
+            <div class="import-batch-tracker commerce-card-inner">
+                <div class="import-batch-header">
+                    <span class="order-detail-payment-label">Import batch #{{ batch.pk }}</span>
+                    <span class="status-badge status-badge-import-{{ batch.status }}">{{ batch.get_status_display }}</span>
+                </div>
+                <p class="import-batch-message">{{ batch.buyer_status_message }}</p>
+                <div class="product-progress import-batch-progress">
+                    <div class="progress-header">
+                        <span>Import progress</span>
+                        <span class="progress-pct">{{ batch.progress_percent }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill progress-fill-import" style="width: {{ batch.progress_percent }}%"></div>
+                    </div>
+                </div>
+                <div class="import-batch-details">
+                    {% if batch.supplier_reference %}
+                    <span>Supplier ref <code>{{ batch.supplier_reference }}</code></span>
+                    {% endif %}
+                    {% if batch.estimated_arrival %}
+                    <span>ETA {{ batch.estimated_arrival|date:"F j, Y" }}</span>
+                    {% endif %}
+                    {% if batch.arrived_at %}
+                    <span>Arrived {{ batch.arrived_at|date:"F j, Y" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% elif order.status == 'paid' and order.group_buy.moq_reached %}
+            <div class="import-batch-tracker commerce-card-inner import-batch-pending">
+                <span class="order-detail-payment-label">Import status</span>
+                <p class="import-batch-message">{{ order.group_buy.import_status_message }}</p>
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            {% if order.has_delivery_address %}
+            <div class="order-detail-payment commerce-card-inner">
+                <span class="order-detail-payment-label">Delivery address</span>
+                <div class="order-detail-delivery">
+                    <strong>{{ order.delivery_recipient_name }}</strong>
+                    <span>{{ order.delivery_phone }}</span>
+                    <span>{{ order.delivery_formatted }}</span>
+                    {% if order.delivery_notes %}
+                    <span class="order-detail-delivery-notes">{{ order.delivery_notes }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if order.fulfillment %}
+            <div class="import-batch-tracker commerce-card-inner fulfillment-tracker">
+                <div class="import-batch-header">
+                    <span class="order-detail-payment-label">Delivery status</span>
+                    <span class="status-badge status-badge-fulfillment-{{ order.fulfillment.status }}">{{ order.fulfillment.get_status_display }}</span>
+                </div>
+                <p class="import-batch-message">{{ order.fulfillment.buyer_status_message }}</p>
+                <div class="product-progress import-batch-progress">
+                    <div class="progress-header">
+                        <span>Fulfillment progress</span>
+                        <span class="progress-pct">{{ order.fulfillment.progress_percent }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill progress-fill-fulfillment" style="width: {{ order.fulfillment.progress_percent }}%"></div>
+                    </div>
+                </div>
+                {% if order.fulfillment.tracking_reference %}
+                <div class="import-batch-details">
+                    <span>Tracking <code>{{ order.fulfillment.tracking_reference }}</code></span>
+                </div>
+                {% endif %}
+                {% if order.fulfillment.delivered_at %}
+                <div class="import-batch-details">
+                    <span>Delivered {{ order.fulfillment.delivered_at|date:"F j, Y" }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="order-detail-items">
+                <h2 class="order-detail-section-title">Items</h2>
+                <ul class="pledge-line-list order-line-list">
+                    {% for item in order.items.all %}
+                    <li>
+                        <span class="pledge-line-label">
+                            {% if item.variation %}{{ item.variation.display_name }}{% else %}Standard{% endif %}
+                        </span>
+                        <span class="pledge-line-qty">{{ item.quantity }} × {% money item.unit_price %}</span>
+                        <span class="pledge-line-subtotal">{% money item.line_total %}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="order-detail-total-row">
+                    <span>Total</span>
+                    <strong>{% money order.total_amount %}</strong>
+                </div>
+            </div>
+
+            {% if order.status == 'paid' %}
+            <p class="order-note order-detail-note">
+                {% if order.payment and order.payment.provider == 'demo' %}
+                This order was paid in <strong>demo mode</strong> — no real M-Pesa transaction occurred. Use M-Pesa checkout for a live payment.
+                {% elif order.fulfillment and order.fulfillment.status == 'delivered' %}
+                This order has been delivered. Thank you for buying with CrowdSource.
+                {% elif order.group_buy.status == 'completed' %}
+                Your import batch has arrived and your order is being prepared for local delivery.
+                {% else %}
+                Your payment was received and this order is confirmed for import.
+                {% endif %}
+            </p>
+            {% elif order.status == 'refunded' %}
+            <p class="order-note order-detail-note">This order has been fully refunded. Contact support if you have questions.</p>
+            {% elif order.status == 'pending_payment' %}
+            <p class="order-note order-detail-note">Complete payment from your <a href="{% url 'pledge_list' %}">pledges page</a> to confirm this order.</p>
+            {% endif %}
+
+            <div class="commerce-actions">
+                <a href="{% url 'order_list' %}" class="btn btn-outline">Back to orders</a>
+                <a href="{{ order.product.get_absolute_url }}" class="btn btn-primary">View product</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

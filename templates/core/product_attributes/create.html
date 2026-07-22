@@ -1,0 +1,62 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Add Attribute — {{ product.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <h1>Add Attribute</h1>
+                <p>Add a custom spec to <strong>{{ product.name }}</strong> or one of its variations.</p>
+            </div>
+        </div>
+
+        <div class="admin-card admin-card-narrow">
+            <form method="post" class="admin-form" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="form-errors">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="{{ form.variation.id_for_label }}">{{ form.variation.label }}</label>
+                    {{ form.variation }}
+                    <span class="field-hint">Leave blank for a product-wide attribute shown on every variation.</span>
+                    {% if form.variation.errors %}<span class="field-error">{{ form.variation.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+                    {{ form.title }}
+                    {% if form.title.errors %}<span class="field-error">{{ form.title.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<span class="field-error">{{ form.description.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.sort_order.id_for_label }}">{{ form.sort_order.label }}</label>
+                    {{ form.sort_order }}
+                    {% if form.sort_order.errors %}<span class="field-error">{{ form.sort_order.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Create Attribute</button>
+                    <a href="{% url 'core:product_attribute_list' product.pk %}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

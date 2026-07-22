@@ -1,0 +1,116 @@
+{% if google_client_id %}
+<div class="auth-divider">{{ google_divider_before|default:"or continue with" }}</div>
+
+<div class="google-signin-wrap">
+    <div
+        class="google-signin-mount"
+        id="{{ google_button_id|default:'googleSignInButton' }}"
+        data-client-id="{{ google_client_id }}"
+        data-auth-url="{% url 'users:google_auth' %}"
+        data-next="{{ next|default:'' }}"
+        data-button-text="{{ google_button_text|default:'continue_with' }}"
+    >
+        <p class="google-signin-fallback">Loading Google Sign-In…</p>
+    </div>
+</div>
+<p class="google-signin-error" id="{{ google_button_id|default:'googleSignInButton' }}-error" role="alert"></p>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+(function () {
+    var mountId = '{{ google_button_id|default:"googleSignInButton" }}';
+    var mount = document.getElementById(mountId);
+    if (!mount) return;
+
+    var clientId = mount.dataset.clientId;
+    var authUrl = mount.dataset.authUrl;
+    var nextUrl = mount.dataset.next || '';
+    var buttonText = mount.dataset.buttonText || 'continue_with';
+    var errorEl = document.getElementById(mountId + '-error');
+    var tries = 0;
+
+    function getCookie(name) {
+        var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? decodeURIComponent(match[2]) : '';
+    }
+
+    function showError(message) {
+        if (!errorEl) return;
+        errorEl.textContent = message;
+        errorEl.classList.add('is-visible');
+    }
+
+    function handleCredential(response) {
+        if (!response || !response.credential) {
+            showError('Google sign-in was cancelled.');
+            return;
+        }
+
+        fetch(authUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                credential: response.credential,
+                next: nextUrl,
+            }),
+        })
+            .then(function (res) {
+                return res.json().then(function (data) {
+                    return { ok: res.ok, data: data };
+                });
+            })
+            .then(function (result) {
+                if (result.ok && result.data.ok) {
+                    window.location.href = result.data.redirect;
+                    return;
+                }
+                showError((result.data && result.data.error) || 'Google sign-in failed. Please try again.');
+            })
+            .catch(function () {
+                showError('Google sign-in failed. Please try again.');
+            });
+    }
+
+    function initGoogleButton() {
+        tries += 1;
+        if (!window.google || !google.accounts || !google.accounts.id) {
+            if (tries < 50) {
+                window.setTimeout(initGoogleButton, 100);
+                return;
+            }
+            showError('Could not load Google Sign-In. Check your connection and refresh.');
+            return;
+        }
+
+        google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleCredential,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+            use_fedcm_for_button: false,
+            itp_support: true,
+        });
+
+        mount.innerHTML = '';
+        google.accounts.id.renderButton(mount, {
+            type: 'standard',
+            theme: 'outline',
+            size: 'large',
+            text: buttonText,
+            shape: 'pill',
+            width: Math.min(mount.clientWidth || mount.parentElement.clientWidth || 320, 360),
+        });
+    }
+
+    initGoogleButton();
+})();
+</script>
+{% else %}
+<p class="google-signin-disabled">
+    Google Sign-In is not configured. Set <code>GOOGLE_CLIENT_ID</code> in your environment and restart the server.
+</p>
+{% endif %}

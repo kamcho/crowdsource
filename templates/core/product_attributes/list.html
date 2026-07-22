@@ -1,0 +1,68 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Attributes — {{ product.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <h1>Product Attributes</h1>
+                <p>Custom title/description specs for <strong>{{ product.name }}</strong> or individual variations.</p>
+            </div>
+            <div class="admin-header-actions">
+                <a href="{% url 'core:product_attribute_create' product.pk %}" class="btn btn-primary">Add Attribute</a>
+                <a href="{% url 'core:product_variation_list' product.pk %}" class="btn btn-outline">Variations</a>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            {% if attributes %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Description</th>
+                            <th>Applies to</th>
+                            <th>Sort</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for attribute in attributes %}
+                        <tr>
+                            <td><strong>{{ attribute.title }}</strong></td>
+                            <td>{{ attribute.description|truncatechars:80 }}</td>
+                            <td>
+                                {% if attribute.variation %}
+                                <code class="category-path">{{ attribute.variation.sku }}</code>
+                                {% else %}
+                                Whole product
+                                {% endif %}
+                            </td>
+                            <td>{{ attribute.sort_order }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-box">
+                <p>No attributes yet. Add specs like material, weight, or warranty at the product or variation level.</p>
+                <a href="{% url 'core:product_attribute_create' product.pk %}" class="btn btn-primary">Add Attribute</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <p class="category-summary">
+            <a href="{% url 'core:product_list' %}">← Back to products</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

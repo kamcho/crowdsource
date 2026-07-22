@@ -1,0 +1,75 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static currency_tags %}
+
+{% block title %}Variations — {{ product.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <h1>Product Variations</h1>
+                <p>SKUs for <strong>{{ product.name }}</strong> based on option combinations.</p>
+            </div>
+            <div class="admin-header-actions">
+                <a href="{% url 'core:product_variation_create' product.pk %}" class="btn btn-primary">Add Variation</a>
+                <a href="{% url 'core:product_attribute_list' product.pk %}" class="btn btn-outline">Attributes</a>
+                <a href="{% url 'core:product_option_list' product.pk %}" class="btn btn-outline">Options</a>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            {% if variations %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>Combination</th>
+                            <th>Price</th>
+                            <th>Media</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for variation in variations %}
+                        <tr>
+                            <td><code class="category-path">{{ variation.sku }}</code></td>
+                            <td>{{ variation.display_name }}</td>
+                            <td>{% money variation.price %}</td>
+                            <td>{{ variation.files.count }} file{{ variation.files.count|pluralize }}</td>
+                            <td>
+                                {% if variation.is_active %}
+                                <span class="status-badge status-badge-active">Active</span>
+                                {% else %}
+                                <span class="status-badge status-badge-inactive">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="table-actions">
+                                <a href="{% url 'core:product_variation_files' product.pk variation.pk %}" class="btn btn-outline btn-sm">Images</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-box">
+                <p>No variations yet. Add options and values first, then create SKUs for each combination.</p>
+                <a href="{% url 'core:product_variation_create' product.pk %}" class="btn btn-primary">Add Variation</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <p class="category-summary">
+            <a href="{% url 'core:product_list' %}">← Back to products</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

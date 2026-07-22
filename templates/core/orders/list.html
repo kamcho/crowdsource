@@ -1,0 +1,151 @@
+{% extends 'dashboard/user_base.html' %}
+{% load static %}
+{% load currency_tags %}
+
+{% block title %}My Orders — CrowdSource Import{% endblock %}
+{% block topbar_title %}My orders{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/landing.css' %}">
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/commerce.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="container">
+        <div class="commerce-header">
+            <div>
+                <h1>My orders</h1>
+                <p>Confirmed purchases from group buys you've paid for.</p>
+            </div>
+            <a href="{% url 'pledge_list' %}" class="btn btn-outline">View pledges</a>
+        </div>
+
+        {% if orders %}
+        <div class="pledge-summary-bar commerce-card order-summary-bar">
+            <div class="pledge-summary-stat">
+                <span class="pledge-summary-label">Orders</span>
+                <strong>{{ summary.order_count }}</strong>
+            </div>
+            <div class="pledge-summary-stat">
+                <span class="pledge-summary-label">Paid</span>
+                <strong>{{ summary.paid_count }}</strong>
+            </div>
+            <div class="pledge-summary-stat">
+                <span class="pledge-summary-label">Total units</span>
+                <strong>{{ summary.total_units }}</strong>
+            </div>
+            <div class="pledge-summary-stat">
+                <span class="pledge-summary-label">Total spent</span>
+                <strong>{% money summary.total_spent %}</strong>
+            </div>
+        </div>
+
+        <div class="order-card-list">
+            {% for order in orders %}
+            {% with product=order.product group_buy=order.group_buy %}
+            <article class="commerce-card order-card">
+                <div class="order-card-header">
+                    <div class="order-card-product">
+                        {% with image=product.primary_image %}
+                        {% if image %}
+                        <img src="{{ image.file.url }}" alt="" class="order-card-thumb">
+                        {% else %}
+                        <span class="order-card-thumb order-card-thumb-empty">—</span>
+                        {% endif %}
+                        {% endwith %}
+                        <div>
+                            <div class="order-card-id-row">
+                                <h2><a href="{% url 'order_detail' order.pk %}">Order #{{ order.pk }}</a></h2>
+                                <span class="status-badge status-badge-{{ order.status }}">{{ order.get_status_display }}</span>
+                            </div>
+                            <p class="order-card-product-name">
+                                <a href="{{ product.get_absolute_url }}">{{ product.name }}</a>
+                            </p>
+                            <p class="order-card-meta">
+                                Placed {{ order.created_at|date:"M j, Y" }}
+                                {% if order.payment %}
+                                · Ref <code>{{ order.payment.reference }}</code>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="order-card-total">
+                        <span class="order-card-total-label">Total</span>
+                        <strong>{% money order.total_amount %}</strong>
+                    </div>
+                </div>
+
+            {% with batch=group_buy.import_batch %}
+                <div class="product-progress order-card-progress">
+                    <div class="progress-header">
+                        <span>Group buy · {{ group_buy.get_status_display }}</span>
+                        <span class="progress-pct">{{ group_buy.progress_percent }}% MOQ</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill{% if group_buy.moq_reached %} progress-fill-complete{% endif %}" style="width: {{ group_buy.progress_percent }}%"></div>
+                    </div>
+                    <p class="progress-meta">{{ group_buy.import_status_message }}</p>
+                </div>
+
+                {% if batch %}
+                <div class="import-batch-tracker commerce-card-inner">
+                    <div class="import-batch-header">
+                        <span class="order-detail-payment-label">Import batch #{{ batch.pk }}</span>
+                        <span class="status-badge status-badge-import-{{ batch.status }}">{{ batch.get_status_display }}</span>
+                    </div>
+                    <div class="product-progress import-batch-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill progress-fill-import" style="width: {{ batch.progress_percent }}%"></div>
+                        </div>
+                    </div>
+                    {% if batch.supplier_reference or batch.estimated_arrival %}
+                    <p class="import-batch-meta">
+                        {% if batch.supplier_reference %}Ref <code>{{ batch.supplier_reference }}</code>{% endif %}
+                        {% if batch.estimated_arrival %} · ETA {{ batch.estimated_arrival|date:"M j, Y" }}{% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% endwith %}
+
+                {% if order.fulfillment %}
+                <div class="order-fulfillment-strip">
+                    <span class="status-badge status-badge-fulfillment-{{ order.fulfillment.status }}">{{ order.fulfillment.get_status_display }}</span>
+                    <span class="order-fulfillment-msg">{{ order.fulfillment.buyer_status_message }}</span>
+                </div>
+                {% endif %}
+
+                <ul class="pledge-line-list order-line-list">
+                    {% for item in order.items.all %}
+                    <li>
+                        <span class="pledge-line-label">
+                            {% if item.variation %}{{ item.variation.display_name }}{% else %}Standard{% endif %}
+                        </span>
+                        <span class="pledge-line-qty">{{ item.quantity }} × {% money item.unit_price %}</span>
+                        <span class="pledge-line-subtotal">{% money item.line_total %}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <div class="commerce-actions">
+                    <a href="{% url 'order_detail' order.pk %}" class="btn btn-primary">View details</a>
+                    <a href="{{ product.get_absolute_url }}" class="btn btn-outline">View product</a>
+                </div>
+            </article>
+            {% endwith %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="commerce-card empty-state-box">
+            <p>No orders yet. Pledge to a group buy, then confirm and pay from your pledges page.</p>
+            <div class="commerce-actions">
+                <a href="{% url 'pledge_list' %}" class="btn btn-outline">My pledges</a>
+                <a href="{% url 'home:landing' %}#products" class="btn btn-primary">Browse products</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

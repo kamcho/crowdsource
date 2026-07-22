@@ -1,0 +1,26 @@
+<div id="categoryDrawer" class="category-drawer" hidden aria-hidden="true">
+    <div class="category-drawer-backdrop" data-category-drawer-close tabindex="-1"></div>
+    <aside
+        class="category-drawer-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="categoryDrawerTitle"
+        tabindex="-1"
+    >
+        <header class="category-drawer-header">
+            <h2 id="categoryDrawerTitle">All categories</h2>
+            <button type="button" class="category-drawer-close" data-category-drawer-close aria-label="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </header>
+        <div class="category-drawer-body">
+            <nav class="category-drawer-sidebar" aria-label="Parent categories">
+                <ul class="category-drawer-parents"></ul>
+            </nav>
+            <div class="category-drawer-content" aria-live="polite"></div>
+        </div>
+    </aside>
+</div>
+{{ category_nav_tree|json_script:"category-nav-data" }}

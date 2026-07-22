@@ -1,0 +1,195 @@
+{% extends 'dashboard/user_base.html' %}
+{% load currency_tags %}
+
+{% block title %}My Account — CrowdSource Import{% endblock %}{% block topbar_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="user-dash-hero">
+    <div class="user-dash-welcome">
+        <h1>Welcome back, {{ user.first_name|default:user.get_full_name }}</h1>
+        <p>Track your pledges, orders, and deliveries from one place.</p>
+    </div>
+    <div class="user-profile-avatar-lg" aria-hidden="true">{{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}</div>
+</div>
+
+<div class="dash-stats-grid">
+    <a href="{% url 'pledge_list' %}" class="dash-stat-card dash-stat-card-link">
+        <div class="dash-stat-card-header">
+            <div>
+                <p class="dash-stat-label">My pledges</p>
+                <p class="dash-stat-value">{{ user_stats.pledges }}</p>
+            </div>
+            <div class="dash-stat-icon dash-stat-icon-purple" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+        </div>
+        <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-purple" style="width: {% if user_stats.pledges %}65{% else %}8{% endif %}%"></div></div>
+        <p class="dash-stat-trend"><span class="dash-view-all">View pledges →</span></p>
+    </a>
+
+    <a href="{% url 'order_list' %}" class="dash-stat-card dash-stat-card-link">
+        <div class="dash-stat-card-header">
+            <div>
+                <p class="dash-stat-label">Paid orders</p>
+                <p class="dash-stat-value">{{ user_stats.orders }}</p>
+            </div>
+            <div class="dash-stat-icon dash-stat-icon-teal" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            </div>
+        </div>
+        <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-teal" style="width: {% if user_stats.orders %}55{% else %}8{% endif %}%"></div></div>
+        <p class="dash-stat-trend">{{ user_stats.pending_orders }} awaiting payment</p>
+    </a>
+
+    <a href="{% url 'cart_detail' %}" class="dash-stat-card dash-stat-card-link">
+        <div class="dash-stat-card-header">
+            <div>
+                <p class="dash-stat-label">Cart items</p>
+                <p class="dash-stat-value">{{ user_stats.cart_items }}</p>
+            </div>
+            <div class="dash-stat-icon dash-stat-icon-orange" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+            </div>
+        </div>
+        <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-orange" style="width: {% if user_stats.cart_items %}75{% else %}8{% endif %}%"></div></div>
+        <p class="dash-stat-trend"><span class="dash-view-all">Open cart →</span></p>
+    </a>
+
+    <article class="dash-stat-card">
+        <div class="dash-stat-card-header">
+            <div>
+                <p class="dash-stat-label">Member since</p>
+                <p class="dash-stat-value" style="font-size: 1.35rem;">{{ user.date_joined|date:"M Y" }}</p>
+            </div>
+            <div class="dash-stat-icon dash-stat-icon-green" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+        </div>
+        <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-green" style="width: 100%"></div></div>
+        <p class="dash-stat-trend">CrowdSource member</p>
+    </article>
+</div>
+
+<div class="dash-panels-row dash-panels-row-equal">
+    <div class="user-profile-card" style="margin-bottom: 0;">
+        <div class="user-profile-card-header">
+            <div class="user-profile-avatar-lg" aria-hidden="true">{{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}</div>
+            <div>
+                <h2>{{ user.get_full_name }}</h2>
+                <p>{% if user.email %}{{ user.email }}{% else %}{{ user.phone }}{% endif %}</p>
+            </div>
+            <span class="user-profile-badge">Active member</span>
+        </div>
+        <dl class="user-profile-details">
+            {% if user.phone %}
+            <div class="user-profile-row">
+                <dt>Phone</dt>
+                <dd>{{ user.phone }}</dd>
+            </div>
+            {% endif %}
+            {% if user.email %}
+            <div class="user-profile-row">
+                <dt>Email</dt>
+                <dd>{{ user.email }}</dd>
+            </div>
+            {% endif %}
+            <div class="user-profile-row">
+                <dt>Full name</dt>
+                <dd>{{ user.get_full_name }}</dd>
+            </div>
+            {% if user.google_id %}
+            <div class="user-profile-row">
+                <dt>Google account</dt>
+                <dd>Connected</dd>
+            </div>
+            {% endif %}
+        </dl>
+    </div>
+
+    <div class="dash-panel">
+        <div class="dash-section-header">
+            <h2>Recent activity</h2>
+            {% if recent_orders or recent_pledges %}
+            <a href="{% url 'order_list' %}" class="dash-view-all">View all</a>
+            {% endif %}
+        </div>
+        {% if recent_orders or recent_pledges %}
+        <div class="user-activity-list">
+            {% for order in recent_orders|slice:":3" %}
+            <a href="{% url 'order_detail' order.pk %}" class="user-activity-item">
+                <span class="user-activity-icon" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                </span>
+                <span class="user-activity-body">
+                    <span class="user-activity-title">Order #{{ order.pk }} · {{ order.group_buy.product.name }}</span>
+                    <span class="user-activity-meta">Paid · {% money order.total_amount %} · {{ order.created_at|date:"M j, Y" }}</span>
+                </span>
+            </a>
+            {% endfor %}
+            {% for pledge in recent_pledges|slice:":2" %}
+            <a href="{% url 'pledge_list' %}" class="user-activity-item">
+                <span class="user-activity-icon" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+                </span>
+                <span class="user-activity-body">
+                    <span class="user-activity-title">{{ pledge.group_buy.product.name }}</span>
+                    <span class="user-activity-meta">Pledged {{ pledge.quantity }} unit{{ pledge.quantity|pluralize }} · {{ pledge.group_buy.get_status_display }}</span>
+                </span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="user-empty-state">
+            <p>No activity yet. Browse products and join your first group buy.</p>
+            <a href="{% url 'home:product_browse' %}" class="btn btn-primary">Browse products</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="dash-section-header" style="margin-top: 1.75rem;">
+    <h2>Quick actions</h2>
+</div>
+<div class="dashboard-links-grid">
+    <a href="{% url 'pledge_list' %}" class="dash-action-card">
+        <span class="dash-action-icon dash-stat-icon-purple" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </span>
+        <span class="dash-action-body">
+            <span class="dash-action-title">My pledges</span>
+            <span class="dash-action-desc">Review active group buy commitments</span>
+        </span>
+        <span class="dash-action-arrow" aria-hidden="true">→</span>
+    </a>
+    <a href="{% url 'order_list' %}" class="dash-action-card">
+        <span class="dash-action-icon dash-stat-icon-teal" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        </span>
+        <span class="dash-action-body">
+            <span class="dash-action-title">My orders</span>
+            <span class="dash-action-desc">Track confirmed purchases and delivery</span>
+        </span>
+        <span class="dash-action-arrow" aria-hidden="true">→</span>
+    </a>
+    <a href="{% url 'address_list' %}" class="dash-action-card">
+        <span class="dash-action-icon dash-stat-icon-blue" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </span>
+        <span class="dash-action-body">
+            <span class="dash-action-title">Delivery addresses</span>
+            <span class="dash-action-desc">Manage where your orders are shipped</span>
+        </span>
+        <span class="dash-action-arrow" aria-hidden="true">→</span>
+    </a>
+    <a href="{% url 'home:product_browse' %}" class="dash-action-card">
+        <span class="dash-action-icon dash-stat-icon-orange" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+        <span class="dash-action-body">
+            <span class="dash-action-title">Browse products</span>
+            <span class="dash-action-desc">Discover new group buy campaigns</span>
+        </span>
+        <span class="dash-action-arrow" aria-hidden="true">→</span>
+    </a>
+</div>
+{% endblock %}

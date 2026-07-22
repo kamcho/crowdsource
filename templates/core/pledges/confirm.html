@@ -1,0 +1,215 @@
+{% extends 'dashboard/user_base.html' %}
+
+{% load static %}
+{% load currency_tags %}
+
+
+
+{% block title %}Confirm Order — {{ product.name }}{% endblock %}
+
+
+
+{% block extra_css %}
+
+<link rel="stylesheet" href="{% static 'css/landing.css' %}">
+
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+
+<link rel="stylesheet" href="{% static 'css/commerce.css' %}">
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<section class="page-section">
+
+    <div class="container commerce-card commerce-card-narrow">
+
+        <p class="commerce-breadcrumb"><a href="{% url 'pledge_list' %}">My pledges</a> / Confirm order</p>
+
+        <h1>Confirm &amp; pay</h1>
+
+        <p class="commerce-subtitle">{{ product.name }}</p>
+
+
+
+        <div class="product-progress checkout-moq-progress">
+
+            <div class="progress-header">
+
+                <span>{{ group_buy.pledged_units }} / {{ group_buy.moq }} units pledged</span>
+
+                <span class="progress-pct">{{ group_buy.progress_percent }}%</span>
+
+            </div>
+
+            <div class="progress-bar">
+
+                <div class="progress-fill{% if group_buy.moq_reached %} progress-fill-complete{% endif %}" style="width: {{ group_buy.progress_percent }}%"></div>
+
+            </div>
+
+            <p class="progress-meta">
+
+                {% if group_buy.moq_reached %}
+
+                MOQ reached — your payment confirms your spot in the import batch.
+
+                {% else %}
+
+                MOQ not met yet — you can still pay now to secure your order early.
+
+                {% endif %}
+
+            </p>
+
+        </div>
+
+
+
+        <ul class="pledge-line-list checkout-line-list">
+
+            {% for entry in entries %}
+
+            <li>
+
+                <span class="pledge-line-label">
+
+                    {% if entry.variation %}{{ entry.variation.display_name }}{% else %}Standard{% endif %}
+
+                </span>
+
+                <span class="pledge-line-qty">{{ entry.quantity }} unit{{ entry.quantity|pluralize }}</span>
+
+                <span class="pledge-line-subtotal">{% money entry.line_total %}</span>
+
+            </li>
+
+            {% endfor %}
+
+        </ul>
+
+
+
+        <div class="checkout-summary">
+
+            <div class="cart-summary-row">
+
+                <span>Total units</span>
+
+                <strong>{{ total_units }}</strong>
+
+            </div>
+
+            <div class="cart-summary-row checkout-total-row">
+
+                <span>Amount due</span>
+
+                <strong>{% money total_amount %}{% if mpesa_enabled and display_currency == 'USD' %} <span class="category-desc">· KES {{ amount_kes|floatformat:0 }}</span>{% endif %}</strong>
+
+            </div>
+
+        </div>
+
+
+
+        <form method="post" action="{% url 'confirm_order_pay' group_buy.pk %}">
+
+            {% csrf_token %}
+
+
+
+            <div class="checkout-address-section">
+
+                <div class="checkout-address-header">
+
+                    <h2 class="order-detail-section-title">Delivery address</h2>
+
+                    <a href="{% url 'address_create' %}?next={{ request.path|urlencode }}" class="btn btn-outline btn-sm">Add new</a>
+
+                </div>
+
+
+
+                {% if addresses %}
+
+                <div class="address-select-list">
+
+                    {% for address in addresses %}
+
+                    <label class="address-select-card{% if address.pk == selected_address_id %} is-selected{% endif %}">
+
+                        <input type="radio" name="address_id" value="{{ address.pk }}"{% if address.pk == selected_address_id %} checked{% endif %}>
+
+                        <span class="address-select-body">
+
+                            <span class="address-select-title">
+
+                                {{ address.label|default:"Address" }}
+
+                                {% if address.is_default %}<span class="status-badge status-badge-paid">Default</span>{% endif %}
+
+                            </span>
+
+                            <span class="address-select-name">{{ address.recipient_name }} · {{ address.phone }}</span>
+
+                            <span class="address-select-line">{{ address.formatted_single_line }}</span>
+
+                        </span>
+
+                    </label>
+
+                    {% endfor %}
+
+                </div>
+
+                {% else %}
+
+                <div class="checkout-address-empty">
+
+                    <p>Add a delivery address before paying.</p>
+
+                    <a href="{% url 'address_create' %}?next={{ request.path|urlencode }}" class="btn btn-primary">Add delivery address</a>
+
+                </div>
+
+                {% endif %}
+
+            </div>
+
+            {% if mpesa_enabled %}
+            <div class="checkout-address-section">
+                <h2 class="order-detail-section-title">M-Pesa phone</h2>
+                <div class="form-group">
+                    <label for="mpesa_phone">Safaricom number</label>
+                    <input type="tel" name="mpesa_phone" id="mpesa_phone" class="form-input"
+                           value="{{ default_mpesa_phone }}" placeholder="0712345678" required>
+                    <p class="field-hint">Paybill <strong>4161900</strong>. You will receive an STK push to enter your PIN.</p>
+                </div>
+            </div>
+            <p class="checkout-note">
+                Pay <strong>KES {{ amount_kes }}</strong> via M-Pesa. Your order is confirmed after Safaricom approves the payment.
+            </p>
+            {% else %}
+            <p class="checkout-note checkout-note-demo">
+                <strong>Demo mode active.</strong> Pay simulates success instantly — no STK push, no real charge.
+                Set <code>PAYMENT_PROVIDER=mpesa</code> in <code>.env</code> for Paybill 4161900.
+            </p>
+            {% endif %}
+
+            <div class="commerce-actions">
+                <a href="{% url 'pledge_list' %}" class="btn btn-outline">Back to pledges</a>
+                {% if addresses %}
+                <button type="submit" class="btn btn-primary">
+                    {% if mpesa_enabled %}Pay KES {{ amount_kes|floatformat:0 }} with M-Pesa{% else %}Pay {% money total_amount %}{% endif %}
+                </button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+
+

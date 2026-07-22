@@ -1,0 +1,126 @@
+{% extends 'dashboard/user_base.html' %}
+{% load static %}
+
+{% block title %}M-Pesa Payment — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/landing.css' %}">
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/commerce.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="container commerce-card commerce-card-narrow">
+        <p class="commerce-breadcrumb"><a href="{% url 'pledge_list' %}">My pledges</a> / M-Pesa payment</p>
+
+        <h1>Complete M-Pesa payment</h1>
+        {% if product %}
+        <p class="commerce-subtitle">{{ product.name }}</p>
+        {% endif %}
+
+        <div class="checkout-summary">
+            <div class="cart-summary-row">
+                <span>Amount</span>
+                <strong>KES {{ payment.amount_kes }}</strong>
+            </div>
+            <div class="cart-summary-row">
+                <span>Reference</span>
+                <strong><code>{{ payment.reference }}</code></strong>
+            </div>
+            {% if payment.phone_number %}
+            <div class="cart-summary-row">
+                <span>Phone</span>
+                <strong>{{ payment.phone_number }}</strong>
+            </div>
+            {% endif %}
+        </div>
+
+        <div id="payment-status-panel" class="import-batch-tracker commerce-card-inner">
+            <p class="import-batch-message" id="payment-status-message">
+                {% if stk_needs_phone %}
+                Enter your Safaricom number below to receive the M-Pesa payment prompt.
+                {% else %}
+                {{ payment.result_description|default:"Check your phone and enter your M-Pesa PIN to approve the payment." }}
+                {% endif %}
+            </p>
+            <p class="progress-meta" id="payment-status-meta">
+                {% if stk_needs_phone %}Waiting to send STK push…{% else %}Waiting for Safaricom confirmation…{% endif %}
+            </p>
+        </div>
+
+        {% if stk_needs_phone and payment.status == 'pending' %}
+        <form method="post" class="checkout-address-section">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="mpesa_phone">Safaricom number</label>
+                <input type="tel" name="mpesa_phone" id="mpesa_phone" class="form-input"
+                       value="{{ default_mpesa_phone }}" placeholder="0712345678" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Send M-Pesa prompt</button>
+        </form>
+        {% elif stk_can_retry and payment.status == 'pending' %}
+        <form method="post" class="checkout-address-section" id="payment-retry-form">
+            {% csrf_token %}
+            <input type="hidden" name="retry" value="1">
+            <div class="form-group">
+                <label for="mpesa_phone">Safaricom number</label>
+                <input type="tel" name="mpesa_phone" id="mpesa_phone" class="form-input"
+                       value="{% if payment.phone_number %}{{ payment.phone_number }}{% else %}{{ default_mpesa_phone }}{% endif %}"
+                       placeholder="0712345678" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm" id="payment-retry-btn">Send new M-Pesa prompt</button>
+        </form>
+        {% endif %}
+
+        <div class="commerce-actions">
+            <a href="{% url 'pledge_list' %}" class="btn btn-outline" id="payment-back-link">Back to pledges</a>
+        </div>
+    </div>
+</section>
+
+<script>
+(function () {
+    const statusUrl = "{% url 'payment_status' payment.pk %}";
+    const messageEl = document.getElementById('payment-status-message');
+    const metaEl = document.getElementById('payment-status-meta');
+    const panel = document.getElementById('payment-status-panel');
+    let stopped = false;
+
+    function poll() {
+        if (stopped) return;
+        fetch(statusUrl, { headers: { 'Accept': 'application/json' } })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.result_description) {
+                    messageEl.textContent = data.result_description;
+                }
+                if (data.status === 'completed') {
+                    stopped = true;
+                    panel.classList.add('import-batch-pending');
+                    metaEl.textContent = data.mpesa_receipt_number
+                        ? 'Receipt ' + data.mpesa_receipt_number + '. Redirecting…'
+                        : 'Payment confirmed. Redirecting…';
+                    if (data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    }
+                } else if (data.status === 'failed' || data.status === 'cancelled') {
+                    stopped = true;
+                    panel.classList.add('import-batch-pending');
+                    metaEl.textContent = 'Payment not completed. You can try again from your pledges page.';
+                    var retryForm = document.getElementById('payment-retry-form');
+                    if (retryForm) {
+                        retryForm.style.display = 'none';
+                    }
+                }
+            })
+            .catch(function () {
+                metaEl.textContent = 'Still waiting…';
+            });
+    }
+
+    poll();
+    setInterval(poll, 4000);
+})();
+</script>
+{% endblock %}

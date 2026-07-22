@@ -1,0 +1,377 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load currency_tags %}
+
+{% block title %}{{ dashboard_title }} — CrowdSource Import{% endblock %}
+{% block topbar_title %}{{ dashboard_title }}{% endblock %}
+
+{% block content %}
+<div class="user-dash-welcome">
+    <h1>{{ dashboard_title }}</h1>
+    <p>{{ dashboard_subtitle }}</p>
+</div>
+
+<div class="dash-stats-grid{% if not full_admin_access %} dash-stats-grid-3{% endif %}">
+    {% if full_admin_access %}
+    <article class="dash-stat-card">
+        <div class="dash-stat-card-header">
+            <div>
+                <p class="dash-stat-label">Total users</p>
+                <p class="dash-stat-value">{{ stats.users }}</p>
+            </div>
+            <div class="dash-stat-icon dash-stat-icon-purple" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+        </div>
+        <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-purple" style="width: 70%"></div></div>
+        <p class="dash-stat-trend">{{ stats.payments }} completed payments</p>
+    </article>
+    {% endif %}
+    <article class="dash-stat-card">
+        <div class="dash-stat-card-header">
+            <div>
+                <p class="dash-stat-label">Group buys</p>
+                <p class="dash-stat-value">{{ stats.group_buys }}</p>
+            </div>
+            <div class="dash-stat-icon dash-stat-icon-teal" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+            </div>
+        </div>
+        <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-teal" style="width: 55%"></div></div>
+        <p class="dash-stat-trend">{{ stats.pledged_units }} units pledged</p>
+    </article>
+    {% if full_admin_access %}
+    <article class="dash-stat-card">
+        <div class="dash-stat-card-header">
+            <div>
+                <p class="dash-stat-label">Revenue</p>
+                <p class="dash-stat-value">{% money stats.revenue %}</p>
+            </div>
+            <div class="dash-stat-icon dash-stat-icon-orange" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            </div>
+        </div>
+        <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-orange" style="width: 66%"></div></div>
+        <p class="dash-stat-trend">{{ stats.products_active }} active products</p>
+    </article>
+    {% else %}
+    <article class="dash-stat-card">
+        <div class="dash-stat-card-header">
+            <div>
+                <p class="dash-stat-label">Paid orders</p>
+                <p class="dash-stat-value">{{ stats.orders_paid }}</p>
+            </div>
+            <div class="dash-stat-icon dash-stat-icon-orange" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            </div>
+        </div>
+        <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-orange" style="width: 55%"></div></div>
+        <p class="dash-stat-trend">{{ stats.orders_pending }} awaiting payment</p>
+    </article>
+    {% endif %}
+    <article class="dash-stat-card">
+        <div class="dash-stat-card-header">
+            <div>
+                <p class="dash-stat-label">Pending refunds</p>
+                <p class="dash-stat-value">{{ stats.refunds_pending }}</p>
+            </div>
+            <div class="dash-stat-icon dash-stat-icon-green" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+        </div>
+        <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-green" style="width: {% if stats.refunds_pending %}75{% else %}20{% endif %}%"></div></div>
+        <p class="dash-stat-trend">{{ stats.refunds_completed }} completed refunds</p>
+    </article>
+</div>
+
+<div class="dash-panels-row">
+    <div class="dash-panel">
+        <div class="dash-panel-header">
+            <div>
+                <h2 class="dash-panel-title">Order history</h2>
+                <p class="dash-panel-subtitle">Paid orders over the last 6 months</p>
+            </div>
+        </div>
+        <div class="dash-chart-wrap">
+            <canvas id="ordersChart" aria-label="Order history chart"></canvas>
+        </div>
+    </div>
+    <div class="dash-panel">
+        <div class="dash-panel-header">
+            <div>
+                <h2 class="dash-panel-title">Group buy status</h2>
+                <p class="dash-panel-subtitle">Campaign distribution</p>
+            </div>
+        </div>
+        <div class="dash-chart-wrap dash-chart-wrap-sm">
+            <canvas id="statusChart" aria-label="Group buy status chart"></canvas>
+            <div class="dash-donut-center">
+                <strong>{{ stats.group_buys }}</strong>
+                <span>Total campaigns</span>
+            </div>
+        </div>
+        <div class="dash-sale-stats">
+            {% for row in group_buy_pipeline|slice:":3" %}
+            <div class="dash-sale-stat-row">
+                <span>{{ row.label }}</span>
+                <strong>{{ row.count }}</strong>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="dash-panels-row dash-panels-row-equal">
+    <div class="dash-panel">
+        <div class="dash-panel-header">
+            <h2 class="dash-panel-title">Campaign progress</h2>
+            <a href="{% url 'core:group_buy_list' %}" class="dash-view-all">View all</a>
+        </div>
+        {% if campaign_progress %}
+        <div class="dash-progress-list">
+            {% for item in campaign_progress %}
+            <div>
+                <div class="dash-progress-item-header">
+                    <span class="dash-progress-item-title">{{ item.name }}</span>
+                    <span class="dash-progress-item-meta">{{ item.pledged }}/{{ item.moq }}</span>
+                </div>
+                <div class="dash-progress-bar">
+                    <div class="dash-progress-bar-fill" style="width: {{ item.percent }}%"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="manage-section-lead">No active campaigns right now.</p>
+        {% endif %}
+    </div>
+    <div class="dash-panel">
+        <div class="dash-panel-header">
+            <h2 class="dash-panel-title">Delivery activity</h2>
+        </div>
+        <div class="dash-chart-wrap dash-chart-wrap-sm">
+            <canvas id="activityChart" aria-label="Delivery activity chart"></canvas>
+        </div>
+    </div>
+</div>
+
+{% if moq_without_batch %}
+<div class="admin-card manage-table-card">
+    <div class="dashboard-section-header">
+        <h2 class="manage-section-title">Needs import batch</h2>
+        <span class="category-desc">MOQ reached but no bulk import set up yet</span>
+    </div>
+    <div class="data-table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for group_buy in moq_without_batch %}
+                <tr>
+                    <td>{{ group_buy.product.name }}</td>
+                    <td><span class="status-badge status-badge-gb-moq_reached">MOQ reached</span></td>
+                    <td><a href="{% url 'core:group_buy_manage' group_buy.pk %}" class="btn btn-outline btn-sm">Manage</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="dashboard-panels-grid">
+    <div class="admin-card manage-table-card">
+        <div class="dashboard-section-header">
+            <h2 class="manage-section-title">Recent paid orders</h2>
+        </div>
+        {% if recent_orders %}
+        <div class="data-table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        <th>Buyer</th>
+                        <th>Product</th>
+                        {% if full_admin_access %}<th>Total</th>{% endif %}
+                        <th>Delivery</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in recent_orders %}
+                    <tr>
+                        <td>#{{ order.pk }}</td>
+                        <td>{{ order.user.get_full_name }}</td>
+                        <td>{{ order.group_buy.product.name }}</td>
+                        {% if full_admin_access %}<td>{% money order.total_amount %}</td>{% endif %}
+                        <td>
+                            {% if order.fulfillment %}
+                            <span class="status-badge status-badge-fulfillment-{{ order.fulfillment.status }}">{{ order.fulfillment.get_status_display }}</span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>{{ order.updated_at|date:"M j, Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="manage-section-lead">No paid orders yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="admin-card manage-table-card">
+        <div class="dashboard-section-header">
+            <h2 class="manage-section-title">Pending refunds</h2>
+            <a href="{% url 'core:refund_list' %}" class="btn btn-outline btn-sm">All refunds</a>
+        </div>
+        {% if pending_refunds %}
+        <div class="data-table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Buyer</th>
+                        <th>Amount</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for refund in pending_refunds %}
+                    <tr>
+                        <td><code>{{ refund.reference }}</code></td>
+                        <td>{{ refund.order.user.get_full_name }}</td>
+                        <td>{% money refund.amount %}</td>
+                        <td>{{ refund.reason }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="manage-section-lead">No pending refunds.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    var months = {{ chart_months_json|safe }};
+    var orders = {{ chart_orders_json|safe }};
+    var revenue = {{ chart_revenue_json|safe }};
+    var statusData = {{ group_buy_status_chart_json|safe }};
+
+    var chartDefaults = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+            y: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', font: { size: 11 } }, beginAtZero: true }
+        }
+    };
+
+    var ordersCtx = document.getElementById('ordersChart');
+    if (ordersCtx) {
+        var datasets = [{
+            label: 'Orders',
+            data: orders,
+            borderColor: '#4f46e5',
+            backgroundColor: 'rgba(79, 70, 229, 0.12)',
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2
+        }];
+        {% if full_admin_access %}
+        datasets.push({
+            label: 'Revenue',
+            data: revenue,
+            borderColor: '#06b6d4',
+            backgroundColor: 'rgba(6, 182, 212, 0.08)',
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2,
+            yAxisID: 'y1'
+        });
+        {% endif %}
+        new Chart(ordersCtx, {
+            type: 'line',
+            data: { labels: months, datasets: datasets },
+            options: Object.assign({}, chartDefaults, {
+                plugins: {
+                    legend: {
+                        display: {% if full_admin_access %}true{% else %}false{% endif %},
+                        position: 'top',
+                        align: 'end',
+                        labels: { boxWidth: 10, font: { size: 11 } }
+                    }
+                },
+                scales: Object.assign({}, chartDefaults.scales, {% if full_admin_access %}{
+                    y1: {
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        ticks: { color: '#94a3b8', font: { size: 11 } },
+                        beginAtZero: true
+                    }
+                }{% else %}{}{% endif %})
+            })
+        });
+    }
+
+    var statusCtx = document.getElementById('statusChart');
+    if (statusCtx && statusData.length) {
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: statusData.map(function (d) { return d.label; }),
+                datasets: [{
+                    data: statusData.map(function (d) { return d.count; }),
+                    backgroundColor: ['#4f46e5', '#06b6d4', '#f59e0b', '#10b981', '#94a3b8', '#ef4444'],
+                    borderWidth: 0,
+                    cutout: '72%'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    var activityCtx = document.getElementById('activityChart');
+    if (activityCtx) {
+        var labels = ['Pending', 'Packed', 'Out for delivery', 'Delivered', 'Failed'];
+        var values = [
+            {{ fulfillment_pipeline.0.count|default:0 }},
+            {{ fulfillment_pipeline.1.count|default:0 }},
+            {{ fulfillment_pipeline.2.count|default:0 }},
+            {{ fulfillment_pipeline.3.count|default:0 }},
+            {{ fulfillment_pipeline.4.count|default:0 }}
+        ];
+        new Chart(activityCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Fulfillments', data: values, backgroundColor: '#06b6d4', borderRadius: 6, barThickness: 18 },
+                ]
+            },
+            options: Object.assign({}, chartDefaults, {
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 }, maxRotation: 45 } },
+                    y: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', font: { size: 11 } }, beginAtZero: true }
+                }
+            })
+        });
+    }
+})();
+</script>
+{% endblock %}

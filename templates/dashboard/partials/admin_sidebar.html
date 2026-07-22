@@ -1,0 +1,112 @@
+{% load static %}
+<aside class="dashboard-sidebar" aria-label="Admin navigation">
+    <div class="dashboard-sidebar-brand">
+        <a href="{% url 'core:admin_dashboard' %}" class="logo">
+            <span class="logo-mark" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" opacity=".9"/>
+                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </span>
+            CrowdSource
+        </a>
+        <p class="dashboard-sidebar-workspace">Admin console</p>
+    </div>
+
+    <nav class="dashboard-nav">
+        <div>
+            <p class="dashboard-nav-section-label">Overview</p>
+            <ul class="dashboard-nav-list">
+                <li>
+                    <a href="{% url 'core:admin_dashboard' %}" class="dashboard-nav-link{% if request.resolver_match.url_name == 'admin_dashboard' %} is-active{% endif %}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'core:group_buy_list' %}" class="dashboard-nav-link{% if 'group_buy' in request.resolver_match.url_name %} is-active{% endif %}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Group buys
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'core:refund_list' %}" class="dashboard-nav-link{% if 'refund' in request.resolver_match.url_name %} is-active{% endif %}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        Refunds
+                        {% if stats.refunds_pending %}<span class="dashboard-nav-badge">{{ stats.refunds_pending }}</span>{% endif %}
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        {% if user.is_admin_user %}
+        <div>
+            <p class="dashboard-nav-section-label">Catalog</p>
+            <ul class="dashboard-nav-list">
+                <li>
+                    <a href="{% url 'core:product_list' %}" class="dashboard-nav-link{% if 'product' in request.resolver_match.url_name and 'group_buy' not in request.resolver_match.url_name %} is-active{% endif %}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                        Products
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'core:category_list' %}" class="dashboard-nav-link{% if 'category' in request.resolver_match.url_name %} is-active{% endif %}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                        Categories
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'core:supplier_list' %}" class="dashboard-nav-link{% if 'supplier' in request.resolver_match.url_name %} is-active{% endif %}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                        Suppliers
+                    </a>
+                </li>
+            </ul>
+        </div>
+        {% endif %}
+
+        <div>
+            <p class="dashboard-nav-section-label">Actions</p>
+            <ul class="dashboard-nav-list">
+                <li>
+                    <a href="{% url 'core:group_buy_create' %}" class="dashboard-nav-link">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                        Create group buy
+                    </a>
+                </li>
+                {% if user.is_admin_user %}
+                <li>
+                    <a href="{% url 'core:product_create' %}" class="dashboard-nav-link">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                        Add product
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/" class="dashboard-nav-link" target="_blank" rel="noopener">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        Django admin
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+
+    <div class="dashboard-sidebar-footer">
+        <a href="{% url 'home:landing' %}" class="dashboard-nav-link">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Back to site
+        </a>
+        <a href="{% url 'users:signout' %}" class="dashboard-nav-link">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign out
+        </a>
+        <div class="dashboard-user-card">
+            <div class="dashboard-user-avatar" aria-hidden="true">{{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}</div>
+            <div class="dashboard-user-info">
+                <div class="dashboard-user-name">{{ user.get_full_name }}</div>
+                <div class="dashboard-user-meta">{% if user.is_admin_user %}Administrator{% else %}Operations{% endif %}</div>
+            </div>
+        </div>
+    </div>
+</aside>

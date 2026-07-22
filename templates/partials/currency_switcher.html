@@ -1,0 +1,9 @@
+{% load static %}
+<div class="currency-switcher" role="group" aria-label="Display currency">
+    <a href="{% url 'set_currency' %}?currency=USD&amp;next={{ request.get_full_path|urlencode }}"
+       class="currency-switcher-btn{% if display_currency == 'USD' %} is-active{% endif %}"
+       {% if display_currency == 'USD' %}aria-current="true"{% endif %}>USD</a>
+    <a href="{% url 'set_currency' %}?currency=KES&amp;next={{ request.get_full_path|urlencode }}"
+       class="currency-switcher-btn{% if display_currency == 'KES' %} is-active{% endif %}"
+       {% if display_currency == 'KES' %}aria-current="true"{% endif %}>KES</a>
+</div>

@@ -1,0 +1,47 @@
+name: Deploy to droplet
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy CrowdSource to droplet
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          password: ${{ secrets.DROPLET_SSH_PASSWORD }}
+          port: ${{ secrets.DROPLET_PORT || 22 }}
+          script_stop: true
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            cd /srv/crowdsource
+
+            if [[ ! -d .git ]]; then
+              echo "ERROR: /srv/crowdsource is not a git repo."
+              echo "Clone the GitHub repo there first (see DEPLOYMENT.md → GitHub Actions)."
+              exit 1
+            fi
+
+            if [[ ! -x deploy/update.sh ]]; then
+              chmod +x deploy/update.sh
+            fi
+
+            git fetch origin
+            git reset --hard origin/main
+            chmod +x deploy/update.sh
+
+            bash deploy/update.sh

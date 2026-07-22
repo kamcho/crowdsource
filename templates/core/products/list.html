@@ -1,0 +1,90 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Products — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / Products</p>
+                <h1>Products</h1>
+                <p>Manage catalog products and their images or videos.</p>
+            </div>
+            <a href="{% url 'core:product_create' %}" class="btn btn-primary">Add Product</a>
+        </div>
+
+        <div class="admin-card">
+            {% if products %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Supplier</th>
+                            <th>Options</th>
+                            <th>Variations</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td>
+                                <div class="product-list-cell">
+                                    {% with primary=product.primary_file %}
+                                    {% if primary and primary.is_image %}
+                                    <img src="{{ primary.file.url }}" alt="" class="product-list-thumb">
+                                    {% elif primary and primary.is_video %}
+                                    <span class="product-list-thumb product-list-thumb-video">Video</span>
+                                    {% else %}
+                                    <span class="product-list-thumb product-list-thumb-empty">—</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                    <div>
+                                        <strong>{{ product.name }}</strong>
+                                        {% if product.description %}
+                                        <br><span class="category-desc">{{ product.description|truncatechars:60 }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ product.category.get_breadcrumb }}</td>
+                            <td>{% if product.supplier %}{{ product.supplier.name }}{% else %}<span class="category-desc">—</span>{% endif %}</td>
+                            <td>{{ product.options.count }}</td>
+                            <td>{{ product.variations.count }}</td>
+                            <td>
+                                {% if product.is_active %}
+                                <span class="status-badge status-badge-active">Active</span>
+                                {% else %}
+                                <span class="status-badge status-badge-inactive">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="table-actions">
+                                <a href="{% url 'core:product_option_list' product.pk %}" class="btn btn-outline btn-sm">Options</a>
+                                <a href="{% url 'core:product_variation_list' product.pk %}" class="btn btn-outline btn-sm">Variations</a>
+                                <a href="{% url 'core:product_attribute_list' product.pk %}" class="btn btn-outline btn-sm">Attributes</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-box">
+                <p>No products yet. Add your first product with images or videos.</p>
+                <a href="{% url 'core:product_create' %}" class="btn btn-primary">Add Product</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

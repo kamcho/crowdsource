@@ -1,0 +1,81 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Suppliers — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / Suppliers</p>
+                <h1>Suppliers</h1>
+                <p>Factories and trading partners in China linked to products and import batches.</p>
+            </div>
+            <a href="{% url 'core:supplier_create' %}" class="btn btn-primary">Add supplier</a>
+        </div>
+
+        <div class="admin-card">
+            {% if suppliers %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Supplier</th>
+                            <th>Contact</th>
+                            <th>Country</th>
+                            <th>Products</th>
+                            <th>Import batches</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for supplier in suppliers %}
+                        <tr>
+                            <td>
+                                <strong>{{ supplier.name }}</strong>
+                                {% if supplier.alibaba_url %}
+                                <br><a href="{{ supplier.alibaba_url }}" class="category-desc" target="_blank" rel="noopener">Alibaba storefront</a>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if supplier.contact_name %}{{ supplier.contact_name }}<br>{% endif %}
+                                <span class="category-desc">
+                                    {% if supplier.phone %}{{ supplier.phone }}{% endif %}
+                                    {% if supplier.wechat_id %} · WeChat {{ supplier.wechat_id }}{% endif %}
+                                </span>
+                            </td>
+                            <td>{{ supplier.country }}</td>
+                            <td>{{ supplier.product_count }}</td>
+                            <td>{{ supplier.batch_count }}</td>
+                            <td>
+                                {% if supplier.is_active %}
+                                <span class="status-badge status-badge-active">Active</span>
+                                {% else %}
+                                <span class="status-badge status-badge-inactive">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="table-actions">
+                                <a href="{% url 'core:supplier_edit' supplier.pk %}" class="btn btn-outline btn-sm">Edit</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-box">
+                <p>No suppliers yet. Add your first factory or trading partner.</p>
+                <a href="{% url 'core:supplier_create' %}" class="btn btn-primary">Add supplier</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

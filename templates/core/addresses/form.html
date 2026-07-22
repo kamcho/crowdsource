@@ -1,0 +1,89 @@
+{% extends 'dashboard/user_base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'address_list' %}">Addresses</a> / {% if address %}Edit{% else %}Add{% endif %}</p>
+                <h1>{{ title }}</h1>
+            </div>
+        </div>
+
+        <div class="admin-card admin-card-narrow">
+            <form method="post" class="admin-form" novalidate>
+                {% csrf_token %}
+                {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+
+                {% if form.non_field_errors %}
+                <div class="form-errors">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="{{ form.label.id_for_label }}">{{ form.label.label }}</label>
+                        {{ form.label }}
+                        {% if form.label.errors %}<span class="field-error">{{ form.label.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.recipient_name.id_for_label }}">{{ form.recipient_name.label }}</label>
+                        {{ form.recipient_name }}
+                        {% if form.recipient_name.errors %}<span class="field-error">{{ form.recipient_name.errors.0 }}</span>{% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}<span class="field-error">{{ form.phone.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="{{ form.county.id_for_label }}">{{ form.county.label }}</label>
+                        {{ form.county }}
+                        {% if form.county.errors %}<span class="field-error">{{ form.county.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.area.id_for_label }}">{{ form.area.label }}</label>
+                        {{ form.area }}
+                        {% if form.area.errors %}<span class="field-error">{{ form.area.errors.0 }}</span>{% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.street_address.id_for_label }}">{{ form.street_address.label }}</label>
+                    {{ form.street_address }}
+                    {% if form.street_address.errors %}<span class="field-error">{{ form.street_address.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.delivery_notes.id_for_label }}">{{ form.delivery_notes.label }}</label>
+                    {{ form.delivery_notes }}
+                    {% if form.delivery_notes.errors %}<span class="field-error">{{ form.delivery_notes.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <div class="form-checkbox-row">
+                        {{ form.is_default }}
+                        <label for="{{ form.is_default.id_for_label }}">{{ form.is_default.label }}</label>
+                    </div>
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Save address</button>
+                    <a href="{% if next_url %}{{ next_url }}{% else %}{% url 'address_list' %}{% endif %}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

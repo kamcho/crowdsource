@@ -1,0 +1,88 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / <a href="{% url 'core:supplier_list' %}">Suppliers</a> / {% if supplier %}Edit{% else %}Add{% endif %}</p>
+                <h1>{{ title }}</h1>
+            </div>
+        </div>
+
+        <div class="admin-card admin-card-narrow">
+            <form method="post" class="admin-form" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="form-errors">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<span class="field-error">{{ form.name.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="{{ form.contact_name.id_for_label }}">{{ form.contact_name.label }}</label>
+                        {{ form.contact_name }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.country.id_for_label }}">{{ form.country.label }}</label>
+                        {{ form.country }}
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                        {{ form.email }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+                        {{ form.phone }}
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="{{ form.wechat_id.id_for_label }}">{{ form.wechat_id.label }}</label>
+                        {{ form.wechat_id }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.alibaba_url.id_for_label }}">{{ form.alibaba_url.label }}</label>
+                        {{ form.alibaba_url }}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                    {{ form.notes }}
+                </div>
+
+                <div class="form-group">
+                    <div class="form-checkbox-row">
+                        {{ form.is_active }}
+                        <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+                    </div>
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Save supplier</button>
+                    <a href="{% url 'core:supplier_list' %}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

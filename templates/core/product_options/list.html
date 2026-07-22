@@ -1,0 +1,65 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Options — {{ product.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <h1>Product Options</h1>
+                <p>Define variation dimensions for <strong>{{ product.name }}</strong> (e.g. Color, Size).</p>
+            </div>
+            <div class="admin-header-actions">
+                <a href="{% url 'core:product_option_create' product.pk %}" class="btn btn-primary">Add Option</a>
+                <a href="{% url 'core:product_variation_list' product.pk %}" class="btn btn-outline">Variations</a>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            {% if options %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Option</th>
+                            <th>Values</th>
+                            <th>Sort</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for option in options %}
+                        <tr>
+                            <td><strong>{{ option.name }}</strong></td>
+                            <td>{{ option.values.count }} value{{ option.values.count|pluralize }}</td>
+                            <td>{{ option.sort_order }}</td>
+                            <td class="table-actions">
+                                <a href="{% url 'core:product_option_value_list' option.pk %}" class="btn btn-outline btn-sm">Manage Values</a>
+                                <a href="{% url 'core:product_option_value_create' option.pk %}" class="btn btn-outline btn-sm">Add Value</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-box">
+                <p>No options yet. Add dimensions like Color or Size before creating variations.</p>
+                <a href="{% url 'core:product_option_create' product.pk %}" class="btn btn-primary">Add Option</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <p class="category-summary">
+            <a href="{% url 'core:product_list' %}">← Back to products</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

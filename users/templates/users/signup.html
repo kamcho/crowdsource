@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sign Up — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Create your account</h1>
+            <p>Join group buys and import from China at wholesale prices.</p>
+        </div>
+
+        <form method="post" class="auth-form" novalidate>
+            {% csrf_token %}
+            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+            {% if form.non_field_errors %}
+            <div class="form-errors">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="{{ form.first_name.id_for_label }}">First name</label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}<span class="field-error">{{ form.first_name.errors.0 }}</span>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.last_name.id_for_label }}">Last name</label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}<span class="field-error">{{ form.last_name.errors.0 }}</span>{% endif %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.phone.id_for_label }}">Phone number</label>
+                {{ form.phone }}
+                {% if form.phone.errors %}<span class="field-error">{{ form.phone.errors.0 }}</span>{% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.password1.id_for_label }}">Password</label>
+                {{ form.password1 }}
+                {% if form.password1.errors %}<span class="field-error">{{ form.password1.errors.0 }}</span>{% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.password2.id_for_label }}">Confirm password</label>
+                {{ form.password2 }}
+                {% if form.password2.errors %}<span class="field-error">{{ form.password2.errors.0 }}</span>{% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg">Create Account</button>
+        </form>
+
+        {% include 'users/partials/google_signin.html' with google_divider_before='or sign up with' %}
+
+        <p class="auth-switch">
+            Already have an account? <a href="{% url 'users:signin' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Sign in</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

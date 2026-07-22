@@ -1,0 +1,55 @@
+{% extends 'dashboard/user_base.html' %}
+
+{% block title %}Delivery Addresses — CrowdSource Import{% endblock %}
+{% block topbar_title %}Delivery addresses{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="container">
+        <div class="commerce-header">
+            <div>
+                <h1>Delivery addresses</h1>
+                <p>Saved locations for order fulfillment across Kenya.</p>
+            </div>
+            <a href="{% url 'address_create' %}" class="btn btn-primary">Add address</a>
+        </div>
+
+        {% if addresses %}
+        <div class="address-card-list">
+            {% for address in addresses %}
+            <article class="commerce-card address-card{% if address.is_default %} address-card-default{% endif %}">
+                <div class="address-card-header">
+                    <div>
+                        <h2>{{ address.label|default:"Address" }}{% if address.is_default %} <span class="status-badge status-badge-active">Default</span>{% endif %}</h2>
+                        <p class="address-card-name">{{ address.recipient_name }} · {{ address.phone }}</p>
+                        <p class="address-card-line">{{ address.formatted_single_line }}</p>
+                        {% if address.delivery_notes %}
+                        <p class="address-card-notes">{{ address.delivery_notes }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="commerce-actions">
+                    <a href="{% url 'address_edit' address.pk %}" class="btn btn-outline btn-sm">Edit</a>
+                    {% if not address.is_default %}
+                    <form method="post" action="{% url 'address_set_default' address.pk %}" class="inline-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline btn-sm">Set default</button>
+                    </form>
+                    <form method="post" action="{% url 'address_delete' address.pk %}" class="inline-form" onsubmit="return confirm('Delete this address?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline btn-sm">Delete</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="commerce-card empty-state-box">
+            <p>You haven't saved any delivery addresses yet. Add one to speed up checkout.</p>
+            <a href="{% url 'address_create' %}" class="btn btn-primary">Add address</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

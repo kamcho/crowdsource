@@ -1,0 +1,390 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static currency_tags %}
+
+{% block title %}Manage Group Buy #{{ group_buy.pk }} — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/landing.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / <a href="{% url 'core:group_buy_list' %}">Group buys</a> / #{{ group_buy.pk }}</p>
+                <h1>{{ group_buy.product.name }}</h1>
+                {% if group_buy.product.supplier %}
+                <p class="order-card-meta">Supplier · {{ group_buy.product.supplier.name }}</p>
+                {% endif %}
+                <p>
+                    <span class="status-badge status-badge-gb-{{ group_buy.status }}">{{ group_buy.get_status_display }}</span>
+                    {% if group_buy.is_joinable %}
+                    <span class="category-desc text-success"> · Accepting pledges</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div class="admin-header-actions">
+                <a href="{{ group_buy.product.get_absolute_url }}" class="btn btn-outline">View product</a>
+                <a href="{% url 'core:group_buy_list' %}" class="btn btn-outline">All group buys</a>
+            </div>
+        </div>
+
+        <div class="admin-summary-bar">
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Pledged</span>
+                <strong>{{ pledged_total }} / {{ group_buy.moq }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">MOQ progress</span>
+                <strong>{{ progress_percent }}%</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Backers</span>
+                <strong>{{ entries|length }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Paid orders</span>
+                <strong>{{ paid_orders|length }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Unit price</span>
+                <strong>{% money group_buy.unit_price %}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Closes</span>
+                <strong>{{ group_buy.closes_at|date:"M j, Y" }}</strong>
+            </div>
+        </div>
+
+        <div class="group-buy-manage-grid">
+            <div class="admin-card">
+                <h2 class="manage-section-title">Campaign settings</h2>
+                <form method="post" class="admin-form" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_group_buy">
+
+                    {% if form.non_field_errors %}
+                    <div class="form-errors">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <label for="{{ form.product.id_for_label }}">{{ form.product.label }}</label>
+                        {{ form.product }}
+                        {% if form.product.errors %}<span class="field-error">{{ form.product.errors.0 }}</span>{% endif %}
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label for="{{ form.moq.id_for_label }}">{{ form.moq.label }}</label>
+                            {{ form.moq }}
+                            {% if form.moq.errors %}<span class="field-error">{{ form.moq.errors.0 }}</span>{% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.unit_price.id_for_label }}">{{ form.unit_price.label }}</label>
+                            {{ form.unit_price }}
+                            {% if form.unit_price.errors %}<span class="field-error">{{ form.unit_price.errors.0 }}</span>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label for="{{ form.closes_at.id_for_label }}">{{ form.closes_at.label }}</label>
+                            {{ form.closes_at }}
+                            {% if form.closes_at.errors %}<span class="field-error">{{ form.closes_at.errors.0 }}</span>{% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}<span class="field-error">{{ form.status.errors.0 }}</span>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="admin-form-actions">
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </div>
+                </form>
+
+                <form method="post" class="manage-inline-action">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="refresh_status">
+                    <button type="submit" class="btn btn-outline btn-sm">Refresh MOQ status from pledges</button>
+                </form>
+            </div>
+
+            <div class="admin-card">
+                <h2 class="manage-section-title">Import batch</h2>
+                {% if import_batch %}
+                <p class="manage-section-lead">
+                    Batch #{{ import_batch.pk }} ·
+                    <span class="status-badge status-badge-import-{{ import_batch.status }}">{{ import_batch.get_status_display }}</span>
+                </p>
+                <form method="post" class="admin-form" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_import_batch">
+
+                    <div class="form-group">
+                        <label for="{{ import_batch_form.status.id_for_label }}">{{ import_batch_form.status.label }}</label>
+                        {{ import_batch_form.status }}
+                        {% if import_batch_form.status.errors %}<span class="field-error">{{ import_batch_form.status.errors.0 }}</span>{% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ import_batch_form.supplier.id_for_label }}">{{ import_batch_form.supplier.label }}</label>
+                        {{ import_batch_form.supplier }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ import_batch_form.supplier_reference.id_for_label }}">{{ import_batch_form.supplier_reference.label }}</label>
+                        {{ import_batch_form.supplier_reference }}
+                        {% if import_batch_form.supplier_reference.errors %}<span class="field-error">{{ import_batch_form.supplier_reference.errors.0 }}</span>{% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ import_batch_form.estimated_arrival.id_for_label }}">{{ import_batch_form.estimated_arrival.label }}</label>
+                        {{ import_batch_form.estimated_arrival }}
+                        {% if import_batch_form.estimated_arrival.errors %}<span class="field-error">{{ import_batch_form.estimated_arrival.errors.0 }}</span>{% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ import_batch_form.notes.id_for_label }}">{{ import_batch_form.notes.label }}</label>
+                        {{ import_batch_form.notes }}
+                        {% if import_batch_form.notes.errors %}<span class="field-error">{{ import_batch_form.notes.errors.0 }}</span>{% endif %}
+                    </div>
+
+                    {% if import_batch.arrived_at %}
+                    <p class="field-hint">Arrived {{ import_batch.arrived_at|date:"F j, Y, g:i A" }}</p>
+                    {% endif %}
+
+                    <div class="admin-form-actions">
+                        <button type="submit" class="btn btn-primary">Update import batch</button>
+                    </div>
+                </form>
+                {% else %}
+                <p class="manage-section-lead">Set up a bulk import batch for this campaign. You can create one before MOQ is met to prepare supplier orders early.</p>
+                {% if pledged_total < group_buy.moq %}
+                <div class="manage-alert manage-alert-warning">
+                    MOQ not met yet ({{ pledged_total }} / {{ group_buy.moq }} units). The group buy stays open for pledges until MOQ is reached or you change its status.
+                </div>
+                {% endif %}
+                <form method="post" class="admin-form" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create_import_batch">
+
+                    <div class="form-group">
+                        <label for="{{ import_batch_create_form.supplier.id_for_label }}">{{ import_batch_create_form.supplier.label }}</label>
+                        {{ import_batch_create_form.supplier }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ import_batch_create_form.supplier_reference.id_for_label }}">{{ import_batch_create_form.supplier_reference.label }}</label>
+                        {{ import_batch_create_form.supplier_reference }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ import_batch_create_form.estimated_arrival.id_for_label }}">Estimated arrival</label>
+                        {{ import_batch_create_form.estimated_arrival }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ import_batch_create_form.notes.id_for_label }}">Notes</label>
+                        {{ import_batch_create_form.notes }}
+                    </div>
+
+                    <div class="admin-form-actions">
+                        <button type="submit" class="btn btn-primary">Create import batch</button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <h2 class="manage-section-title">Pledges ({{ entries|length }})</h2>
+            {% if entries %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Buyer</th>
+                            <th>Variation</th>
+                            <th>Qty</th>
+                            <th>Line total</th>
+                            <th>Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in entries %}
+                        <tr>
+                            <td>{{ entry.user.get_full_name }}<br><span class="category-desc">{{ entry.user.phone|default:entry.user.email }}</span></td>
+                            <td>{% if entry.variation %}{{ entry.variation.display_name }}{% else %}Standard{% endif %}</td>
+                            <td>{{ entry.quantity }}</td>
+                            <td>{% money entry.line_total %}</td>
+                            <td>{{ entry.updated_at|date:"M j, Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="manage-section-lead">No pledges yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <h2 class="manage-section-title">Deliveries ({{ paid_orders|length }})</h2>
+            {% if paid_orders %}
+            <div class="fulfillment-manage-list">
+                {% for order in paid_orders %}
+                <div class="fulfillment-manage-card commerce-card-inner">
+                    <div class="fulfillment-manage-header">
+                        <div>
+                            <strong>Order #{{ order.pk }}</strong>
+                            <span class="category-desc"> · {{ order.user.get_full_name }}</span>
+                            {% if order.has_delivery_address %}
+                            <p class="fulfillment-manage-address">{{ order.delivery_recipient_name }} · {{ order.delivery_phone }} · {{ order.delivery_formatted }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span class="status-badge status-badge-fulfillment-{{ order.fulfillment.status }}">{{ order.fulfillment.get_status_display }}</span>
+                        </div>
+                    </div>
+                    <form method="post" class="admin-form fulfillment-manage-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_fulfillment">
+                        <input type="hidden" name="fulfillment_id" value="{{ order.fulfillment.pk }}">
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label>Delivery status</label>
+                                <select name="status" class="form-input form-select">
+                                    {% for value, label in fulfillment_status_choices %}
+                                    <option value="{{ value }}"{% if order.fulfillment.status == value %} selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Tracking reference</label>
+                                <input type="text" name="tracking_reference" class="form-input" value="{{ order.fulfillment.tracking_reference }}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Internal notes</label>
+                            <textarea name="notes" class="form-input form-textarea" rows="2">{{ order.fulfillment.notes }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">Update delivery</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="manage-section-lead">No paid orders to deliver yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <h2 class="manage-section-title">Refunds</h2>
+            {% if mpesa_reversal_required %}
+            <div class="manage-alert manage-alert-warning refund-mpesa-alert">
+                <strong>Production reminder:</strong> Trigger M-Pesa Daraja reversal before marking refunds complete. This screen only records status.
+            </div>
+            {% endif %}
+            <p class="manage-section-lead">
+                Issue full or partial refunds for paid orders. Mark pending refunds complete after the buyer has been repaid.
+                <a href="{% url 'core:refund_list' %}">View all refunds</a>
+            </p>
+            {% if refund_orders %}
+            <div class="refund-manage-list">
+                {% for order in refund_orders %}
+                <div class="refund-manage-card commerce-card-inner">
+                    <div class="refund-manage-header">
+                        <div>
+                            <strong>Order #{{ order.pk }}</strong>
+                            <span class="category-desc"> · {{ order.user.get_full_name }}</span>
+                            <span class="status-badge status-badge-{{ order.status }}">{{ order.get_status_display }}</span>
+                        </div>
+                        <div class="refund-manage-meta">
+                            <span>Paid {% money order.payment.amount %}</span>
+                            <span>Refunded {% money order.refunded_amount %}</span>
+                            <span>Refundable {% money order.refundable_amount %}</span>
+                        </div>
+                    </div>
+
+                    {% if order.refunds.all %}
+                    <div class="data-table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Reference</th>
+                                    <th>Amount</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Reason</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for refund in order.refunds.all %}
+                                <tr>
+                                    <td><code>{{ refund.reference }}</code></td>
+                                    <td>{% money refund.amount %}</td>
+                                    <td>{{ refund.get_refund_type_display }}</td>
+                                    <td><span class="status-badge status-badge-refund-{{ refund.status }}">{{ refund.get_status_display }}</span></td>
+                                    <td>{{ refund.reason }}</td>
+                                    <td>
+                                        {% if refund.status == 'pending' %}
+                                        <form method="post" class="refund-manage-actions">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="refund_id" value="{{ refund.pk }}">
+                                            <button type="submit" name="action" value="complete_refund" class="btn btn-primary btn-sm">Mark complete</button>
+                                            <button type="submit" name="action" value="cancel_refund" class="btn btn-outline btn-sm">Cancel</button>
+                                        </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    {% if order.refundable_amount > 0 %}
+                    <form method="post" class="admin-form refund-issue-form" novalidate>
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="create_refund">
+                        <input type="hidden" name="order_id" value="{{ order.pk }}">
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label>Refund type</label>
+                                <select name="refund_type" class="form-input form-select">
+                                    <option value="partial">Partial refund</option>
+                                    <option value="full">Full refund</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Amount (USD)</label>
+                                <input type="number" name="amount" class="form-input" step="0.01" min="0.01" max="{{ order.refundable_amount }}" value="{{ order.refundable_amount }}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Reason</label>
+                            <input type="text" name="reason" class="form-input" placeholder="e.g. Group buy cancelled" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Internal notes</label>
+                            <textarea name="notes" class="form-input form-textarea" rows="2"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">Issue refund</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="manage-section-lead">No paid orders to refund yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends 'dashboard/user_base.html' %}
+{% load static %}
+{% load currency_tags %}
+
+{% block title %}Cart — CrowdSource Import{% endblock %}
+{% block topbar_title %}Cart{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/commerce.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="container">
+        <div class="commerce-header">
+            <div>
+                <h1>Your cart</h1>
+                <p>Save items from multiple group buys, then check out to confirm your pledges.</p>
+            </div>
+        </div>
+
+        {% if items %}
+        <div class="commerce-card">
+            <div class="cart-lines">
+                {% for item in items %}
+                <div class="cart-line">
+                    <div class="cart-line-product">
+                        {% with image=item.product.primary_image %}
+                        {% if image %}
+                        <img src="{{ image.file.url }}" alt="" class="cart-line-thumb">
+                        {% else %}
+                        <span class="cart-line-thumb cart-line-thumb-empty">—</span>
+                        {% endif %}
+                        {% endwith %}
+                        <div>
+                            <a href="{{ item.product.get_absolute_url }}" class="cart-line-title">{{ item.product.name }}</a>
+                            <p class="cart-line-meta">
+                                {% if item.variation %}{{ item.variation.display_name }}{% else %}Standard{% endif %}
+                                · Group buy · {% money item.unit_price %}/unit
+                            </p>
+                        </div>
+                    </div>
+                    <form method="post" class="cart-line-qty-form">
+                        {% csrf_token %}
+                        <label for="quantity_{{ item.pk }}" class="sr-only">Quantity</label>
+                        <input type="number" id="quantity_{{ item.pk }}" name="quantity_{{ item.pk }}" value="{{ item.quantity }}" min="1" class="form-input">
+                        <button type="submit" class="btn btn-outline btn-sm">Update</button>
+                    </form>
+                    <div class="cart-line-total">{% money item.line_total %}</div>
+                    <form method="post" action="{% url 'cart_remove' item.pk %}" class="cart-line-remove">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline btn-sm">Remove</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="cart-summary">
+                <div class="cart-summary-row">
+                    <span>Subtotal</span>
+                    <strong>{% money cart.subtotal %}</strong>
+                </div>
+                <p class="cart-summary-note">Checkout saves your pledges. Pay anytime from the pledges page to confirm your order.</p>
+            </div>
+
+            <form method="post" class="commerce-actions">
+                {% csrf_token %}
+                <button type="submit" name="checkout" value="1" class="btn btn-primary">Checkout → Save pledges</button>
+            </form>
+        </div>
+        {% else %}
+        <div class="commerce-card empty-state-box">
+            <p>Your cart is empty. Browse products and add items from active group buys.</p>
+            <a href="{% url 'home:landing' %}#products" class="btn btn-primary">Browse products</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

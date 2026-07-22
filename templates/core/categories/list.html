@@ -1,0 +1,77 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Categories — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / Categories</p>
+                <h1>Categories</h1>
+                <p>Organize products in parent and subcategories, Alibaba-style.</p>
+            </div>
+            <a href="{% url 'core:category_create' %}" class="btn btn-primary">Add Top-Level Category</a>
+        </div>
+
+        <div class="admin-card">
+            {% if category_rows %}
+            <div class="data-table-wrap">
+                <table class="data-table category-tree-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Path</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category, depth in category_rows %}
+                        <tr class="category-row category-row-depth-{{ depth }}">
+                            <td>
+                                <div class="category-name-cell" style="padding-left: {{ depth }}rem;">
+                                    {% if depth > 0 %}
+                                    <span class="category-tree-marker" aria-hidden="true">↳</span>
+                                    {% endif %}
+                                    <strong>{{ category.name }}</strong>
+                                    {% if category.description %}
+                                    <br><span class="category-desc">{{ category.description|truncatechars:60 }}</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td><code class="category-path">{{ category.slug }}</code></td>
+                            <td>
+                                {% if category.is_active %}
+                                <span class="status-badge status-badge-active">Active</span>
+                                {% else %}
+                                <span class="status-badge status-badge-inactive">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'core:category_create' %}?parent={{ category.pk }}" class="btn btn-outline btn-sm">
+                                    Add Subcategory
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="category-summary">{{ total_categories }} categor{{ total_categories|pluralize:"y,ies" }} total</p>
+            {% else %}
+            <div class="empty-state-box">
+                <p>No categories yet. Start with a top-level category like Electronics or Apparel, then add subcategories beneath it.</p>
+                <a href="{% url 'core:category_create' %}" class="btn btn-primary">Add Top-Level Category</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
