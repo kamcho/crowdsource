@@ -1,0 +1,128 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Complaints — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/commerce.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / Complaints</p>
+                <h1>Customer complaints</h1>
+                <p>Review and respond to issues raised by buyers.</p>
+            </div>
+        </div>
+
+        <div class="admin-summary-bar">
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Open</span>
+                <strong>{{ summary.open }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Resolved</span>
+                <strong>{{ summary.resolved }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Closed</span>
+                <strong>{{ summary.closed }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Total</span>
+                <strong>{{ summary.total }}</strong>
+            </div>
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <div class="dashboard-section-header">
+                <h2 class="manage-section-title">All complaints</h2>
+                <div class="admin-filter-tabs">
+                    <a href="?status=open" class="btn btn-outline btn-sm{% if status_filter == 'open' %} is-active{% endif %}">Open</a>
+                    <a href="?status=resolved" class="btn btn-outline btn-sm{% if status_filter == 'resolved' %} is-active{% endif %}">Resolved</a>
+                    <a href="?status=closed" class="btn btn-outline btn-sm{% if status_filter == 'closed' %} is-active{% endif %}">Closed</a>
+                    <a href="?status=all" class="btn btn-outline btn-sm{% if status_filter == 'all' %} is-active{% endif %}">All</a>
+                </div>
+            </div>
+
+            {% if complaints %}
+            <div class="complaint-manage-list">
+                {% for complaint in complaints %}
+                <article class="complaint-manage-card">
+                    <div class="complaint-manage-head">
+                        <div>
+                            <div class="order-card-id-row">
+                                <h3>{{ complaint.subject }}</h3>
+                                <span class="status-badge status-badge-complaint-{{ complaint.status }}">{{ complaint.get_status_display }}</span>
+                            </div>
+                            <p class="order-card-meta">
+                                <code>{{ complaint.reference }}</code>
+                                · {{ complaint.get_category_display }}
+                                · {{ complaint.user.get_full_name }}
+                                · {{ complaint.created_at|date:"M j, Y" }}
+                            </p>
+                            {% if complaint.order %}
+                            <p class="complaint-linked-order">Order #{{ complaint.order.pk }} — {{ complaint.order.group_buy.product.name }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <p class="complaint-card-excerpt">{{ complaint.description|linebreaksbr }}</p>
+
+                    {% if complaint.messages.all %}
+                    <div class="complaint-thread complaint-thread-compact">
+                        <ul class="complaint-message-list">
+                            {% for message in complaint.messages.all %}
+                            <li class="complaint-message{% if message.is_staff_reply %} is-staff{% endif %}">
+                                <div class="complaint-message-meta">
+                                    <strong>{% if message.is_staff_reply %}Staff{% else %}{{ message.author.get_full_name }}{% endif %}</strong>
+                                    <span>{{ message.created_at|date:"M j, g:i A" }}</span>
+                                </div>
+                                <p>{{ message.body|linebreaksbr }}</p>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <form method="post" class="complaint-staff-form admin-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="complaint_id" value="{{ complaint.pk }}">
+
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label>Reply to customer</label>
+                                <textarea name="body" class="form-input form-textarea" rows="2" placeholder="Optional reply…"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select name="status" class="form-input form-select">
+                                    {% for value, label in complaint.Status.choices %}
+                                    <option value="{{ value }}"{% if complaint.status == value %} selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Internal notes</label>
+                            <textarea name="staff_notes" class="form-input form-textarea" rows="2" placeholder="Internal notes (not shown to customer)">{{ complaint.staff_notes }}</textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-sm">Update complaint</button>
+                    </form>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="category-desc">No complaints in this view.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -32,3 +32,20 @@ def money_from(context, amount):
         context.get('usd_to_kes_rate'),
     )
     return f'From {formatted}'
+
+
+@register.filter
+def lookup(mapping, key):
+    if not mapping:
+        return None
+    return mapping.get(str(key))
+
+
+@register.filter
+def in_list(value, collection):
+    if not collection:
+        return False
+    try:
+        return value in collection
+    except TypeError:
+        return False

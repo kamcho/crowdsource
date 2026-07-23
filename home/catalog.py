@@ -5,7 +5,7 @@ from core.group_buy import GroupBuy
 from core.models import Category, Product
 
 PRODUCTS_PAGE_SIZE = 12
-LANDING_PRODUCT_LIMIT = 8
+LANDING_PRODUCT_MAX = 100
 
 
 def _category_descendant_ids(category):

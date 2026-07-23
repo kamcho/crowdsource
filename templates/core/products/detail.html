@@ -11,174 +11,312 @@
 
 {% block content %}
 <section class="product-detail">
-    <div class="container">
+    <div class="container-wide">
         <nav class="product-breadcrumb" aria-label="Breadcrumb">
             <a href="{% url 'home:landing' %}">Home</a>
-            <span aria-hidden="true">/</span>
-            <a href="{% url 'home:landing' %}#products">Products</a>
-            <span aria-hidden="true">/</span>
-            <span>{{ product.category.get_breadcrumb }}</span>
+            <span aria-hidden="true">›</span>
+            <a href="{% url 'home:product_browse' %}?category={{ product.category.slug }}">{{ product.category.name }}</a>
+            <span aria-hidden="true">›</span>
+            <span>{{ product.name|truncatechars:48 }}</span>
         </nav>
 
         <div class="product-detail-layout">
             <div class="product-gallery-column">
                 <div class="product-gallery-sticky">
-            <div class="product-gallery" id="product-gallery">
-                {% with gallery_files=product.product_files.all %}
-                {% if gallery_files %}
-                <div class="product-gallery-main" id="product-gallery-main">
-                    {% with hero=product.primary_image|default:product.primary_file %}
-                    {% if hero and hero.is_image %}
-                    <img src="{{ hero.file.url }}" alt="{{ product.name }}" id="product-main-media" class="product-gallery-media">
-                    {% elif hero and hero.is_video %}
-                    <video src="{{ hero.file.url }}" controls id="product-main-media" class="product-gallery-media"></video>
-                    {% endif %}
-                    {% endwith %}
-                </div>
-                <div class="product-gallery-thumbs" id="product-gallery-thumbs">
-                    {% for media in gallery_files %}
-                    <button type="button"
-                            class="product-gallery-thumb{% if forloop.first %} is-active{% endif %}"
-                            data-media-url="{{ media.file.url }}"
-                            data-media-type="{{ media.media_type }}"
-                            aria-label="Show {{ media.get_media_type_display|lower }} {{ forloop.counter }}">
-                        {% if media.is_image %}
-                        <img src="{{ media.file.url }}" alt="">
-                        {% else %}
-                        <span class="product-gallery-thumb-video">▶</span>
+                    <div class="product-gallery-shell">
+                        {% include 'partials/wishlist_icon.html' with product=product is_wishlisted=is_wishlisted %}
+                        <div class="product-gallery" id="product-gallery">
+                        {% with gallery_files=product.product_files.all %}
+                        {% if gallery_files %}
+                        <div class="product-gallery-main" id="product-gallery-main">
+                            {% with hero=product.primary_image|default:product.primary_file %}
+                            {% if hero and hero.is_image %}
+                            <img src="{{ hero.file.url }}" alt="{{ product.name }}" id="product-main-media" class="product-gallery-media">
+                            {% elif hero and hero.is_video %}
+                            <video src="{{ hero.file.url }}" controls id="product-main-media" class="product-gallery-media"></video>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                        {% if gallery_files|length > 1 %}
+                        <div class="product-gallery-thumbs" id="product-gallery-thumbs">
+                            {% for media in gallery_files %}
+                            <button type="button"
+                                    class="product-gallery-thumb{% if forloop.first %} is-active{% endif %}"
+                                    data-media-url="{{ media.file.url }}"
+                                    data-media-type="{{ media.media_type }}"
+                                    aria-label="Show {{ media.get_media_type_display|lower }} {{ forloop.counter }}">
+                                {% if media.is_image %}
+                                <img src="{{ media.file.url }}" alt="">
+                                {% else %}
+                                <span class="product-gallery-thumb-video">▶</span>
+                                {% endif %}
+                            </button>
+                            {% endfor %}
+                        </div>
                         {% endif %}
-                    </button>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="product-gallery-empty" id="product-gallery-empty">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" stroke="currentColor" stroke-width="1.5"/>
-                    </svg>
-                    <p>No media uploaded yet</p>
+                        {% else %}
+                        <div class="product-gallery-empty" id="product-gallery-empty">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                            <p>No media uploaded yet</p>
+                        </div>
+                        {% endif %}
+                        {% endwith %}
+                        </div>
+                    </div>
+
+                {% if group_buy %}
+                <div class="product-source-card">
+                    <div class="product-source-head">
+                        <span class="product-source-badge">Group buy</span>
+                        <strong>CrowdSource Import</strong>
+                    </div>
+                    <div class="product-source-kpis">
+                        <div class="product-source-kpi">
+                            <span>Progress</span>
+                            <strong>{{ group_buy.progress_percent }}%</strong>
+                        </div>
+                        <div class="product-source-kpi">
+                            <span>Booked</span>
+                            <strong>{{ group_buy.pledged_units }}/{{ group_buy.moq }}</strong>
+                        </div>
+                        <div class="product-source-kpi">
+                            <span>Bookers</span>
+                            <strong>{{ pledger_count }}</strong>
+                        </div>
+                        <div class="product-source-kpi">
+                            <span>Closes</span>
+                            <strong>{{ group_buy.closes_at|date:"M j" }}</strong>
+                        </div>
+                    </div>
                 </div>
                 {% endif %}
-                {% endwith %}
-            </div>
                 </div>
             </div>
 
-            <div class="product-detail-content">
-            <div class="product-detail-info">
-                <span class="product-category">{{ product.category.get_breadcrumb }}</span>
+            <div class="product-detail-main">
+                <div class="product-detail-top">
+            <div class="product-info-column">
                 <h1>{{ product.name }}</h1>
 
-                {% if product.active_variations %}
-                <div class="product-price-block">
-                    <span class="product-price-label">{% if price_min != price_max %}From{% else %}Price{% endif %}</span>
-                    <strong class="product-price-value" id="product-selected-price" data-default-min="{{ price_min }}" data-default-max="{{ price_max }}">{% money_range price_min price_max %}</strong>
-                    <span class="product-price-unit">/ unit</span>
-                </div>
-                {% endif %}
+                <p class="product-meta-line">
+                    {% if group_buy %}
+                    {% if group_buy.is_joinable %}Group buy open{% elif group_buy.moq_reached %}MOQ reached{% else %}Group buy closed{% endif %}
+                    · {{ pledger_count }} booker{{ pledger_count|pluralize }}
+                    {% else %}
+                    {{ product.category.name }}
+                    {% endif %}
+                </p>
 
-                {% if product.description %}
-                <div class="product-detail-description">
-                    {{ product.description|linebreaks }}
+                {% if price_tiers %}
+                <div class="product-price-tiers" id="product-price-tiers">
+                    {% for tier in price_tiers %}
+                    <div class="product-price-tier{% if forloop.first %} is-active{% endif %}">
+                        <strong class="product-price-tier-value" data-price="{{ tier.price }}">{% money tier.price %}</strong>
+                        <span class="product-price-tier-label">{{ tier.label }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% elif price_min %}
+                <div class="product-price-tiers">
+                    <div class="product-price-tier is-active">
+                        <strong class="product-price-tier-value" id="product-selected-price" data-default-min="{{ price_min }}" data-default-max="{{ price_max }}">{% money_range price_min price_max %}</strong>
+                        <span class="product-price-tier-label">per unit</span>
+                    </div>
                 </div>
                 {% else %}
-                <p class="product-detail-description muted">No description provided.</p>
+                <span id="product-selected-price" hidden data-default-min="{{ price_min }}" data-default-max="{{ price_max }}"></span>
+                {% endif %}
+                {% if price_tiers %}
+                <span id="product-selected-price" hidden data-default-min="{{ price_min }}" data-default-max="{{ price_max }}"></span>
                 {% endif %}
 
-                {% if product_attributes or variation_attributes %}
-                <div class="product-attributes-section">
-                    <h2 class="product-attributes-heading">Specifications</h2>
-                    <dl class="product-attributes-list" id="product-attributes-list">
-                        {% for attribute in product_attributes %}
-                        <div class="product-attribute-item">
-                            <dt>{{ attribute.title }}</dt>
-                            <dd>{{ attribute.description|linebreaksbr }}</dd>
+                {% if product.options.all %}
+                <div class="product-options product-options-pledge" id="product-options">
+                    {% for option in product.options.all %}
+                    <div class="product-option-group" data-option-id="{{ option.pk }}">
+                        <span class="product-option-label">{{ option.name }}</span>
+                        <div class="product-option-row">
+                            <div class="product-option-values">
+                                {% for value in option.values.all %}
+                                {% with option_name=option.name|lower thumb=option_value_images|lookup:value.pk %}
+                                <button type="button"
+                                        class="product-option-btn{% if thumb and 'color' in option_name or thumb and 'colour' in option_name %} product-option-btn-swatch{% endif %}"
+                                        data-option-id="{{ option.pk }}"
+                                        data-value-id="{{ value.pk }}"
+                                        data-value-label="{{ value.value }}"
+                                        title="{{ value.value }}">
+                                    {% if thumb and 'color' in option_name or thumb and 'colour' in option_name %}
+                                    <span class="product-option-swatch">
+                                        <img src="{{ thumb }}" alt="">
+                                    </span>
+                                    {% endif %}
+                                    <span class="product-option-btn-text">{{ value.value }}</span>
+                                </button>
+                                {% endwith %}
+                                {% endfor %}
+                            </div>
+                            <button type="button" class="product-option-select-btn" data-scroll-to="product-action-sidebar">Select now</button>
                         </div>
-                        {% endfor %}
-                    </dl>
-                    <dl class="product-attributes-list product-attributes-variation" id="variation-attributes-list" hidden></dl>
+                    </div>
+                    {% endfor %}
                 </div>
+                <p class="product-selected-sku" id="product-selected-sku">Select options to choose a variation.</p>
+                <p class="pledge-selection-status" id="pledge-selection-status" hidden></p>
                 {% endif %}
 
                 {% if group_buy %}
-                <div class="group-buy-panel">
-                    <div class="group-buy-header">
-                        <span class="group-buy-label">Active group buy</span>
+                <div class="product-group-status product-group-status-inline">
+                    <div class="product-progress-bar" aria-hidden="true">
+                        <span class="product-progress-fill{% if group_buy.moq_reached %} is-complete{% endif %}" style="width: {{ group_buy.progress_percent }}%"></span>
+                    </div>
+                    <p class="product-group-note">
                         {% if group_buy.moq_reached %}
-                        <span class="badge badge-success">MOQ Reached</span>
+                        MOQ reached — import will begin soon.
                         {% elif group_buy.is_joinable %}
-                        <span class="badge badge-active">Open</span>
+                        {{ group_buy.units_remaining }} more units needed · closes {{ group_buy.closes_at|date:"M j, Y" }}
                         {% else %}
-                        <span class="badge badge-muted">Closed</span>
+                        This group buy is closed.
                         {% endif %}
-                    </div>
+                    </p>
+                </div>
+                {% endif %}
 
-                    <div class="product-price-block">
-                        <span class="product-price-label" id="group-buy-price-label" data-default-label="{% if product.active_variations %}{% if price_min != price_max %}From{% else %}Price{% endif %}{% else %}Group price{% endif %}">{% if product.active_variations %}{% if price_min != price_max %}From{% else %}Price{% endif %}{% else %}Group price{% endif %}</span>
-                        <strong class="product-price-value" id="group-buy-unit-price" data-default-min="{{ price_min }}" data-default-max="{{ price_max }}">{% money_range price_min price_max %}</strong>
-                        <span class="product-price-unit">/ unit</span>
-                    </div>
+                {% include 'core/products/partials/shipping_calculator.html' %}
+            </div>
 
-                    <div class="product-progress">
-                        <div class="progress-header">
-                            <span>{{ group_buy.pledged_units }} / {{ group_buy.moq }} units pledged</span>
-                            <span class="progress-pct">{{ group_buy.progress_percent }}%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill{% if group_buy.moq_reached %} progress-fill-complete{% endif %}" style="width: {{ group_buy.progress_percent }}%"></div>
-                        </div>
-                        <p class="progress-meta">
-                            {% if group_buy.moq_reached %}
-                            <span class="text-success">MOQ reached — import will begin soon.</span>
-                            {% elif group_buy.is_joinable %}
-                            <span><strong>{{ group_buy.units_remaining }}</strong> more units needed · closes {{ group_buy.closes_at|date:"M j, Y" }}</span>
-                            {% else %}
-                            <span>This group buy is closed.</span>
-                            {% endif %}
-                        </p>
-                    </div>
+            <aside class="product-action-sidebar" id="product-action-sidebar">
+                <div class="product-sidebar-card">
+                    <h3>Shipping</h3>
+                    <p class="product-sidebar-text">
+                        {% if group_buy and group_buy.moq_reached %}
+                        Bulk import is being arranged. Delivery dates will be confirmed after customs clearance.
+                        {% elif group_buy %}
+                        Ships after MOQ ({{ group_buy.moq }} units) is reached. Estimated delivery follows group import.
+                        {% else %}
+                        Available through active group buys only.
+                        {% endif %}
+                    </p>
+                </div>
 
-                    {% if product.options.all %}
-                    <div class="product-options product-options-pledge" id="product-options">
-                        <p class="product-options-note">Pick a combination to add or edit in your pledge. Your saved lines stay until you update them below.</p>
-                        {% for option in product.options.all %}
-                        <div class="product-option-group" data-option-id="{{ option.pk }}">
-                            <span class="product-option-label">{{ option.name }}</span>
-                            <div class="product-option-values">
-                                {% for value in option.values.all %}
-                                <button type="button"
-                                        class="product-option-btn"
-                                        data-option-id="{{ option.pk }}"
-                                        data-value-id="{{ value.pk }}"
-                                        data-value-label="{{ value.value }}">
-                                    {{ value.value }}
-                                </button>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endfor %}
+                <div class="product-sidebar-card product-trust-card">
+                    <h3>CrowdSource protection</h3>
+                    <div class="product-trust-item">
+                        <strong>Secure payments</strong>
+                        <p>M-Pesa checkout with order confirmation.</p>
                     </div>
-                    <p class="product-selected-sku" id="product-selected-sku">Select options to choose a variation.</p>
-                    <p class="pledge-selection-status" id="pledge-selection-status" hidden></p>
-                    {% endif %}
+                    <div class="product-trust-item">
+                        <strong>Group buy guarantee</strong>
+                        <p>Refunded if MOQ is not met before the closing date.</p>
+                    </div>
+                </div>
 
-                    {% if user_entries %}
+                <div class="product-buy-actions">
+                    {% if group_buy and user_entries %}
                     <div class="group-buy-user-pledges">
-                        <p class="group-buy-user-pledge-heading">Your pledge · <strong>{{ user_pledged_total }} total units</strong></p>
+                        <p class="group-buy-user-pledge-heading">Your booking · <strong>{{ user_pledged_total }} units</strong></p>
                         <ul class="pledge-summary-list">
                             {% for entry in user_entries %}
                             <li>
                                 {% if entry.variation %}{{ entry.variation.display_name }}{% else %}Standard{% endif %}
-                                — <strong>{{ entry.quantity }}</strong> unit{{ entry.quantity|pluralize }}
-                                @ {% money entry.unit_price %}/unit
+                                — {{ entry.quantity }} @ {% money entry.unit_price %}/unit
                             </li>
                             {% endfor %}
                         </ul>
                     </div>
                     {% endif %}
 
-                    {% if group_buy.is_joinable or user_entries %}
+                    {% if product.active_variations %}
+                    <div class="variation-sidebar-panel">
+                        {% if group_buy and group_buy.is_joinable and user.is_authenticated %}
+                        <form method="post"
+                              action="{% url 'cart_add' %}"
+                              id="product-cart-form"
+                              class="variation-cart-form"
+                              hidden>
+                            {% csrf_token %}
+                            <input type="hidden" name="group_buy" value="{{ group_buy.pk }}">
+                            <input type="hidden" name="quantity" value="1">
+                        </form>
+                        {% endif %}
+
+                        <div class="variation-sidebar-header">
+                            <p class="variation-sidebar-heading">
+                                {% if group_buy and group_buy.is_joinable %}Book this product{% else %}Variations{% endif %}
+                            </p>
+                            {% if group_buy and group_buy.is_joinable and user.is_authenticated %}
+                            <button type="submit"
+                                    form="product-cart-form"
+                                    class="btn btn-chat-outline btn-sm variation-header-cart-btn">Add to cart</button>
+                            {% endif %}
+                        </div>
+
+                        {% if group_buy and group_buy.is_joinable %}
+                        <p class="variation-sidebar-cart-note">
+                            Enter quantities per variation, then join the group buy.
+                            {% if not user.is_authenticated %}Sign in below to book.{% endif %}
+                        </p>
+                        {% elif not group_buy %}
+                        <p class="variation-sidebar-cart-note">Booking is not open yet for this product.</p>
+                        {% if user.is_staff %}
+                        <a href="{% url 'core:group_buy_create' %}?product={{ product.pk }}" class="btn btn-outline btn-sm btn-block variation-create-group-buy">Create group buy</a>
+                        {% endif %}
+                        {% endif %}
+
+                        {% if group_buy and group_buy.is_joinable and user.is_authenticated %}
+                        <form method="post" class="group-buy-form variation-pledge-form" id="variation-pledge-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="join_group_buy" value="1">
+
+                            <div class="variation-pledge-list">
+                                {% for variation in product.active_variations %}
+                                <div class="variation-pledge-row" data-variation-id="{{ variation.pk }}">
+                                    <div class="variation-pledge-info">
+                                        <span class="variation-pledge-name">{{ variation.display_name }}</span>
+                                        <span class="variation-pledge-price">{% money variation.price %}/unit</span>
+                                    </div>
+                                    <label class="sr-only" for="pledge-qty-{{ variation.pk }}">Book {{ variation.display_name }}</label>
+                                    <input type="number"
+                                           id="pledge-qty-{{ variation.pk }}"
+                                           name="pledge_qty_{{ variation.pk }}"
+                                           value="{{ pledged_quantities|lookup:variation.pk|default_if_none:'' }}"
+                                           min="0"
+                                           step="1"
+                                           inputmode="numeric"
+                                           placeholder="0"
+                                           class="form-input variation-pledge-qty"
+                                           aria-label="Booking quantity for {{ variation.display_name }}">
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <button type="submit" class="btn btn-search btn-block btn-lg">
+                                {% if user_entries %}Update booking{% else %}Join group buy{% endif %}
+                            </button>
+                        </form>
+                        {% else %}
+                        <div class="variation-pledge-list variation-pledge-list-readonly">
+                            {% for variation in product.active_variations %}
+                            <div class="variation-pledge-row" data-variation-id="{{ variation.pk }}">
+                                <div class="variation-pledge-info">
+                                    <span class="variation-pledge-name">{{ variation.display_name }}</span>
+                                    <span class="variation-pledge-sku"><code>{{ variation.sku }}</code></span>
+                                    <span class="variation-pledge-price">{% money variation.price %}/unit</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if group_buy and group_buy.is_joinable and not user.is_authenticated %}
+                        <a href="{% url 'users:signin' %}?next={{ request.path }}" class="btn btn-search btn-block btn-lg">Sign in to book</a>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% if group_buy and group_buy.is_joinable or user_entries %}
                         {% if user.is_authenticated %}
-                            {% if pledge_formset %}
+                            {% if not product.active_variations and pledge_formset %}
                             <form method="post" class="group-buy-form">
                                 {% csrf_token %}
                                 <input type="hidden" name="join_group_buy" value="1">
@@ -189,22 +327,9 @@
                                 {% endif %}
 
                                 <div class="pledge-lines">
-                                    <div class="pledge-lines-header">
-                                        {% if pledge_formset.forms.0.variation %}
-                                        <span>Variation</span>
-                                        {% endif %}
-                                        <span>Quantity</span>
-                                        <span></span>
-                                    </div>
                                     {% for form in pledge_formset %}
-                                    <div class="pledge-line{% if form.errors %} has-error{% endif %}{% if not form.variation %} pledge-line-simple{% endif %}"{% if form.instance.variation_id %} data-variation-id="{{ form.instance.variation_id }}"{% endif %}>
+                                    <div class="pledge-line pledge-line-simple{% if form.errors %} has-error{% endif %}">
                                         {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
-                                        {% if form.variation %}
-                                        <div class="form-group">
-                                            {{ form.variation }}
-                                            {% if form.variation.errors %}<span class="field-error">{{ form.variation.errors.0 }}</span>{% endif %}
-                                        </div>
-                                        {% endif %}
                                         <div class="form-group">
                                             {{ form.quantity }}
                                             {% if form.quantity.errors %}<span class="field-error">{{ form.quantity.errors.0 }}</span>{% endif %}
@@ -216,118 +341,102 @@
                                     {% endfor %}
                                 </div>
 
-                                <p class="pledge-form-hint">Each variation can only appear once. Already chosen options are hidden from other rows.</p>
-
-                                <button type="submit" class="btn btn-primary btn-block btn-lg">
-                                    {% if user_entries %}Update Pledge{% else %}Join Group Buy{% endif %}
+                                <button type="submit" class="btn btn-search btn-block btn-lg">
+                                    {% if user_entries %}Update booking{% else %}Join group buy{% endif %}
                                 </button>
                             </form>
+                            {% endif %}
 
-                            {% if group_buy.is_joinable %}
-                            <form method="post" action="{% url 'cart_add' %}" class="add-to-cart-form" id="add-to-cart-form">
+                            {% if group_buy.is_joinable and not product.active_variations %}
+                            <form method="post" action="{% url 'cart_add' %}" class="add-to-cart-form add-to-cart-form-product">
                                 {% csrf_token %}
                                 <input type="hidden" name="group_buy" value="{{ group_buy.pk }}">
-                                <input type="hidden" name="variation" id="cart-variation-id" value="">
-                                <div class="form-group">
-                                    <label for="cart-quantity">Quantity</label>
-                                    <div class="add-to-cart-qty-wrap">
-                                        <input type="number" name="quantity" id="cart-quantity" value="1" min="1" class="form-input" inputmode="numeric" aria-label="Quantity">
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn btn-outline" id="add-to-cart-btn"{% if product.options.all %} disabled{% endif %}>Add to cart</button>
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="btn btn-chat-outline btn-block">Add to cart</button>
                             </form>
-                            <p class="pledge-form-hint">Save to cart and checkout multiple group buys in one go.</p>
                             {% endif %}
-                            {% endif %}
-                        {% else %}
-                        <a href="{% url 'users:signin' %}?next={{ request.path }}" class="btn btn-primary btn-block btn-lg">Sign in to join</a>
+                        {% elif group_buy and group_buy.is_joinable and not product.active_variations %}
+                        <a href="{% url 'users:signin' %}?next={{ request.path }}" class="btn btn-search btn-block btn-lg">Sign in to join</a>
+                        <a href="{% url 'users:signin' %}?next={{ request.path }}" class="btn btn-chat-outline btn-block">Sign in to add to cart</a>
                         {% endif %}
                     {% endif %}
+
+                    {% if not group_buy %}
+                    <a href="{% url 'home:product_browse' %}?category={{ product.category.slug }}" class="btn btn-search-outline btn-block">Browse similar</a>
+                    {% endif %}
                 </div>
+
+                <span id="group-buy-unit-price" hidden data-default-min="{{ price_min }}" data-default-max="{{ price_max }}"></span>
+                <span id="group-buy-price-label" hidden data-default-label="Price"></span>
+            </aside>
+                </div>
+
+            <div class="product-detail-tabs">
+            <div class="product-detail-tab-panel">
+                <h2>Product details</h2>
+                {% if product.description %}
+                <p class="product-detail-lead">{{ product.description|linebreaksbr }}</p>
                 {% endif %}
 
-                <div class="product-detail-actions">
-                    <a href="{% url 'home:landing' %}#products" class="btn btn-outline">Back to Products</a>
+                {% for section in attribute_sections %}
+                <div class="product-attrs-section">
+                    <h3 class="product-attrs-heading">{{ section.heading }}</h3>
+                    <div class="product-attrs-box">
+                        {% include 'core/products/partials/attribute_table.html' with rows=section.rows %}
+                    </div>
                 </div>
-            </div>
+                {% empty %}
+                <p class="product-detail-description muted">No specifications provided yet.</p>
+                {% endfor %}
 
-        {% if product.active_variations %}
-        <div class="product-variations-section">
-            <div class="section-header">
-                <span class="section-label">Available SKUs</span>
-                <h2>Product variations</h2>
-                <p>{{ product.active_variations.count }} configuration{{ product.active_variations.count|pluralize }} available for this product.</p>
-            </div>
+                <div class="product-attrs-section product-attrs-variation-wrap" id="variation-attributes-wrap" hidden>
+                    <h3 class="product-attrs-heading">Selected variation</h3>
+                    <div class="product-attrs-box">
+                        <div id="variation-attributes-list"></div>
+                    </div>
+                </div>
 
-            <div class="product-variations-table-wrap">
-                <table class="product-variations-table">
-                    <thead>
-                        <tr>
-                            <th>SKU</th>
-                            <th>Configuration</th>
-                            <th>Price</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for variation in product.active_variations %}
-                        <tr class="product-variation-row"
-                            data-variation-id="{{ variation.pk }}"
-                            data-display-name="{{ variation.display_name }}"
-                            data-sku="{{ variation.sku }}"
-                            data-price="{{ variation.price }}"
-                            data-value-ids="{% for value in variation.option_values.all %}{{ value.pk }}{% if not forloop.last %},{% endif %}{% endfor %}">
-                            <td><code>{{ variation.sku }}</code></td>
-                            <td>{{ variation.display_name }}</td>
-                            <td>{% money variation.price %}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {% if product.active_variations %}
+                <h3>Available SKUs</h3>
+                <div class="product-variations-table-wrap">
+                    <table class="product-variations-table">
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>Configuration</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for variation in product.active_variations %}
+                            <tr class="product-variation-row"
+                                data-variation-id="{{ variation.pk }}"
+                                data-display-name="{{ variation.display_name }}"
+                                data-sku="{{ variation.sku }}"
+                                data-price="{{ variation.price }}"
+                                data-value-ids="{% for value in variation.option_values.all %}{{ value.pk }}{% if not forloop.last %},{% endif %}{% endfor %}">
+                                <td><code>{{ variation.sku }}</code></td>
+                                <td>{{ variation.display_name }}</td>
+                                <td>{% money variation.price %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
             </div>
-        </div>
-        {% endif %}
+            </div>
             </div>
         </div>
     </div>
 </section>
 
 {% if related_products %}
-<section class="related-products" id="related-products">
-    <div class="container">
+<section class="related-products">
+    <div class="container-wide">
         <h2 class="related-products-heading">Related products</h2>
-
-        <div class="related-grid">
-            {% for related in related_products %}
-            <a href="{{ related.get_absolute_url }}" class="related-card">
-                <div class="related-card-image">
-                    {% with image=related.primary_image %}
-                    {% if image %}
-                    <img src="{{ image.file.url }}" alt="{{ related.name }}" loading="lazy">
-                    {% else %}
-                    <div class="related-card-placeholder" aria-hidden="true">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" stroke="currentColor" stroke-width="1.5"/>
-                        </svg>
-                    </div>
-                    {% endif %}
-                    {% endwith %}
-                </div>
-                <div class="related-card-body">
-                    <h3 class="related-card-title">{{ related.name }}</h3>
-                    {% with group_buy=related.active_group_buy %}
-                    {% if group_buy %}
-                    <p class="related-card-price">{% money group_buy.unit_price %}</p>
-                    <p class="related-card-meta">MOQ: {{ group_buy.moq }} units · {{ group_buy.pledged_units }} pledged</p>
-                    {% elif related.min_price %}
-                    <p class="related-card-price">{% money related.min_price %}</p>
-                    <p class="related-card-meta">{{ related.category.name }}</p>
-                    {% else %}
-                    <p class="related-card-meta">{{ related.category.name }}</p>
-                    {% endif %}
-                    {% endwith %}
-                </div>
-            </a>
-            {% endfor %}
+        <div class="product-grid related-products-grid">
+            {% include 'home/partials/product_cards.html' with products=related_products %}
         </div>
     </div>
 </section>
@@ -339,6 +448,9 @@
 {{ product_media|json_script:"product-media" }}
 {{ variation_media|json_script:"variation-media" }}
 {{ variation_attributes|json_script:"variation-attributes" }}
+{{ shipping_rates|json_script:"shipping-rates" }}
+{{ package_specs|json_script:"product-package-specs" }}
+{{ variation_package_specs|json_script:"variation-package-specs" }}
 <script>
 (function () {
     var productName = "{{ product.name|escapejs }}";
@@ -408,33 +520,69 @@
         renderMainMedia(currentGalleryMedia[0]);
     }
 
-    function updateGalleryForVariation(variationId) {
-        var mediaItems = variationMediaMap[variationId];
-        if (mediaItems && mediaItems.length) {
-            renderGallery(mediaItems);
-            return;
+    function mergeGalleryMedia(variationId) {
+        var variationItems = variationId ? (variationMediaMap[variationId] || []) : [];
+        if (!variationItems.length) {
+            return productMedia.slice();
         }
-        renderGallery(productMedia);
+
+        var merged = [];
+        var seen = {};
+        variationItems.concat(productMedia).forEach(function (item) {
+            if (!item || !item.url || seen[item.url]) {
+                return;
+            }
+            seen[item.url] = true;
+            merged.push(item);
+        });
+        return merged;
+    }
+
+    function updateGalleryForVariation(variationId) {
+        renderGallery(mergeGalleryMedia(variationId));
+    }
+
+    function buildAttributeTableHtml(attributes) {
+        if (!attributes.length) {
+            return '';
+        }
+        var rows = [];
+        for (var index = 0; index < attributes.length; index += 2) {
+            rows.push(attributes.slice(index, index + 2));
+        }
+        var html = '<table class="product-attrs-table"><tbody>';
+        rows.forEach(function (row) {
+            html += '<tr>';
+            for (var cellIndex = 0; cellIndex < 2; cellIndex += 1) {
+                var attribute = row[cellIndex];
+                if (attribute) {
+                    html += '<th scope="row">' + attribute.title + '</th>';
+                    html += '<td>' + attribute.description.replace(/\n/g, '<br>') + '</td>';
+                } else {
+                    html += '<th scope="row" class="product-attrs-table-empty"></th>';
+                    html += '<td class="product-attrs-table-empty"></td>';
+                }
+            }
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        return html;
     }
 
     function updateVariationAttributes(variationId) {
         var list = document.getElementById('variation-attributes-list');
+        var wrap = document.getElementById('variation-attributes-wrap');
         if (!list) return;
 
-        var attrs = variationAttributesMap[variationId] || [];
-        list.innerHTML = '';
+        var attrs = variationId ? (variationAttributesMap[variationId] || []) : [];
         if (!attrs.length) {
-            list.hidden = true;
+            list.innerHTML = '';
+            if (wrap) wrap.hidden = true;
             return;
         }
 
-        attrs.forEach(function (attribute) {
-            var item = document.createElement('div');
-            item.className = 'product-attribute-item';
-            item.innerHTML = '<dt>' + attribute.title + '</dt><dd>' + attribute.description.replace(/\n/g, '<br>') + '</dd>';
-            list.appendChild(item);
-        });
-        list.hidden = false;
+        list.innerHTML = buildAttributeTableHtml(attrs);
+        if (wrap) wrap.hidden = false;
     }
 
     if (galleryRoot) {
@@ -480,8 +628,18 @@
     var selected = {};
     var gallery = window.productDetailGallery;
 
-    if (!optionButtons.length || !variationRows.length) {
-        return;
+    function autoSelectSingleOptions() {
+        document.querySelectorAll('.product-option-group').forEach(function (group) {
+            var buttons = group.querySelectorAll('.product-option-btn');
+            if (buttons.length !== 1) {
+                return;
+            }
+            var button = buttons[0];
+            selected[button.dataset.optionId] = {
+                id: button.dataset.valueId,
+                label: button.dataset.valueLabel,
+            };
+        });
     }
 
     function getSelectedIds() {
@@ -505,6 +663,15 @@
         if (groupBuyPriceLabelEl) {
             groupBuyPriceLabelEl.textContent = groupBuyPriceLabelEl.dataset.defaultLabel || 'Price';
         }
+
+        var tiers = document.querySelectorAll('.product-price-tier');
+        tiers.forEach(function (tier, index) {
+            tier.classList.toggle('is-active', index === 0);
+            var tierValue = tier.querySelector('.product-price-tier-value');
+            if (tierValue && tierValue.dataset.price) {
+                tierValue.textContent = formatMoney(tierValue.dataset.price);
+            }
+        });
     }
 
     function setSelectedPrice(price) {
@@ -512,123 +679,56 @@
         if (priceEl) priceEl.textContent = formatted;
         if (groupBuyPriceEl) groupBuyPriceEl.textContent = formatted;
         if (groupBuyPriceLabelEl) groupBuyPriceLabelEl.textContent = 'Price';
+
+        var tiers = document.querySelectorAll('.product-price-tier');
+        var numericPrice = parseFloat(price);
+        var matched = false;
+        tiers.forEach(function (tier) {
+            var tierValue = tier.querySelector('.product-price-tier-value');
+            var tierPrice = tierValue ? parseFloat(tierValue.dataset.price || '') : NaN;
+            var isMatch = !isNaN(tierPrice) && tierPrice === numericPrice;
+            tier.classList.toggle('is-active', isMatch);
+            if (isMatch) matched = true;
+        });
+        if (!matched && tiers.length) {
+            tiers[0].classList.add('is-active');
+            var firstValue = tiers[0].querySelector('.product-price-tier-value');
+            if (firstValue) firstValue.textContent = formatted;
+        }
     }
 
     function decorateOptionPrices() {
-        var priceByValueId = {};
-        variationRows.forEach(function (row) {
-            var price = parseFloat(row.dataset.price);
-            row.dataset.valueIds.split(',').filter(Boolean).forEach(function (valueId) {
-                if (priceByValueId[valueId] === undefined || price < priceByValueId[valueId]) {
-                    priceByValueId[valueId] = price;
-                }
-            });
-        });
-
-        optionButtons.forEach(function (button) {
-            if (button.querySelector('.product-option-price')) return;
-            var price = priceByValueId[button.dataset.valueId];
-            if (price === undefined) return;
-            var hint = document.createElement('span');
-            hint.className = 'product-option-price';
-            hint.textContent = formatMoney(price);
-            button.appendChild(hint);
-        });
-    }
-
-    function getAllVariationOptions() {
-        return Array.from(variationRows).map(function (row) {
-            return {
-                value: row.dataset.variationId,
-                label: row.dataset.displayName,
-                price: row.dataset.price,
-            };
-        });
-    }
-
-    function getSelectedVariationIds(excludeSelect) {
-        var ids = [];
-        document.querySelectorAll('.pledge-line select[name$="-variation"]').forEach(function (select) {
-            if (select !== excludeSelect && select.value) {
-                ids.push(select.value);
-            }
-        });
-        return ids;
-    }
-
-    function syncPledgeVariationDropdowns() {
-        var options = getAllVariationOptions();
-        if (!options.length) return;
-
-        document.querySelectorAll('.pledge-line select[name$="-variation"]').forEach(function (select) {
-            var current = select.value;
-            var excluded = getSelectedVariationIds(select);
-            select.innerHTML = '';
-
-            var emptyOption = document.createElement('option');
-            emptyOption.value = '';
-            emptyOption.textContent = 'Select variation';
-            select.appendChild(emptyOption);
-
-            options.forEach(function (opt) {
-                if (excluded.indexOf(opt.value) !== -1 && opt.value !== current) {
-                    return;
-                }
-                var option = document.createElement('option');
-                option.value = opt.value;
-                option.textContent = opt.label + ' · ' + formatMoney(opt.price);
-                if (opt.value === current) {
-                    option.selected = true;
-                }
-                select.appendChild(option);
-            });
-        });
+        /* Prices depend on the full variation; shown on sidebar rows instead. */
     }
 
     function clearPledgeHighlights() {
-        document.querySelectorAll('.pledge-line').forEach(function (line) {
+        document.querySelectorAll('.variation-pledge-row, .pledge-line').forEach(function (line) {
             line.classList.remove('is-target-line');
         });
     }
 
     function highlightPledgeLine(variationId) {
         clearPledgeHighlights();
-        document.querySelectorAll('.pledge-line').forEach(function (line) {
-            var select = line.querySelector('select[name$="-variation"]');
-            if (select && select.value === String(variationId)) {
-                line.classList.add('is-target-line');
-                line.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        });
+        var row = document.querySelector('.variation-pledge-row[data-variation-id="' + variationId + '"]');
+        if (row) {
+            row.classList.add('is-target-line');
+            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
     }
 
     function prefillEmptyPledgeRow(variationId) {
         clearPledgeHighlights();
-        var lines = document.querySelectorAll('.pledge-line');
-        for (var i = 0; i < lines.length; i++) {
-            var select = lines[i].querySelector('select[name$="-variation"]');
-            var qty = lines[i].querySelector('input[name$="-quantity"]');
-            if (!select || !qty) continue;
-            if (select.value === String(variationId)) {
-                lines[i].classList.add('is-target-line');
-                qty.focus();
-                lines[i].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                return;
+        var row = document.querySelector('.variation-pledge-row[data-variation-id="' + variationId + '"]');
+        if (!row) return;
+        var qty = row.querySelector('.variation-pledge-qty');
+        row.classList.add('is-target-line');
+        if (qty) {
+            if (!qty.value || parseInt(qty.value, 10) === 0) {
+                qty.value = '1';
             }
+            qty.focus();
         }
-        for (var j = 0; j < lines.length; j++) {
-            var selectEmpty = lines[j].querySelector('select[name$="-variation"]');
-            var qtyEmpty = lines[j].querySelector('input[name$="-quantity"]');
-            if (!selectEmpty || !qtyEmpty) continue;
-            var option = selectEmpty.querySelector('option[value="' + variationId + '"]');
-            if (selectEmpty.value || !option) continue;
-            selectEmpty.value = String(variationId);
-            syncPledgeVariationDropdowns();
-            lines[j].classList.add('is-target-line');
-            qtyEmpty.focus();
-            lines[j].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            return;
-        }
+        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function setStatus(message, tone) {
@@ -637,6 +737,165 @@
         statusEl.textContent = message || '';
         statusEl.classList.remove('is-info', 'is-success', 'is-warning');
         if (tone) statusEl.classList.add(tone);
+    }
+
+    var shippingRatesNode = document.getElementById('shipping-rates');
+    var productPackageSpecsNode = document.getElementById('product-package-specs');
+    var variationPackageSpecsNode = document.getElementById('variation-package-specs');
+    var shippingCalculator = document.getElementById('product-shipping-calculator');
+    var selectedVariationId = '';
+    var shippingRates = shippingRatesNode ? JSON.parse(shippingRatesNode.textContent) : {};
+    var productPackageSpecs = productPackageSpecsNode ? JSON.parse(productPackageSpecsNode.textContent) : {};
+    var variationPackageSpecs = variationPackageSpecsNode ? JSON.parse(variationPackageSpecsNode.textContent) : {};
+    var isSpecialClass = {{ is_special_class|yesno:"true,false" }};
+    var exchangeRate = parseFloat(document.documentElement.dataset.usdKesRate || '135');
+
+    function formatUsd(amount) {
+        var value = parseFloat(amount);
+        if (isNaN(value)) return '—';
+        return '$' + value.toFixed(2);
+    }
+
+    function formatKes(amount) {
+        var value = Math.round(parseFloat(amount));
+        if (isNaN(value)) return '—';
+        return 'KES ' + value.toLocaleString('en-KE');
+    }
+
+    function getActivePackageSpecs() {
+        if (selectedVariationId && variationPackageSpecs[selectedVariationId]) {
+            return variationPackageSpecs[selectedVariationId];
+        }
+        return productPackageSpecs || {};
+    }
+
+    function getShippingQuantity() {
+        var input = document.getElementById('shipping-quantity');
+        var quantity = parseInt(input && input.value, 10);
+        return Math.max(isNaN(quantity) ? 1 : quantity, 1);
+    }
+
+    function renderShippingSpecs(specs) {
+        var weightEl = document.getElementById('shipping-spec-weight');
+        var sizeEl = document.getElementById('shipping-spec-size');
+        var cbmEl = document.getElementById('shipping-spec-cbm');
+        if (weightEl) {
+            weightEl.textContent = specs.weight_kg ? specs.weight_kg + ' kg' : '—';
+        }
+        if (sizeEl) {
+            sizeEl.textContent = specs.dimensions_display || '—';
+        }
+        if (cbmEl) {
+            cbmEl.textContent = specs.cbm ? specs.cbm + ' CBM' : '—';
+        }
+    }
+
+    function getEstimatedArrival(mode) {
+        if (mode === 'sea') return '30–35 days';
+        if (isSpecialClass) return '10–14 days';
+        return '3–5 days';
+    }
+
+    function computeShippingEstimate(mode, specs, quantity) {
+        var goodsClass = isSpecialClass ? 'special' : 'normal';
+        var rate = shippingRates[mode] && shippingRates[mode][goodsClass];
+        if (!rate) {
+            return {
+                ok: false,
+                error: 'Shipping rate is not configured for this product class.',
+            };
+        }
+
+        var billableUnits = 0;
+        var basisLabel = '';
+        var total = 0;
+        var errorMessage = '';
+
+        if (mode === 'air') {
+            if (!specs.weight_kg) {
+                errorMessage = 'Add a weight attribute (e.g. Single gross weight) to calculate air freight.';
+            } else {
+                billableUnits = parseFloat(specs.weight_kg) * quantity;
+                total = billableUnits * parseFloat(rate.rate);
+                basisLabel = billableUnits.toFixed(3).replace(/\.?0+$/, '') + ' kg total';
+            }
+        } else if (!specs.cbm) {
+            errorMessage = 'Add a package size attribute (e.g. 40X35X2 cm) to calculate sea freight.';
+        } else {
+            billableUnits = parseFloat(specs.cbm) * quantity;
+            total = billableUnits * parseFloat(rate.rate);
+            basisLabel = billableUnits.toFixed(6).replace(/\.?0+$/, '') + ' CBM total';
+        }
+
+        if (errorMessage) {
+            return { ok: false, error: errorMessage };
+        }
+
+        var totalKes = rate.currency === 'KES'
+            ? Math.round(total)
+            : Math.round(total * exchangeRate);
+        var rateText = rate.currency === 'KES'
+            ? formatKes(rate.rate)
+            : formatUsd(rate.rate) + ' ≈ ' + formatKes(Math.round(parseFloat(rate.rate) * exchangeRate));
+        var totalText = rate.currency === 'KES'
+            ? formatKes(total)
+            : formatUsd(total) + ' ≈ ' + formatKes(totalKes);
+        var modeLabel = mode === 'air' ? 'Air' : 'Sea';
+        var classLabel = isSpecialClass ? 'Special goods' : 'Normal goods';
+
+        return {
+            ok: true,
+            rateLine: modeLabel + ' · ' + classLabel + ' · ' + rateText + ' / ' + rate.unit_label,
+            totalText: totalText,
+            basisLabel: basisLabel,
+            arrivalText: 'Estimated arrival: ' + getEstimatedArrival(mode) + ' after dispatch',
+        };
+    }
+
+    function renderShippingEstimate(mode, result) {
+        var suffix = mode === 'air' ? 'air' : 'sea';
+        var errorEl = document.getElementById('shipping-error-' + suffix);
+        var totalEl = document.getElementById('shipping-total-' + suffix);
+        var basisEl = document.getElementById('shipping-basis-' + suffix);
+        var rateLineEl = document.getElementById('shipping-rate-line-' + suffix);
+        var arrivalEl = document.getElementById('shipping-arrival-' + suffix);
+        var cardEl = document.getElementById('shipping-estimate-' + suffix);
+
+        if (cardEl) {
+            cardEl.classList.toggle('has-error', !result.ok);
+        }
+
+        if (!result.ok) {
+            if (errorEl) {
+                errorEl.hidden = false;
+                errorEl.textContent = result.error;
+            }
+            if (totalEl) totalEl.textContent = '—';
+            if (basisEl) basisEl.textContent = '';
+            if (rateLineEl) rateLineEl.textContent = '';
+            if (arrivalEl) arrivalEl.textContent = '';
+            return;
+        }
+
+        if (errorEl) {
+            errorEl.hidden = true;
+            errorEl.textContent = '';
+        }
+        if (rateLineEl) rateLineEl.textContent = result.rateLine;
+        if (totalEl) totalEl.textContent = result.totalText;
+        if (basisEl) basisEl.textContent = result.basisLabel;
+        if (arrivalEl) arrivalEl.textContent = result.arrivalText;
+    }
+
+    function updateShippingCalculator() {
+        if (!shippingCalculator) return;
+
+        var specs = getActivePackageSpecs();
+        var quantity = getShippingQuantity();
+
+        renderShippingSpecs(specs);
+        renderShippingEstimate('air', computeShippingEstimate('air', specs, quantity));
+        renderShippingEstimate('sea', computeShippingEstimate('sea', specs, quantity));
     }
 
     function updateSelection() {
@@ -663,11 +922,9 @@
             setStatus('', null);
             clearPledgeHighlights();
             if (gallery) gallery.resetGallery();
-            var cartVariationInputEarly = document.getElementById('cart-variation-id');
-            var addToCartBtnEarly = document.getElementById('add-to-cart-btn');
-            if (cartVariationInputEarly) cartVariationInputEarly.value = '';
-            if (addToCartBtnEarly) addToCartBtnEarly.disabled = true;
             resetPriceDisplay();
+            selectedVariationId = '';
+            updateShippingCalculator();
             return;
         }
 
@@ -682,11 +939,9 @@
             setStatus('This combination is not available as a SKU.', 'is-warning');
             clearPledgeHighlights();
             if (gallery) gallery.resetGallery();
-            var cartVariationInput = document.getElementById('cart-variation-id');
-            var addToCartBtn = document.getElementById('add-to-cart-btn');
-            if (cartVariationInput) cartVariationInput.value = '';
-            if (addToCartBtn) addToCartBtn.disabled = true;
             resetPriceDisplay();
+            selectedVariationId = '';
+            updateShippingCalculator();
             return;
         }
 
@@ -698,14 +953,8 @@
             gallery.updateVariationAttributes(variationId);
         }
 
-        var cartVariationInput = document.getElementById('cart-variation-id');
-        var addToCartBtn = document.getElementById('add-to-cart-btn');
-        if (cartVariationInput) {
-            cartVariationInput.value = variationId;
-        }
-        if (addToCartBtn) {
-            addToCartBtn.disabled = false;
-        }
+        selectedVariationId = variationId;
+        updateShippingCalculator();
 
         setSelectedPrice(matchedRow.dataset.price);
         if (skuEl) {
@@ -714,13 +963,13 @@
 
         if (pledgedQty) {
             setStatus(
-                'You already pledged ' + pledgedQty + ' unit(s) for this combination. Change the quantity in the highlighted row below, or pick another combination to add a new line.',
+                'You already booked ' + pledgedQty + ' unit(s) for this combination. Change the quantity in the highlighted row on the right.',
                 'is-success'
             );
             highlightPledgeLine(variationId);
         } else {
             setStatus(
-                'Selected ' + matchedRow.dataset.displayName + '. Enter a quantity in the highlighted row below, then click Update Pledge.',
+                'Selected ' + matchedRow.dataset.displayName + '. Enter a quantity in the highlighted row on the right, then click Update booking.',
                 'is-info'
             );
             prefillEmptyPledgeRow(variationId);
@@ -737,11 +986,32 @@
         });
     });
 
+    if (optionButtons.length && variationRows.length) {
+        autoSelectSingleOptions();
+        updateSelection();
+    } else if (variationRows.length === 1) {
+        selectedVariationId = variationRows[0].dataset.variationId;
+        updateShippingCalculator();
+    }
+
     decorateOptionPrices();
-    syncPledgeVariationDropdowns();
-    document.querySelectorAll('.pledge-line select[name$="-variation"]').forEach(function (select) {
-        select.addEventListener('change', syncPledgeVariationDropdowns);
+    document.querySelectorAll('.product-option-select-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var target = document.getElementById(button.dataset.scrollTo || 'product-action-sidebar');
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
     });
+
+    if (shippingCalculator) {
+        var shippingQuantityInput = document.getElementById('shipping-quantity');
+        if (shippingQuantityInput) {
+            shippingQuantityInput.addEventListener('input', updateShippingCalculator);
+        }
+
+        updateShippingCalculator();
+    }
 })();
 </script>
 {% endblock %}

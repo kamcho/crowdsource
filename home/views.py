@@ -3,43 +3,58 @@ from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_GET
 
-from core.category_utils import build_category_groups
-from core.models import Category
+from django.urls import reverse
 
 from .catalog import (
-    LANDING_PRODUCT_LIMIT,
+    LANDING_PRODUCT_MAX,
     get_filter_category,
     get_public_products_queryset,
     paginate_products,
 )
 
 
-def landing(request):
-    products = get_public_products_queryset()[:LANDING_PRODUCT_LIMIT]
-
-    return render(request, 'home/landing.html', {
-        'products': products,
-        'total_product_count': get_public_products_queryset().count(),
-    })
-
-
-def _products_page_context(request):
+def _products_page_context(request, *, max_products=None):
     category_slug = (request.GET.get('category') or '').strip()
     search = (request.GET.get('q') or '').strip()
     category = get_filter_category(category_slug)
     queryset = get_public_products_queryset(category=category, search=search)
-    page_obj = paginate_products(queryset, request.GET.get('page', 1))
+    full_count = queryset.count()
+    paginate_queryset = queryset[:max_products] if max_products is not None else queryset
+    page_obj = paginate_products(paginate_queryset, request.GET.get('page', 1))
 
-    categories = Category.objects.filter(is_active=True).select_related('parent')
     return {
         'products': page_obj.object_list,
         'page_obj': page_obj,
         'category': category,
         'category_slug': category_slug,
         'search': search,
-        'total_count': page_obj.paginator.count,
-        'category_groups': build_category_groups(categories),
+        'total_count': full_count,
+        'paginated_count': page_obj.paginator.count,
+        'browse_base_url': reverse('home:product_browse'),
+        'active_category': category,
     }
+
+
+def landing(request):
+    search = (request.GET.get('q') or '').strip()
+    category_slug = (request.GET.get('category') or '').strip()
+    category = get_filter_category(category_slug)
+    has_filters = bool(search or category)
+    max_products = None if has_filters else LANDING_PRODUCT_MAX
+    context = _products_page_context(request, max_products=max_products)
+    page_obj = context['page_obj']
+
+    return render(request, 'home/landing.html', {
+        'products': context['products'],
+        'page_obj': page_obj,
+        'total_product_count': context['total_count'],
+        'landing_max_products': max_products,
+        'search': search,
+        'category': category,
+        'category_slug': category_slug,
+        'browse_base_url': reverse('home:landing'),
+        'active_category': category,
+    })
 
 
 def product_browse(request):
@@ -49,7 +64,9 @@ def product_browse(request):
 
 @require_GET
 def product_browse_load(request):
-    context = _products_page_context(request)
+    is_landing = request.GET.get('landing') == '1'
+    max_products = LANDING_PRODUCT_MAX if is_landing else None
+    context = _products_page_context(request, max_products=max_products)
     html = render_to_string(
         'home/partials/product_cards.html',
         {'products': context['products']},

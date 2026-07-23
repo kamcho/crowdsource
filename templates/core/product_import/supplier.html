@@ -1,0 +1,91 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Step 1: Supplier — AI Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/product_import.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        {% include 'core/product_import/partials/wizard_steps.html' %}
+
+        <div class="admin-header">
+            <div>
+                <h1>Supplier details</h1>
+                <p>We found supplier information in your paste. Review it, then create the supplier record for this product.</p>
+            </div>
+            <form method="post" action="{% url 'core:product_import_discard' draft.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline btn-sm">Discard draft</button>
+            </form>
+        </div>
+
+        <div class="admin-card">
+            <form method="post" class="admin-form" novalidate>
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<span class="field-error">{{ form.name.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="{{ form.contact_name.id_for_label }}">{{ form.contact_name.label }}</label>
+                        {{ form.contact_name }}
+                        {% if form.contact_name.errors %}<span class="field-error">{{ form.contact_name.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.country.id_for_label }}">{{ form.country.label }}</label>
+                        {{ form.country }}
+                        {% if form.country.errors %}<span class="field-error">{{ form.country.errors.0 }}</span>{% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}<span class="field-error">{{ form.email.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.phone.id_for_label }}">Phone / WhatsApp</label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}<span class="field-error">{{ form.phone.errors.0 }}</span>{% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="{{ form.wechat_id.id_for_label }}">{{ form.wechat_id.label }}</label>
+                        {{ form.wechat_id }}
+                        {% if form.wechat_id.errors %}<span class="field-error">{{ form.wechat_id.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.alibaba_url.id_for_label }}">{{ form.alibaba_url.label }}</label>
+                        {{ form.alibaba_url }}
+                        {% if form.alibaba_url.errors %}<span class="field-error">{{ form.alibaba_url.errors.0 }}</span>{% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<span class="field-error">{{ form.notes.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" name="action" value="save" class="btn btn-primary">Create supplier & continue</button>
+                    <button type="submit" name="action" value="skip" class="btn btn-outline">Skip supplier step</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

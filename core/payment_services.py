@@ -39,14 +39,14 @@ def _validate_checkout(user, group_buy, address):
             raise ValidationError('Complete your pending M-Pesa payment first.')
         if group_buy.status == GroupBuy.Status.CANCELLED:
             raise ValidationError('This group buy was cancelled.')
-        raise ValidationError('No pledges found for this group buy.')
+        raise ValidationError('No bookings found for this group buy.')
 
     if not address or address.user_id != user.id:
         raise ValidationError('Select a valid delivery address.')
 
     entries = get_user_pledge_entries(user, group_buy)
     if not entries:
-        raise ValidationError('No pledges found for this group buy.')
+        raise ValidationError('No bookings found for this group buy.')
     return entries
 
 

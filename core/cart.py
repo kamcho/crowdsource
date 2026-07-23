@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 
 
 class Cart(models.Model):
@@ -58,6 +59,11 @@ class CartItem(models.Model):
                 fields=['cart', 'group_buy', 'variation'],
                 name='unique_cart_item_per_variation',
             ),
+            models.UniqueConstraint(
+                fields=['cart', 'group_buy'],
+                condition=Q(variation__isnull=True),
+                name='unique_cart_product_level_item',
+            ),
         ]
 
     def __str__(self):
@@ -91,8 +97,6 @@ class CartItem(models.Model):
             raise ValidationError({'variation': 'Variation must belong to this product.'})
 
         product_has_variations = self.group_buy.product.variations.filter(is_active=True).exists()
-        if product_has_variations and not self.variation_id:
-            raise ValidationError({'variation': 'Select a product variation.'})
         if not product_has_variations and self.variation_id:
             raise ValidationError({'variation': 'This product has no variations.'})
 

@@ -4,10 +4,13 @@ from django.utils.html import format_html
 from .group_buy import GroupBuy, GroupBuyEntry
 from .address import Address
 from .cart import Cart, CartItem
+from .wishlist import WishlistItem
 from .fulfillment import Fulfillment
 from .order import Order, OrderItem
 from .payment import Payment
 from .refund import Refund
+from .complaint import Complaint, ComplaintMessage
+from .product_import import ProductImportDraft, ProductImportMedia
 from .notification import NotificationLog
 from .import_batch import ImportBatch
 from .supplier import Supplier
@@ -15,6 +18,7 @@ from .models import Category, Product
 from .product_attribute import ProductAttribute
 from .product_file import ProductFile
 from .product_variation import ProductOption, ProductOptionValue, ProductVariation
+from .shipping import ShippingRate
 
 
 class ProductFileInline(admin.TabularInline):
@@ -30,7 +34,7 @@ class ProductFileInline(admin.TabularInline):
 class ProductAttributeInline(admin.TabularInline):
     model = ProductAttribute
     extra = 1
-    fields = ('variation', 'title', 'description', 'sort_order')
+    fields = ('variation', 'title', 'description', 'section', 'sort_order')
     autocomplete_fields = ('variation',)
 
     def get_queryset(self, request):
@@ -66,8 +70,8 @@ class SupplierAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category', 'supplier', 'slug', 'is_active', 'file_count', 'variation_count', 'created_at')
-    list_filter = ('is_active', 'category', 'supplier')
+    list_display = ('name', 'category', 'supplier', 'slug', 'is_special_class', 'is_active', 'file_count', 'variation_count', 'created_at')
+    list_filter = ('is_active', 'is_special_class', 'category', 'supplier')
     search_fields = ('name', 'slug', 'description')
     prepopulated_fields = {'slug': ('name',)}
     autocomplete_fields = ('category', 'supplier')
@@ -169,6 +173,13 @@ class ProductAttributeAdmin(admin.ModelAdmin):
     autocomplete_fields = ('product', 'variation')
 
 
+@admin.register(ShippingRate)
+class ShippingRateAdmin(admin.ModelAdmin):
+    list_display = ('mode', 'goods_class', 'charge_basis', 'rate', 'currency', 'is_active', 'updated_at')
+    list_filter = ('mode', 'goods_class', 'is_active', 'currency')
+    search_fields = ('notes',)
+
+
 class GroupBuyEntryInline(admin.TabularInline):
     model = GroupBuyEntry
     extra = 0
@@ -244,7 +255,7 @@ class GroupBuyAdmin(admin.ModelAdmin):
     inlines = (GroupBuyEntryInline, ImportBatchInline)
     actions = ('create_import_batches',)
 
-    @admin.display(description='Pledged')
+    @admin.display(description='Booked')
     def pledged_units_display(self, obj):
         return f'{obj.pledged_units} / {obj.moq}'
 
@@ -326,6 +337,36 @@ class RefundAdmin(admin.ModelAdmin):
     readonly_fields = ('reference', 'completed_at', 'created_at', 'updated_at')
 
 
+class ComplaintMessageInline(admin.TabularInline):
+    model = ComplaintMessage
+    extra = 0
+    readonly_fields = ('author', 'is_staff_reply', 'created_at')
+    autocomplete_fields = ('author',)
+
+
+@admin.register(Complaint)
+class ComplaintAdmin(admin.ModelAdmin):
+    list_display = (
+        'reference', 'user', 'order', 'category', 'subject', 'status', 'created_at',
+    )
+    list_filter = ('status', 'category')
+    search_fields = (
+        'reference', 'subject', 'description', 'user__phone', 'user__email', 'order__pk',
+    )
+    autocomplete_fields = ('user', 'order')
+    readonly_fields = ('reference', 'resolved_at', 'created_at', 'updated_at')
+    inlines = (ComplaintMessageInline,)
+
+
+@admin.register(ProductImportDraft)
+class ProductImportDraftAdmin(admin.ModelAdmin):
+    list_display = ('display_name', 'created_by', 'status', 'current_step', 'product', 'updated_at')
+    list_filter = ('status', 'current_step')
+    search_fields = ('draft_data', 'raw_paste', 'created_by__email', 'created_by__phone')
+    readonly_fields = ('created_at', 'updated_at', 'parse_error')
+    autocomplete_fields = ('created_by', 'product')
+
+
 @admin.register(GroupBuyEntry)
 class GroupBuyEntryAdmin(admin.ModelAdmin):
     list_display = ('group_buy', 'user', 'variation', 'quantity', 'created_at')
@@ -398,3 +439,12 @@ class PaymentAdmin(admin.ModelAdmin):
         'reference', 'merchant_request_id', 'checkout_request_id',
         'callback_payload', 'created_at', 'completed_at',
     )
+
+
+@admin.register(WishlistItem)
+class WishlistItemAdmin(admin.ModelAdmin):
+    list_display = ('user', 'product', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('user__phone', 'user__email', 'product__name', 'product__slug')
+    autocomplete_fields = ('user', 'product')
+    readonly_fields = ('created_at',)

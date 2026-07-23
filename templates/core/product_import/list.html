@@ -1,0 +1,81 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}AI Product Import — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/product_import.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:product_list' %}">Products</a> / AI import</p>
+                <h1>AI product import</h1>
+                <p>Paste supplier listing content and approve each step before publishing to the catalog.</p>
+            </div>
+            {% if openai_configured %}
+            <a href="{% url 'core:product_import_start' %}" class="btn btn-primary">New import</a>
+            {% endif %}
+        </div>
+
+        {% if not openai_configured %}
+        <div class="manage-alert manage-alert-warning">
+            <strong>OpenAI not configured.</strong> Add <code>OPENAI_API_KEY</code> to your <code>.env</code> file, then restart the server.
+        </div>
+        {% endif %}
+
+        <div class="admin-card">
+            {% if drafts %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Status</th>
+                            <th>Step</th>
+                            <th>Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for draft in drafts %}
+                        <tr>
+                            <td>
+                                <strong>{{ draft.display_name }}</strong>
+                                {% if draft.product %}
+                                <br><span class="category-desc">Published → {{ draft.product.name }}</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="status-badge status-badge-import-{{ draft.status }}">{{ draft.get_status_display }}</span></td>
+                            <td>{{ draft.get_current_step_display }}</td>
+                            <td>{{ draft.updated_at|date:"M j, Y g:i A" }}</td>
+                            <td>
+                                {% if draft.status != 'completed' and draft.status != 'failed' %}
+                                <a href="{% url 'core:product_import_basics' draft.pk %}" class="btn btn-outline btn-sm">Continue</a>
+                                {% elif draft.product %}
+                                <a href="{{ draft.product.get_absolute_url }}" class="btn btn-outline btn-sm" target="_blank">View</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="import-empty-state">
+                <h2>No import drafts yet</h2>
+                <p>Paste Alibaba listing text, specs, and variation tables — OpenAI structures them for your approval.</p>
+                {% if openai_configured %}
+                <a href="{% url 'core:product_import_start' %}" class="btn btn-primary">Start import</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

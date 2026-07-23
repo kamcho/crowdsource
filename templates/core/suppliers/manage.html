@@ -1,0 +1,156 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}{{ supplier.name }} — Suppliers{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb">
+                    <a href="{% url 'core:admin_dashboard' %}">Dashboard</a> /
+                    <a href="{% url 'core:supplier_list' %}">Suppliers</a> /
+                    {{ supplier.name }}
+                </p>
+                <div class="order-card-id-row">
+                    <h1>{{ supplier.name }}</h1>
+                    {% if supplier.is_active %}
+                    <span class="status-badge status-badge-active">Active</span>
+                    {% else %}
+                    <span class="status-badge status-badge-inactive">Inactive</span>
+                    {% endif %}
+                </div>
+                <p class="order-card-meta">{{ supplier.country }} · {{ supplier.product_count }} product{{ supplier.product_count|pluralize }} · {{ supplier.batch_count }} import batch{{ supplier.batch_count|pluralize:"es" }}</p>
+            </div>
+            <div class="admin-header-actions">
+                <a href="{% url 'core:supplier_edit' supplier.pk %}" class="btn btn-primary">Edit supplier</a>
+                <a href="{% url 'core:supplier_list' %}" class="btn btn-outline">Back to list</a>
+            </div>
+        </div>
+
+        <div class="import-review-grid">
+            <div class="admin-card">
+                <h2 class="import-section-title">Contact details</h2>
+                <dl class="import-review-list">
+                    <div><dt>Contact person</dt><dd>{{ supplier.contact_name|default:"—" }}</dd></div>
+                    <div><dt>Email</dt><dd>{% if supplier.email %}<a href="mailto:{{ supplier.email }}">{{ supplier.email }}</a>{% else %}—{% endif %}</dd></div>
+                    <div><dt>Phone</dt><dd>{{ supplier.phone|default:"—" }}</dd></div>
+                    <div><dt>WeChat</dt><dd>{{ supplier.wechat_id|default:"—" }}</dd></div>
+                    <div><dt>Alibaba</dt><dd>{% if supplier.alibaba_url %}<a href="{{ supplier.alibaba_url }}" target="_blank" rel="noopener">Open storefront</a>{% else %}—{% endif %}</dd></div>
+                    <div><dt>Country</dt><dd>{{ supplier.country }}</dd></div>
+                </dl>
+                {% if supplier.notes %}
+                <h3 class="manage-section-title">Notes</h3>
+                <p class="import-review-description">{{ supplier.notes|linebreaksbr }}</p>
+                {% endif %}
+            </div>
+
+            <div class="admin-card">
+                <h2 class="import-section-title">Summary</h2>
+                <div class="admin-summary-bar admin-summary-bar-inline">
+                    <div class="admin-summary-stat">
+                        <span class="admin-summary-label">Products</span>
+                        <strong>{{ supplier.product_count }}</strong>
+                    </div>
+                    <div class="admin-summary-stat">
+                        <span class="admin-summary-label">Import batches</span>
+                        <strong>{{ supplier.batch_count }}</strong>
+                    </div>
+                    <div class="admin-summary-stat">
+                        <span class="admin-summary-label">Added</span>
+                        <strong>{{ supplier.created_at|date:"M j, Y" }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <div class="dashboard-section-header">
+                <h2 class="manage-section-title">Linked products</h2>
+            </div>
+            {% if products %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Variations</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td><strong>{{ product.name }}</strong></td>
+                            <td>{{ product.category.get_breadcrumb }}</td>
+                            <td>{{ product.variations.count }}</td>
+                            <td>
+                                {% if product.is_active %}
+                                <span class="status-badge status-badge-active">Active</span>
+                                {% else %}
+                                <span class="status-badge status-badge-inactive">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="table-actions">
+                                <a href="{% url 'core:product_variation_list' product.pk %}" class="btn btn-outline btn-sm">Manage</a>
+                                <a href="{{ product.get_absolute_url }}" class="btn btn-outline btn-sm" target="_blank" rel="noopener">View</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="category-desc">No products linked to this supplier yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <div class="dashboard-section-header">
+                <h2 class="manage-section-title">Import batches</h2>
+            </div>
+            {% if import_batches %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Group buy</th>
+                            <th>Status</th>
+                            <th>Supplier ref</th>
+                            <th>ETA</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for batch in import_batches %}
+                        <tr>
+                            <td>
+                                <strong>{{ batch.group_buy.product.name }}</strong>
+                                <br><span class="category-desc">Batch #{{ batch.pk }}</span>
+                            </td>
+                            <td><span class="status-badge">{{ batch.get_status_display }}</span></td>
+                            <td>{% if batch.supplier_reference %}<code>{{ batch.supplier_reference }}</code>{% else %}—{% endif %}</td>
+                            <td>{% if batch.estimated_arrival %}{{ batch.estimated_arrival|date:"M j, Y" }}{% else %}—{% endif %}</td>
+                            <td class="table-actions">
+                                <a href="{% url 'core:group_buy_manage' batch.group_buy.pk %}" class="btn btn-outline btn-sm">Manage</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="category-desc">No import batches linked to this supplier yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -13,7 +13,7 @@
     <div class="container">
         <div class="admin-header">
             <div>
-                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / <a href="{% url 'core:supplier_list' %}">Suppliers</a> / {% if supplier %}Edit{% else %}Add{% endif %}</p>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / <a href="{% url 'core:supplier_list' %}">Suppliers</a>{% if supplier %} / <a href="{% url 'core:supplier_manage' supplier.pk %}">{{ supplier.name }}</a> / Edit{% else %} / Add{% endif %}</p>
                 <h1>{{ title }}</h1>
             </div>
         </div>
@@ -79,7 +79,7 @@
 
                 <div class="admin-form-actions">
                     <button type="submit" class="btn btn-primary">Save supplier</button>
-                    <a href="{% url 'core:supplier_list' %}" class="btn btn-outline">Cancel</a>
+                    <a href="{% if supplier %}{% url 'core:supplier_manage' supplier.pk %}{% else %}{% url 'core:supplier_list' %}{% endif %}" class="btn btn-outline">Cancel</a>
                 </div>
             </form>
         </div>

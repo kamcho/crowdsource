@@ -7,7 +7,7 @@
 <div class="user-dash-hero">
     <div class="user-dash-welcome">
         <h1>Welcome back, {{ user.first_name|default:user.get_full_name }}</h1>
-        <p>Track your pledges, orders, and deliveries from one place.</p>
+        <p>Track your bookings, orders, and deliveries from one place.</p>
     </div>
     <div class="user-profile-avatar-lg" aria-hidden="true">{{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}</div>
 </div>
@@ -16,7 +16,7 @@
     <a href="{% url 'pledge_list' %}" class="dash-stat-card dash-stat-card-link">
         <div class="dash-stat-card-header">
             <div>
-                <p class="dash-stat-label">My pledges</p>
+                <p class="dash-stat-label">My bookings</p>
                 <p class="dash-stat-value">{{ user_stats.pledges }}</p>
             </div>
             <div class="dash-stat-icon dash-stat-icon-purple" aria-hidden="true">
@@ -24,7 +24,7 @@
             </div>
         </div>
         <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-purple" style="width: {% if user_stats.pledges %}65{% else %}8{% endif %}%"></div></div>
-        <p class="dash-stat-trend"><span class="dash-view-all">View pledges →</span></p>
+        <p class="dash-stat-trend"><span class="dash-view-all">View bookings →</span></p>
     </a>
 
     <a href="{% url 'order_list' %}" class="dash-stat-card dash-stat-card-link">
@@ -133,7 +133,7 @@
                 </span>
                 <span class="user-activity-body">
                     <span class="user-activity-title">{{ pledge.group_buy.product.name }}</span>
-                    <span class="user-activity-meta">Pledged {{ pledge.quantity }} unit{{ pledge.quantity|pluralize }} · {{ pledge.group_buy.get_status_display }}</span>
+                    <span class="user-activity-meta">Booked {{ pledge.quantity }} unit{{ pledge.quantity|pluralize }} · {{ pledge.group_buy.get_status_display }}</span>
                 </span>
             </a>
             {% endfor %}
@@ -156,7 +156,7 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         </span>
         <span class="dash-action-body">
-            <span class="dash-action-title">My pledges</span>
+            <span class="dash-action-title">My bookings</span>
             <span class="dash-action-desc">Review active group buy commitments</span>
         </span>
         <span class="dash-action-arrow" aria-hidden="true">→</span>

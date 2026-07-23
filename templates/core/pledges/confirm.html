@@ -27,7 +27,7 @@
 
     <div class="container commerce-card commerce-card-narrow">
 
-        <p class="commerce-breadcrumb"><a href="{% url 'pledge_list' %}">My pledges</a> / Confirm order</p>
+        <p class="commerce-breadcrumb"><a href="{% url 'pledge_list' %}">My bookings</a> / Confirm order</p>
 
         <h1>Confirm &amp; pay</h1>
 
@@ -39,7 +39,7 @@
 
             <div class="progress-header">
 
-                <span>{{ group_buy.pledged_units }} / {{ group_buy.moq }} units pledged</span>
+                <span>{{ group_buy.pledged_units }} / {{ group_buy.moq }} units booked</span>
 
                 <span class="progress-pct">{{ group_buy.progress_percent }}%</span>
 
@@ -200,7 +200,7 @@
             {% endif %}
 
             <div class="commerce-actions">
-                <a href="{% url 'pledge_list' %}" class="btn btn-outline">Back to pledges</a>
+                <a href="{% url 'pledge_list' %}" class="btn btn-outline">Back to bookings</a>
                 {% if addresses %}
                 <button type="submit" class="btn btn-primary">
                     {% if mpesa_enabled %}Pay KES {{ amount_kes|floatformat:0 }} with M-Pesa{% else %}Pay {% money total_amount %}{% endif %}

@@ -2,8 +2,8 @@
 {% load static %}
 {% load currency_tags %}
 
-{% block title %}My Pledges — CrowdSource Import{% endblock %}
-{% block topbar_title %}My pledges{% endblock %}
+{% block title %}My Bookings — CrowdSource Import{% endblock %}
+{% block topbar_title %}My bookings{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/auth.css' %}">
@@ -15,7 +15,7 @@
     <div class="container">
         <div class="commerce-header">
             <div>
-                <h1>My pledges</h1>
+                <h1>My bookings</h1>
                 <p>Active group buy commitments you've joined. Confirm and pay anytime to lock in your order.</p>
             </div>
         </div>
@@ -27,7 +27,7 @@
                 <strong>{{ summary.active_group_buys }}</strong>
             </div>
             <div class="pledge-summary-stat">
-                <span class="pledge-summary-label">Total units pledged</span>
+                <span class="pledge-summary-label">Total units booked</span>
                 <strong>{{ summary.total_pledges }}</strong>
             </div>
         </div>
@@ -65,7 +65,7 @@
 
                 <div class="product-progress pledge-group-progress">
                     <div class="progress-header">
-                        <span>{{ group_buy.pledged_units }} / {{ group_buy.moq }} units pledged</span>
+                        <span>{{ group_buy.pledged_units }} / {{ group_buy.moq }} units booked</span>
                         <span class="progress-pct">{{ group_buy.progress_percent }}%</span>
                     </div>
                     <div class="progress-bar">
@@ -74,7 +74,7 @@
                     <p class="progress-meta">
                         {% if group.can_confirm %}
                             {% if group.latest_paid_order %}
-                            <span>New pledges ready to pay. Previous order #{{ group.latest_paid_order.pk }} already paid.</span>
+                            <span>New bookings ready to pay. Previous order #{{ group.latest_paid_order.pk }} already paid.</span>
                             {% elif group_buy.moq_reached %}
                             <span class="text-success">MOQ reached — import will begin once all buyers pay.</span>
                             {% elif group_buy.is_joinable %}
@@ -116,7 +116,7 @@
                     <a href="{% url 'order_detail' group.latest_paid_order.pk %}" class="btn btn-outline">View order #{{ group.latest_paid_order.pk }}</a>
                     {% endif %}
                     <a href="{{ product.get_absolute_url }}" class="btn btn-outline">
-                        {% if group_buy.is_joinable %}Manage pledge{% else %}View product{% endif %}
+                        {% if group_buy.is_joinable %}Manage booking{% else %}View product{% endif %}
                     </a>
                 </div>
             </article>
@@ -125,7 +125,7 @@
         </div>
         {% else %}
         <div class="commerce-card empty-state-box">
-            <p>You haven't pledged to any group buys yet. Browse products and join an open campaign.</p>
+            <p>You haven't booked any group buys yet. Browse products and join an open campaign.</p>
             <a href="{% url 'home:landing' %}#products" class="btn btn-primary">Browse products</a>
         </div>
         {% endif %}

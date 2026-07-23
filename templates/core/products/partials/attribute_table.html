@@ -1,0 +1,17 @@
+<table class="product-attrs-table">
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            {% for attribute in row %}
+            {% if attribute %}
+            <th scope="row">{{ attribute.title }}</th>
+            <td>{{ attribute.description|linebreaksbr }}</td>
+            {% else %}
+            <th scope="row" class="product-attrs-table-empty"></th>
+            <td class="product-attrs-table-empty"></td>
+            {% endif %}
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

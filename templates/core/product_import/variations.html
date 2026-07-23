@@ -1,0 +1,66 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Step 3: Variations — AI Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/product_import.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        {% include 'core/product_import/partials/wizard_steps.html' %}
+
+        <div class="admin-header">
+            <div>
+                <h1>Variations & pricing</h1>
+                <p>Confirm option dimensions (Color, Size, etc.) and SKU prices.</p>
+            </div>
+        </div>
+
+        <div class="admin-card import-section-card">
+            <form method="post" class="admin-form" id="variations-form" novalidate>
+                {% csrf_token %}
+                {{ import_variations_data|json_script:"variations-data" }}
+                <input type="hidden" name="variations_json" id="variations-json" value="">
+
+                <h2 class="import-section-title">Options</h2>
+                <p class="field-hint">Add one block per option type (e.g. Color). Put all values in the same block, separated by commas: <strong>Black, White, Pink</strong>.</p>
+                <div id="options-merge-note" class="import-options-merge-note" hidden></div>
+                <div id="options-editor" class="import-options-editor"></div>
+                <button type="button" class="btn btn-outline btn-sm" id="add-option">Add option</button>
+
+                <h2 class="import-section-title">SKU rows</h2>
+                <div class="import-table-toolbar">
+                    <button type="button" class="btn btn-outline btn-sm" id="add-variation-row">Add variation</button>
+                </div>
+                <div class="data-table-wrap">
+                    <table class="data-table import-edit-table" id="variations-table">
+                        <thead>
+                            <tr id="variations-header-row">
+                                <th>SKU</th>
+                                <th>Price (USD)</th>
+                                <th>Active</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="variations-body"></tbody>
+                    </table>
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" name="action" value="back" class="btn btn-outline">Back</button>
+                    <button type="submit" name="action" value="continue" class="btn btn-primary">Save & continue</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/product_import_variations.js' %}"></script>
+{% endblock %}

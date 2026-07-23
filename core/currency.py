@@ -42,15 +42,19 @@ def convert_usd_to_kes(amount_usd, rate=None):
     return int((amount * rate).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
 
 
+def format_kes(amount_usd, rate=None):
+    kes = convert_usd_to_kes(amount_usd, rate)
+    return f'KES {kes:,}'
+
+
 def format_money(amount_usd, currency=CURRENCY_USD, rate=None):
     amount = to_decimal(amount_usd)
     if amount is None:
         return '—'
     currency = normalize_currency(currency)
     if currency == CURRENCY_KES:
-        kes = convert_usd_to_kes(amount, rate)
-        return f'KES {kes:,}'
-    return f'${amount:.2f}'
+        return format_kes(amount, rate)
+    return f'${amount:.2f} ≈ {format_kes(amount, rate)}'
 
 
 def format_money_range(price_min, price_max, currency=CURRENCY_USD, rate=None):
@@ -60,5 +64,8 @@ def format_money_range(price_min, price_max, currency=CURRENCY_USD, rate=None):
     maximum = to_decimal(price_max)
     currency = normalize_currency(currency)
     if maximum is not None and minimum != maximum:
-        return f'{format_money(minimum, currency, rate)} – {format_money(maximum, currency, rate)}'
+        return (
+            f'{format_money(minimum, currency, rate)} – '
+            f'{format_money(maximum, currency, rate)}'
+        )
     return format_money(minimum, currency, rate)

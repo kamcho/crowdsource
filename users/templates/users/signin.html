@@ -38,7 +38,7 @@
             <button type="submit" class="btn btn-primary btn-block btn-lg">Sign In</button>
         </form>
 
-        {% include 'users/partials/google_signin.html' with google_divider_before='or continue with' %}
+        {% include 'users/partials/google_signin.html' with google_button_id='signinGoogleButton' google_divider_before='or continue with' google_button_text='continue_with' %}
 
         <p class="auth-switch">
             Don't have an account? <a href="{% url 'users:signup' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Sign up</a>

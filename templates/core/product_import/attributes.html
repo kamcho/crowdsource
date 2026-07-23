@@ -1,0 +1,60 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Step 2: Specifications — AI Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/product_import.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        {% include 'core/product_import/partials/wizard_steps.html' %}
+
+        <div class="admin-header">
+            <div>
+                <h1>Specifications</h1>
+                <p>Key attributes and packaging details shown on the product page.</p>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            <form method="post" class="admin-form" id="attributes-form" novalidate>
+                {% csrf_token %}
+                {{ attributes|json_script:"attributes-data" }}
+                <input type="hidden" name="attributes_json" id="attributes-json" value="">
+
+                <div class="import-table-toolbar">
+                    <button type="button" class="btn btn-outline btn-sm" id="add-attribute-row">Add row</button>
+                </div>
+
+                <div class="data-table-wrap">
+                    <table class="data-table import-edit-table" id="attributes-table">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Section</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="attributes-body"></tbody>
+                    </table>
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" name="action" value="back" class="btn btn-outline">Back</button>
+                    <button type="submit" name="action" value="continue" class="btn btn-primary">Save & continue</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/product_import_attributes.js' %}"></script>
+{% endblock %}

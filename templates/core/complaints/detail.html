@@ -1,0 +1,90 @@
+{% extends 'dashboard/user_base.html' %}
+{% load static %}
+
+{% block title %}{{ complaint.subject }} — CrowdSource Import{% endblock %}
+{% block topbar_title %}Issue details{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/commerce.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="container">
+        <div class="commerce-card order-detail-card">
+            <p class="commerce-breadcrumb"><a href="{% url 'complaint_list' %}">Help & issues</a> / {{ complaint.reference }}</p>
+
+            <div class="order-card-header order-detail-header">
+                <div>
+                    <div class="order-card-id-row">
+                        <h1>{{ complaint.subject }}</h1>
+                        <span class="status-badge status-badge-complaint-{{ complaint.status }}">{{ complaint.get_status_display }}</span>
+                    </div>
+                    <p class="order-card-meta">
+                        <code>{{ complaint.reference }}</code>
+                        · {{ complaint.get_category_display }}
+                        · Opened {{ complaint.created_at|date:"F j, Y, g:i A" }}
+                    </p>
+                    {% if complaint.order %}
+                    <p class="complaint-linked-order">
+                        Related order:
+                        <a href="{% url 'order_detail' complaint.order.pk %}">Order #{{ complaint.order.pk }}</a>
+                        — {{ complaint.order.product.name }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="complaint-detail-body commerce-card-inner">
+                <h2 class="order-detail-section-title">Your report</h2>
+                <p class="complaint-detail-description">{{ complaint.description|linebreaksbr }}</p>
+            </div>
+
+            {% if complaint.messages.all %}
+            <div class="complaint-thread">
+                <h2 class="order-detail-section-title">Conversation</h2>
+                <ul class="complaint-message-list">
+                    {% for message in complaint.messages.all %}
+                    <li class="complaint-message{% if message.is_staff_reply %} is-staff{% endif %}">
+                        <div class="complaint-message-meta">
+                            <strong>{% if message.is_staff_reply %}CrowdSource support{% else %}You{% endif %}</strong>
+                            <span>{{ message.created_at|date:"M j, Y, g:i A" }}</span>
+                        </div>
+                        <p>{{ message.body|linebreaksbr }}</p>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if complaint.is_open %}
+            <div class="complaint-reply-form commerce-card-inner">
+                <h2 class="order-detail-section-title">Add a follow-up</h2>
+                <form method="post" class="admin-form" novalidate>
+                    {% csrf_token %}
+                    <div class="form-group">
+                        {{ message_form.body }}
+                        {% if message_form.body.errors %}<span class="field-error">{{ message_form.body.errors.0 }}</span>{% endif %}
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send message</button>
+                </form>
+            </div>
+            {% else %}
+            <p class="order-note order-detail-note">
+                This issue is marked {{ complaint.get_status_display|lower }}.
+                {% if complaint.resolved_at %}Updated {{ complaint.resolved_at|date:"F j, Y" }}.{% endif %}
+                Need more help? <a href="{% url 'complaint_create' %}">Open a new issue</a>.
+            </p>
+            {% endif %}
+
+            <div class="commerce-actions">
+                <a href="{% url 'complaint_list' %}" class="btn btn-outline">Back to issues</a>
+                {% if complaint.order %}
+                <a href="{% url 'order_detail' complaint.order.pk %}" class="btn btn-primary">View order</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

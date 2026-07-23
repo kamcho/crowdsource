@@ -25,7 +25,7 @@ def add_to_cart(user, group_buy, variation, quantity):
         defaults={'quantity': quantity},
     )
     if not created:
-        item.quantity = quantity
+        item.quantity += quantity
         item.save()
     return item
 
@@ -49,15 +49,20 @@ def checkout_cart(user):
                 errors.append(f'{item.product.name}: {"; ".join(exc.messages)}')
                 continue
 
-            entry, created = GroupBuyEntry.objects.get_or_create(
-                group_buy=item.group_buy,
-                user=user,
-                variation=item.variation,
-                defaults={'quantity': item.quantity},
-            )
-            if not created:
-                entry.quantity = item.quantity
-                entry.save()
+            try:
+                entry, created = GroupBuyEntry.objects.get_or_create(
+                    group_buy=item.group_buy,
+                    user=user,
+                    variation=item.variation,
+                    defaults={'quantity': item.quantity},
+                )
+                if not created:
+                    entry.quantity = item.quantity
+                    entry.save()
+            except ValidationError as exc:
+                label = item.variation.display_name if item.variation_id else item.product.name
+                errors.append(f'{label}: {"; ".join(exc.messages)}')
+                continue
             saved_entries.append(entry)
 
         if errors:
@@ -164,7 +169,7 @@ def complete_payment_and_create_order(user, group_buy, address):
             raise ValidationError('Complete your pending M-Pesa payment first.')
         if group_buy.status == GroupBuy.Status.CANCELLED:
             raise ValidationError('This group buy was cancelled.')
-        raise ValidationError('No pledges found for this group buy.')
+        raise ValidationError('No bookings found for this group buy.')
 
     if not address or address.user_id != user.id:
         raise ValidationError('Select a valid delivery address.')

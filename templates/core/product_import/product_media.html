@@ -1,0 +1,86 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Step 4: Product images — AI Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/product_import.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        {% include 'core/product_import/partials/wizard_steps.html' %}
+
+        <div class="admin-header">
+            <div>
+                <h1>Product images</h1>
+                <p>Upload gallery images for the main product listing, or fetch them from an Alibaba product URL.</p>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            {% if product_media %}
+            <p class="field-hint import-media-help">Choose which image appears first on the product page.</p>
+            <div class="import-media-grid">
+                {% for media in product_media %}
+                <div class="import-media-card{% if media.is_primary %} is-primary{% endif %}">
+                    <img src="{{ media.file.url }}" alt="">
+                    {% if media.is_primary %}
+                    <span class="import-media-badge">Primary</span>
+                    {% endif %}
+                    <div class="import-media-actions">
+                        {% if not media.is_primary %}
+                        <form method="post" class="import-media-action-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="set_primary">
+                            <input type="hidden" name="media_id" value="{{ media.pk }}">
+                            <button type="submit" class="btn btn-outline btn-sm">Set as primary</button>
+                        </form>
+                        {% endif %}
+                        <form method="post" class="import-media-action-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="remove_id" value="{{ media.pk }}">
+                            <button type="submit" class="btn btn-outline btn-sm">Remove</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post" class="admin-form import-fetch-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="fetch_url">Alibaba product URL</label>
+                    <input type="url" name="fetch_url" id="fetch_url" class="form-input"
+                           value="{{ draft.source_url }}"
+                           placeholder="https://www.alibaba.com/product-detail/...">
+                    <p class="field-hint">Uses the URL from step 1 if set. Scraping may fail if Alibaba blocks automated requests.</p>
+                </div>
+                <div class="admin-form-actions">
+                    <button type="submit" name="action" value="fetch_from_url" class="btn btn-outline">
+                        Fetch images from URL
+                    </button>
+                </div>
+            </form>
+
+            <form method="post" enctype="multipart/form-data" class="admin-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="images">Upload images</label>
+                    <input type="file" name="images" id="images" class="form-input" accept="image/*" multiple>
+                    <p class="field-hint">Upload images first, then click “Set as primary” on the one you want as the main photo.</p>
+                </div>
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-outline">Upload</button>
+                    <button type="submit" name="action" value="back" class="btn btn-outline">Back</button>
+                    <button type="submit" name="action" value="continue" class="btn btn-primary">Continue</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

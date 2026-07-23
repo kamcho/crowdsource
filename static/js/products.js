@@ -39,6 +39,9 @@
         if (grid.dataset.search) {
             params.set('q', grid.dataset.search);
         }
+        if (grid.dataset.landing === 'true') {
+            params.set('landing', '1');
+        }
         return loadUrl + '?' + params.toString();
     }
 

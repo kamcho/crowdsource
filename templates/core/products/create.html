@@ -53,6 +53,14 @@
 
                 <div class="form-group">
                     <div class="form-checkbox-row">
+                        {{ form.is_special_class }}
+                        <label for="{{ form.is_special_class.id_for_label }}">{{ form.is_special_class.label }}</label>
+                    </div>
+                    {% if form.is_special_class.errors %}<span class="field-error">{{ form.is_special_class.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <div class="form-checkbox-row">
                         {{ form.is_active }}
                         <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
                     </div>

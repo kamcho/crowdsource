@@ -15,12 +15,54 @@
             <div>
                 <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / Suppliers</p>
                 <h1>Suppliers</h1>
-                <p>Factories and trading partners in China linked to products and import batches.</p>
+                <p>Factories and trading partners linked to products and import batches.</p>
             </div>
             <a href="{% url 'core:supplier_create' %}" class="btn btn-primary">Add supplier</a>
         </div>
 
-        <div class="admin-card">
+        <div class="admin-summary-bar">
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Total</span>
+                <strong>{{ summary.total }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Active</span>
+                <strong>{{ summary.active }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">Inactive</span>
+                <strong>{{ summary.inactive }}</strong>
+            </div>
+            <div class="admin-summary-stat">
+                <span class="admin-summary-label">With products</span>
+                <strong>{{ summary.with_products }}</strong>
+            </div>
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <div class="dashboard-section-header">
+                <h2 class="manage-section-title">All suppliers</h2>
+                <div class="admin-filter-tabs">
+                    <a href="?status=active{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="btn btn-outline btn-sm{% if status_filter == 'active' %} is-active{% endif %}">Active</a>
+                    <a href="?status=inactive{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="btn btn-outline btn-sm{% if status_filter == 'inactive' %} is-active{% endif %}">Inactive</a>
+                    <a href="?status=all{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="btn btn-outline btn-sm{% if status_filter == 'all' %} is-active{% endif %}">All</a>
+                </div>
+            </div>
+
+            <form method="get" class="admin-form admin-form-inline">
+                <input type="hidden" name="status" value="{{ status_filter }}">
+                <div class="form-group">
+                    <label for="supplier-search">Search</label>
+                    <input type="search" name="q" id="supplier-search" class="form-input" value="{{ query }}" placeholder="Name, contact, email, phone, WeChat…">
+                </div>
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-outline">Search</button>
+                    {% if query %}
+                    <a href="?status={{ status_filter }}" class="btn btn-outline">Clear</a>
+                    {% endif %}
+                </div>
+            </form>
+
             {% if suppliers %}
             <div class="data-table-wrap">
                 <table class="data-table">
@@ -39,7 +81,7 @@
                         {% for supplier in suppliers %}
                         <tr>
                             <td>
-                                <strong>{{ supplier.name }}</strong>
+                                <strong><a href="{% url 'core:supplier_manage' supplier.pk %}">{{ supplier.name }}</a></strong>
                                 {% if supplier.alibaba_url %}
                                 <br><a href="{{ supplier.alibaba_url }}" class="category-desc" target="_blank" rel="noopener">Alibaba storefront</a>
                                 {% endif %}
@@ -47,8 +89,9 @@
                             <td>
                                 {% if supplier.contact_name %}{{ supplier.contact_name }}<br>{% endif %}
                                 <span class="category-desc">
+                                    {% if supplier.email %}{{ supplier.email }}<br>{% endif %}
                                     {% if supplier.phone %}{{ supplier.phone }}{% endif %}
-                                    {% if supplier.wechat_id %} · WeChat {{ supplier.wechat_id }}{% endif %}
+                                    {% if supplier.wechat_id %}{% if supplier.phone %} · {% endif %}WeChat {{ supplier.wechat_id }}{% endif %}
                                 </span>
                             </td>
                             <td>{{ supplier.country }}</td>
@@ -62,6 +105,7 @@
                                 {% endif %}
                             </td>
                             <td class="table-actions">
+                                <a href="{% url 'core:supplier_manage' supplier.pk %}" class="btn btn-outline btn-sm">Manage</a>
                                 <a href="{% url 'core:supplier_edit' supplier.pk %}" class="btn btn-outline btn-sm">Edit</a>
                             </td>
                         </tr>
@@ -71,8 +115,13 @@
             </div>
             {% else %}
             <div class="empty-state-box">
-                <p>No suppliers yet. Add your first factory or trading partner.</p>
+                {% if query %}
+                <p>No suppliers match your search.</p>
+                <a href="?status={{ status_filter }}" class="btn btn-outline">Clear search</a>
+                {% else %}
+                <p>No suppliers in this view yet.</p>
                 <a href="{% url 'core:supplier_create' %}" class="btn btn-primary">Add supplier</a>
+                {% endif %}
             </div>
             {% endif %}
         </div>

@@ -1,0 +1,14 @@
+<nav class="import-wizard-steps" aria-label="Import progress">
+    <ol class="import-wizard-step-list">
+        {% for step in wizard_steps %}
+        <li class="import-wizard-step{% if step.is_current %} is-current{% elif step.is_complete %} is-complete{% endif %}">
+            {% if step.is_complete and not step.is_current %}
+            <a href="{{ step.url }}" class="import-wizard-step-link">{{ step.label }}</a>
+            {% else %}
+            <span class="import-wizard-step-label">{{ step.label }}</span>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ol>
+    <p class="import-wizard-meta">Step {{ step_number }} of {{ step_total }} · Draft: {{ draft.display_name }}</p>
+</nav>

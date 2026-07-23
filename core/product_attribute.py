@@ -3,6 +3,10 @@ from django.db.models import Q
 
 
 class ProductAttribute(models.Model):
+    class Section(models.TextChoices):
+        KEY = 'key', 'Key attributes'
+        PACKAGING = 'packaging', 'Packaging and delivery'
+
     product = models.ForeignKey(
         'Product',
         on_delete=models.CASCADE,
@@ -17,6 +21,11 @@ class ProductAttribute(models.Model):
     )
     title = models.CharField(max_length=100)
     description = models.TextField(blank=True)
+    section = models.CharField(
+        max_length=20,
+        choices=Section.choices,
+        default=Section.KEY,
+    )
     sort_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

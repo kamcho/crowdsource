@@ -1,0 +1,32 @@
+{% load static %}
+<aside class="category-browse-sidebar" aria-label="Product filters">
+    <div class="category-browse-sidebar-inner">
+        <h2 class="category-browse-sidebar-title">Filters</h2>
+
+        <div class="category-browse-filter-group">
+            <h3 class="category-browse-filter-heading">Categories</h3>
+            <ul class="category-browse-filter-list">
+                <li>
+                    <a
+                        href="{{ browse_base_url }}{% if search %}?q={{ search|urlencode }}{% endif %}"
+                        class="category-browse-filter-link{% if not active_category %} is-active{% endif %}"
+                    >
+                        <span class="category-browse-filter-check" aria-hidden="true"></span>
+                        All products
+                    </a>
+                </li>
+                {% for category, depth in category_filter_rows %}
+                <li class="category-browse-filter-item depth-{{ depth }}">
+                    <a
+                        href="{{ browse_base_url }}?category={{ category.slug }}{% if search %}&amp;q={{ search|urlencode }}{% endif %}"
+                        class="category-browse-filter-link{% if active_category and active_category.pk == category.pk %} is-active{% endif %}"
+                    >
+                        <span class="category-browse-filter-check" aria-hidden="true"></span>
+                        {{ category.name }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</aside>

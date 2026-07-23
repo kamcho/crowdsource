@@ -1,0 +1,74 @@
+{% extends 'dashboard/user_base.html' %}
+{% load static %}
+{% load currency_tags %}
+
+{% block title %}Wishlist — CrowdSource Import{% endblock %}
+{% block topbar_title %}Wishlist{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/landing.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <div class="container">
+        <div class="commerce-header">
+            <div>
+                <h1>Your wishlist</h1>
+                <p>Products you saved to review or book later.</p>
+            </div>
+            <a href="{% url 'home:product_browse' %}" class="btn btn-outline">Browse products</a>
+        </div>
+
+        {% if items %}
+        <div class="wishlist-lines commerce-card">
+            {% for item in items %}
+            {% with product=item.product group_buy=product.active_group_buy %}
+            <div class="wishlist-line">
+                <div class="wishlist-line-product">
+                    {% with image=product.primary_image %}
+                    {% if image %}
+                    <a href="{{ product.get_absolute_url }}">
+                        <img src="{{ image.file.url }}" alt="" class="wishlist-line-thumb">
+                    </a>
+                    {% else %}
+                    <a href="{{ product.get_absolute_url }}" class="wishlist-line-thumb wishlist-line-thumb-empty">—</a>
+                    {% endif %}
+                    {% endwith %}
+                    <div>
+                        <a href="{{ product.get_absolute_url }}" class="wishlist-line-title">{{ product.name }}</a>
+                        <p class="wishlist-line-meta">
+                            {% if product.min_price %}
+                            {% money_from product.min_price %}/unit
+                            {% elif group_buy %}
+                            {% money group_buy.unit_price %}/unit
+                            {% else %}
+                            —
+                            {% endif %}
+                            {% if group_buy %}
+                            · Group buy {{ group_buy.progress_percent }}% filled
+                            {% endif %}
+                        </p>
+                        <p class="wishlist-line-saved">Saved {{ item.created_at|date:"M j, Y" }}</p>
+                    </div>
+                </div>
+                <div class="wishlist-line-actions">
+                    <a href="{{ product.get_absolute_url }}" class="btn btn-search btn-sm">View product</a>
+                    <form method="post" action="{% url 'wishlist_remove' product.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline btn-sm">Remove</button>
+                    </form>
+                </div>
+            </div>
+            {% endwith %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="commerce-card commerce-empty">
+            <p>Your wishlist is empty. Tap the heart on any product to save it here.</p>
+            <a href="{% url 'home:product_browse' %}" class="btn btn-search">Browse products</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

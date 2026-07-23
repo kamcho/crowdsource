@@ -84,6 +84,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.cart_summary',
+                'core.context_processors.wishlist_summary',
                 'core.context_processors.admin_sidebar',
                 'core.context_processors.currency',
                 'core.context_processors.category_nav',
@@ -212,6 +213,11 @@ TWILIO_FROM_NUMBER = os.environ.get('TWILIO_FROM_NUMBER', '').strip()
 
 # Email
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '').strip()
+
+# OpenAI — product import wizard
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '').strip()
+OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4o-mini').strip()
+
 EMAIL_BACKEND = os.environ.get(
     'EMAIL_BACKEND',
     'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend',

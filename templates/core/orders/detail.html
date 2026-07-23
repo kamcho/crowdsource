@@ -105,7 +105,7 @@
                     <div class="progress-fill{% if order.group_buy.moq_reached %} progress-fill-complete{% endif %}" style="width: {{ order.group_buy.progress_percent }}%"></div>
                 </div>
                 <p class="progress-meta">
-                    {{ order.group_buy.pledged_units }} / {{ order.group_buy.moq }} units pledged
+                    {{ order.group_buy.pledged_units }} / {{ order.group_buy.moq }} units booked
                     {% if order.group_buy.moq_reached %} · MOQ reached{% endif %}
                 </p>
             </div>
@@ -221,13 +221,31 @@
                 {% endif %}
             </p>
             {% elif order.status == 'refunded' %}
-            <p class="order-note order-detail-note">This order has been fully refunded. Contact support if you have questions.</p>
+            <p class="order-note order-detail-note">This order has been fully refunded. <a href="{% url 'complaint_create' %}?order={{ order.pk }}">Report an issue</a> if you still need help.</p>
             {% elif order.status == 'pending_payment' %}
-            <p class="order-note order-detail-note">Complete payment from your <a href="{% url 'pledge_list' %}">pledges page</a> to confirm this order.</p>
+            <p class="order-note order-detail-note">Complete payment from your <a href="{% url 'pledge_list' %}">bookings page</a> to confirm this order.</p>
+            {% endif %}
+
+            {% if order.complaints.all %}
+            <div class="order-detail-payment commerce-card-inner">
+                <span class="order-detail-payment-label">Support issues</span>
+                <ul class="pledge-line-list order-line-list">
+                    {% for complaint in order.complaints.all %}
+                    <li>
+                        <span class="pledge-line-label">
+                            <a href="{% url 'complaint_detail' complaint.pk %}">{{ complaint.subject }}</a>
+                            · <code>{{ complaint.reference }}</code>
+                        </span>
+                        <span class="status-badge status-badge-complaint-{{ complaint.status }}">{{ complaint.get_status_display }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
             {% endif %}
 
             <div class="commerce-actions">
                 <a href="{% url 'order_list' %}" class="btn btn-outline">Back to orders</a>
+                <a href="{% url 'complaint_create' %}?order={{ order.pk }}" class="btn btn-chat-outline">Report an issue</a>
                 <a href="{{ order.product.get_absolute_url }}" class="btn btn-primary">View product</a>
             </div>
         </div>

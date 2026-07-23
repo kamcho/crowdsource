@@ -1,0 +1,100 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Review & publish — AI Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/product_import.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        {% include 'core/product_import/partials/wizard_steps.html' %}
+
+        <div class="admin-header">
+            <div>
+                <h1>Review & publish</h1>
+                <p>Confirm everything looks correct before creating the catalog product.</p>
+            </div>
+        </div>
+
+        <div class="import-review-grid">
+            <div class="admin-card">
+                <h2 class="import-section-title">Product</h2>
+                <dl class="import-review-list">
+                    <div><dt>Name</dt><dd>{{ data.name }}</dd></div>
+                    <div><dt>Category</dt><dd>{{ category.name|default:"—" }}</dd></div>
+                    <div><dt>Supplier</dt><dd>{{ supplier.name|default:"—" }}</dd></div>
+                    <div><dt>Special class</dt><dd>{{ data.is_special_class|yesno:"Yes,No" }}</dd></div>
+                    <div><dt>Active</dt><dd>{{ data.is_active|yesno:"Yes,No" }}</dd></div>
+                </dl>
+                <p class="import-review-description">{{ data.description|linebreaksbr }}</p>
+            </div>
+
+            <div class="admin-card">
+                <h2 class="import-section-title">Specifications ({{ data.attributes|length }})</h2>
+                {% if data.attributes %}
+                <ul class="import-review-attrs">
+                    {% for attr in data.attributes %}
+                    <li><strong>{{ attr.title }}</strong> — {{ attr.description }} <span class="category-desc">({{ attr.section }})</span></li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="category-desc">None</p>
+                {% endif %}
+            </div>
+
+            <div class="admin-card">
+                <h2 class="import-section-title">Variations ({{ data.variations|length }})</h2>
+                {% if data.variations %}
+                <div class="data-table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>Price</th>
+                                <th>Configuration</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for variation in data.variations %}
+                            <tr>
+                                <td><code>{{ variation.sku }}</code></td>
+                                <td>${{ variation.price }}</td>
+                                <td>{% for key, value in variation.option_selections.items %}{{ key }}: {{ value }}{% if not forloop.last %} · {% endif %}{% endfor %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="category-desc">No variations — product will have no SKUs.</p>
+                {% endif %}
+            </div>
+
+            <div class="admin-card">
+                <h2 class="import-section-title">Media</h2>
+                <p class="field-hint">{{ product_media.count }} product image(s) · {{ variation_media.count }} variation image(s)</p>
+                {% if product_media %}
+                <div class="import-media-grid import-media-grid-compact">
+                    {% for media in product_media %}
+                    <div class="import-media-card"><img src="{{ media.file.url }}" alt=""></div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <form method="post" class="admin-form">
+            {% csrf_token %}
+            <div class="admin-form-actions">
+                <button type="submit" name="action" value="back" class="btn btn-outline">Back</button>
+                <button type="submit" class="btn btn-primary btn-lg">Publish product</button>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

@@ -33,9 +33,13 @@ from core.payment_services import (
 from core.mpesa import MpesaAPIError, MpesaConfigError
 from core.fulfillment_services import create_fulfillment_for_order, get_user_addresses, get_user_address, get_user_default_address
 from core.group_buy import GroupBuy, GroupBuyEntry
+from core.models import Product
 from core.order import Order
 from core.product_variation import ProductVariation
-from core.forms import AddressForm
+from core.wishlist_services import get_user_wishlist_items, remove_from_wishlist, toggle_wishlist
+from core.forms import AddressForm, ComplaintForm, ComplaintMessageForm
+from core.complaint import Complaint
+from core.complaint_services import add_complaint_message, create_complaint
 
 @login_required(login_url='users:signin')
 def cart_detail(request):
@@ -54,7 +58,7 @@ def cart_detail(request):
             else:
                 messages.success(
                     request,
-                    f'Pledge saved for {len(saved_entries)} line(s). Your cart is cleared.',
+                    f'Booking saved for {len(saved_entries)} line(s). Your cart is cleared.',
                 )
                 return redirect('pledge_list')
             return redirect('cart_detail')
@@ -206,7 +210,7 @@ def _get_user_group_buy_pledge_context(user, group_buy_id):
 def confirm_order_checkout(request, group_buy_id):
     context = _get_user_group_buy_pledge_context(request.user, group_buy_id)
     if not context:
-        messages.error(request, 'No pledges found for this group buy.')
+        messages.error(request, 'No bookings found for this group buy.')
         return redirect('pledge_list')
 
     if not context['can_confirm']:
@@ -304,6 +308,7 @@ def order_list(request):
     summary = {
         'order_count': len(orders),
         'paid_count': sum(1 for order in orders if order.status == Order.Status.PAID),
+        'pending_count': sum(1 for order in orders if order.status == Order.Status.PENDING_PAYMENT),
         'refunded_count': sum(1 for order in orders if order.status == Order.Status.REFUNDED),
         'total_spent': sum(
             (order.total_amount for order in orders if order.status == Order.Status.PAID),
@@ -335,6 +340,7 @@ def order_detail(request, order_id):
             'items__variation',
             'group_buy__product__files',
             'refunds',
+            'complaints',
         ),
         pk=order_id,
         user=request.user,
@@ -352,6 +358,7 @@ def order_detail(request, order_id):
             'items__variation',
             'group_buy__product__files',
             'refunds',
+            'complaints',
         ).get(pk=order_id, user=request.user)
     return render(request, 'core/orders/detail.html', {
         'order': order,
@@ -456,6 +463,52 @@ def address_set_default(request, address_id):
     return redirect('address_list')
 
 
+@login_required(login_url='users:signin')
+def wishlist_list(request):
+    items = get_user_wishlist_items(request.user)
+    return render(request, 'core/wishlist/list.html', {
+        'items': items,
+    })
+
+
+@login_required(login_url='users:signin')
+@require_POST
+def wishlist_toggle(request):
+    product = get_object_or_404(
+        Product.objects.select_related('category'),
+        pk=request.POST.get('product_id'),
+        is_active=True,
+        category__is_active=True,
+    )
+    added = toggle_wishlist(request.user, product)
+    if added:
+        messages.success(request, f'"{product.name}" saved to your wishlist.')
+    else:
+        messages.info(request, f'"{product.name}" removed from your wishlist.')
+
+    next_url = request.POST.get('next', '')
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect('product_detail', slug=product.slug)
+
+
+@login_required(login_url='users:signin')
+@require_POST
+def wishlist_remove(request, product_id):
+    product = get_object_or_404(
+        Product,
+        pk=product_id,
+        is_active=True,
+    )
+    remove_from_wishlist(request.user, product_id)
+    messages.success(request, f'"{product.name}" removed from your wishlist.')
+    return redirect('wishlist_list')
+
+
 @require_GET
 def set_currency(request):
     currency = normalize_currency(request.GET.get('currency'))
@@ -478,3 +531,97 @@ def set_currency(request):
     ):
         return redirect(referer)
     return redirect('home:landing')
+
+
+@login_required(login_url='users:signin')
+def complaint_list(request):
+    complaints = Complaint.objects.filter(
+        user=request.user,
+    ).select_related(
+        'order__group_buy__product',
+    ).order_by('-created_at')
+
+    summary = {
+        'total': complaints.count(),
+        'open_count': complaints.filter(
+            status__in=[Complaint.Status.OPEN, Complaint.Status.IN_PROGRESS],
+        ).count(),
+        'resolved_count': complaints.filter(status=Complaint.Status.RESOLVED).count(),
+    }
+
+    return render(request, 'core/complaints/list.html', {
+        'complaints': complaints,
+        'summary': summary,
+    })
+
+
+@login_required(login_url='users:signin')
+def complaint_create(request):
+    order = None
+    order_id = request.GET.get('order') or request.POST.get('order')
+    if order_id:
+        order = get_object_or_404(
+            Order.objects.select_related('group_buy__product'),
+            pk=order_id,
+            user=request.user,
+        )
+
+    if request.method == 'POST':
+        form = ComplaintForm(request.POST, user=request.user, initial_order=order)
+        if form.is_valid():
+            complaint = create_complaint(
+                user=request.user,
+                order=form.cleaned_data['order'],
+                category=form.cleaned_data['category'],
+                subject=form.cleaned_data['subject'],
+                description=form.cleaned_data['description'],
+            )
+            messages.success(
+                request,
+                f'Issue submitted. Reference {complaint.reference} — we will respond soon.',
+            )
+            return redirect('complaint_detail', complaint_id=complaint.pk)
+        messages.error(request, 'Please correct the errors below.')
+    else:
+        form = ComplaintForm(user=request.user, initial_order=order)
+
+    return render(request, 'core/complaints/create.html', {
+        'form': form,
+        'linked_order': order,
+    })
+
+
+@login_required(login_url='users:signin')
+def complaint_detail(request, complaint_id):
+    complaint = get_object_or_404(
+        Complaint.objects.select_related(
+            'order__group_buy__product',
+            'user',
+        ).prefetch_related('messages__author'),
+        pk=complaint_id,
+        user=request.user,
+    )
+
+    if request.method == 'POST' and complaint.is_open:
+        message_form = ComplaintMessageForm(request.POST)
+        if message_form.is_valid():
+            try:
+                add_complaint_message(
+                    complaint=complaint,
+                    author=request.user,
+                    body=message_form.cleaned_data['body'],
+                )
+                messages.success(request, 'Message sent.')
+                return redirect('complaint_detail', complaint_id=complaint.pk)
+            except ValidationError as exc:
+                messages.error(request, '; '.join(getattr(exc, 'messages', [str(exc)])))
+        else:
+            messages.error(request, 'Please enter a message.')
+    else:
+        message_form = ComplaintMessageForm()
+
+    return render(request, 'core/complaints/detail.html', {
+        'complaint': complaint,
+        'message_form': message_form,
+    })
+

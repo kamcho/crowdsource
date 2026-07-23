@@ -1,0 +1,53 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Paste supplier content — AI Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/product_import.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:product_import_list' %}">AI import</a> / Paste content</p>
+                <h1>Paste supplier content</h1>
+                <p>Copy everything from the listing — title, description, specs, packaging, MOQ, and variation/SKU table.</p>
+            </div>
+        </div>
+
+        <div class="admin-card admin-card-narrow import-start-card">
+            <form method="post" class="admin-form" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="form-errors">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="{{ form.source_url.id_for_label }}">{{ form.source_url.label }}</label>
+                    {{ form.source_url }}
+                    {% if form.source_url.errors %}<span class="field-error">{{ form.source_url.errors.0 }}</span>{% endif %}
+                    <p class="field-hint">Optional but recommended — used on the images step to auto-download gallery photos from Alibaba. Include supplier company/store links in the paste to trigger the supplier step.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.raw_paste.id_for_label }}">{{ form.raw_paste.label }}</label>
+                    {{ form.raw_paste }}
+                    {% if form.raw_paste.errors %}<span class="field-error">{{ form.raw_paste.errors.0 }}</span>{% endif %}
+                    <p class="field-hint">Tip: include variation rows with SKU, color/size, and unit price if available.</p>
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Parse with OpenAI</button>
+                    <a href="{% url 'core:product_import_list' %}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

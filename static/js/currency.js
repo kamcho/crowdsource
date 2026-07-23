@@ -17,7 +17,8 @@
             var kes = Math.round(value * config.rate);
             return 'KES ' + kes.toLocaleString('en-KE');
         }
-        return '$' + value.toFixed(2);
+        var kesApprox = Math.round(value * config.rate);
+        return '$' + value.toFixed(2) + ' ≈ KES ' + kesApprox.toLocaleString('en-KE');
     }
 
     function formatRange(minUsd, maxUsd, config) {

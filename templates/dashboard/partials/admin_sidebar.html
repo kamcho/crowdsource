@@ -36,6 +36,13 @@
                         {% if stats.refunds_pending %}<span class="dashboard-nav-badge">{{ stats.refunds_pending }}</span>{% endif %}
                     </a>
                 </li>
+                <li>
+                    <a href="{% url 'core:complaint_list' %}" class="dashboard-nav-link{% if 'complaint' in request.resolver_match.url_name %} is-active{% endif %}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        Complaints
+                        {% if stats.complaints_open %}<span class="dashboard-nav-badge">{{ stats.complaints_open }}</span>{% endif %}
+                    </a>
+                </li>
             </ul>
         </div>
 
@@ -50,13 +57,19 @@
                     </a>
                 </li>
                 <li>
+                    <a href="{% url 'core:product_import_list' %}" class="dashboard-nav-link{% if 'product_import' in request.resolver_match.url_name %} is-active{% endif %}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4v2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h2V6a4 4 0 0 1 4-4z"/><path d="M12 6v2"/></svg>
+                        AI import
+                    </a>
+                </li>
+                <li>
                     <a href="{% url 'core:category_list' %}" class="dashboard-nav-link{% if 'category' in request.resolver_match.url_name %} is-active{% endif %}">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                         Categories
                     </a>
                 </li>
                 <li>
-                    <a href="{% url 'core:supplier_list' %}" class="dashboard-nav-link{% if 'supplier' in request.resolver_match.url_name %} is-active{% endif %}">
+                    <a href="{% url 'core:supplier_list' %}" class="dashboard-nav-link{% if request.resolver_match.url_name == 'supplier_list' or request.resolver_match.url_name == 'supplier_create' or request.resolver_match.url_name == 'supplier_edit' or request.resolver_match.url_name == 'supplier_manage' %} is-active{% endif %}">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
                         Suppliers
                     </a>

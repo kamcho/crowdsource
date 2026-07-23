@@ -1,0 +1,84 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Step: Categories — AI Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/product_import.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        {% include 'core/product_import/partials/wizard_steps.html' %}
+
+        <div class="admin-header">
+            <div>
+                <h1>Create categories</h1>
+                <p>The pasted listing uses categories that are not in your catalog yet. Review the parent and child names below, then create them before continuing.</p>
+            </div>
+            <form method="post" action="{% url 'core:product_import_discard' draft.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline btn-sm">Discard draft</button>
+            </form>
+        </div>
+
+        {% if category_proposal.segments %}
+        <div class="import-category-preview">
+            <p class="import-category-preview-label">Suggested hierarchy</p>
+            <ol class="import-category-preview-list">
+                {% for segment in category_proposal.segments %}
+                <li>
+                    <span>{{ segment.name }}</span>
+                    {% if segment.existing_id %}
+                    <em class="import-category-existing-badge">Already in catalog</em>
+                    {% else %}
+                    <em class="import-category-new-badge">Will be created</em>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ol>
+        </div>
+        {% endif %}
+
+        <div class="admin-card">
+            <form method="post" class="admin-form" novalidate>
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="{{ form.segment_1.id_for_label }}">{{ form.segment_1.label }}</label>
+                    {{ form.segment_1 }}
+                    {% if form.segment_1.errors %}<span class="field-error">{{ form.segment_1.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.segment_2.id_for_label }}">{{ form.segment_2.label }}</label>
+                    {{ form.segment_2 }}
+                    {% if form.segment_2.errors %}<span class="field-error">{{ form.segment_2.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.segment_3.id_for_label }}">{{ form.segment_3.label }}</label>
+                    {{ form.segment_3 }}
+                    {% if form.segment_3.errors %}<span class="field-error">{{ form.segment_3.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.segment_4.id_for_label }}">{{ form.segment_4.label }}</label>
+                    {{ form.segment_4 }}
+                    {% if form.segment_4.errors %}<span class="field-error">{{ form.segment_4.errors.0 }}</span>{% endif %}
+                </div>
+
+                <p class="category-desc">The deepest category you enter becomes the product category. Existing matches are reused; missing levels are created automatically.</p>
+
+                <div class="admin-form-actions">
+                    <button type="submit" name="action" value="save" class="btn btn-primary">Create categories &amp; continue</button>
+                    <button type="submit" name="action" value="skip" class="btn btn-outline">Skip and choose manually</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

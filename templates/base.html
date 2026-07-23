@@ -15,45 +15,120 @@
 </head>
 <body>
     <header class="site-header">
-        <div class="container header-inner">
-            <a href="{% url 'home:landing' %}" class="logo">
-                <span class="logo-mark" aria-hidden="true">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" opacity=".9"/>
-                        <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <div class="header-shell container-wide">
+            <div class="header-main">
+                <a href="{% url 'home:landing' %}" class="logo logo-header">
+                    <span class="logo-mark" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" opacity=".9"/>
+                            <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span class="logo-text">CrowdSource</span>
+                </a>
+
+                <form class="header-search" action="{% url 'home:product_browse' %}" method="get" role="search">
+                    <input
+                        type="search"
+                        name="q"
+                        value="{{ request.GET.q|default:'' }}"
+                        placeholder="Search factory-direct products..."
+                        aria-label="Search products"
+                        autocomplete="off"
+                    >
+                    <button type="submit" class="header-search-btn">Search</button>
+                </form>
+
+                <div class="header-actions">
+                    {% include 'partials/currency_switcher.html' %}
+
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'pledge_list' %}" class="header-action" title="Bookings">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="currentColor" stroke-width="1.75"/>
+                            <rect x="9" y="3" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.75"/>
+                        </svg>
+                        <span>Bookings</span>
+                    </a>
+                    <a href="{% url 'order_list' %}" class="header-action" title="Orders">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M9 6h11M9 12h11M9 18h11" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+                            <path d="M5 6h.01M5 12h.01M5 18h.01" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                        </svg>
+                        <span>Orders</span>
+                    </a>
+                    <a href="{% url 'wishlist_list' %}" class="header-action header-action-wishlist" title="Wishlist">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M12 21s-7-4.35-9.33-8.03C.87 10.24 2.18 6.5 5.75 6.5c1.86 0 3.08 1.02 4.25 2.09C11.17 7.52 12.39 6.5 14.25 6.5 17.82 6.5 19.13 10.24 21.33 12.97 19 16.65 12 21 12 21z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Wishlist</span>
+                        {% if wishlist_count %}<em class="header-action-badge">{{ wishlist_count }}</em>{% endif %}
+                    </a>
+                    <a href="{% url 'cart_detail' %}" class="header-action header-action-cart" title="Cart">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M6 6h15l-1.5 9h-12L6 6z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+                            <path d="M6 6l-1.5-3H2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+                            <circle cx="9" cy="20" r="1" fill="currentColor"/>
+                            <circle cx="18" cy="20" r="1" fill="currentColor"/>
+                        </svg>
+                        <span>Cart</span>
+                        {% if cart_item_count %}<em class="header-action-badge">{{ cart_item_count }}</em>{% endif %}
+                    </a>
+                    <a href="{% url 'users:profile' %}" class="header-action" title="My account">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.75"/>
+                            <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+                        </svg>
+                        <span>Account</span>
+                    </a>
+                    {% if user.role == 'admin' or user.role == 'staff' %}
+                    <a href="{% url 'core:admin_dashboard' %}" class="header-action" title="Admin">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.75"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.75"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.75"/>
+                            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.75"/>
+                        </svg>
+                        <span>{% if user.role == 'admin' %}Admin{% else %}Ops{% endif %}</span>
+                    </a>
+                    {% endif %}
+                    {% else %}
+                    <a href="{% url 'users:signin' %}" class="header-action" title="Sign in">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.75"/>
+                            <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+                        </svg>
+                        <span>Sign in</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <nav class="header-subnav" aria-label="Browse">
+                <button type="button" class="header-subnav-link" data-category-drawer-open>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
-                </span>
-                CrowdSource
-            </a>
-            <nav class="nav-links" aria-label="Main navigation">
-                {% include 'partials/currency_switcher.html' %}
-                <button type="button" class="nav-text-btn" data-category-drawer-open>Categories</button>
-                <a href="{% url 'home:product_browse' %}">Products</a>
-                <a href="{% url 'home:landing' %}#how-it-works">How It Works</a>
+                    All categories
+                </button>
+                <a href="{% url 'home:product_browse' %}" class="header-subnav-link{% if request.path == '/products/' %} is-active{% endif %}">Products</a>
+                <a href="{% url 'home:landing' %}#how-it-works" class="header-subnav-link">How it works</a>
                 {% if user.is_authenticated %}
-                <a href="{% url 'cart_detail' %}" class="nav-cart-link">Cart{% if cart_item_count %}<span class="nav-cart-count">{{ cart_item_count }}</span>{% endif %}</a>
-                <a href="{% url 'pledge_list' %}" class="btn btn-outline btn-sm">Pledges</a>
-                <a href="{% url 'order_list' %}" class="btn btn-outline btn-sm">Orders</a>
-                <a href="{% url 'users:profile' %}" class="btn btn-outline btn-sm">My Account</a>
-                {% if user.role == 'admin' %}
-                <a href="{% url 'core:admin_dashboard' %}" class="btn btn-primary btn-sm">Admin</a>
-                {% elif user.role == 'staff' %}
-                <a href="{% url 'core:admin_dashboard' %}" class="btn btn-primary btn-sm">Ops</a>
-                {% endif %}
-                <a href="{% url 'users:signout' %}" class="btn btn-secondary btn-sm">Sign Out</a>
+                <a href="{% url 'users:signout' %}" class="header-subnav-link header-subnav-link-muted">Sign out</a>
                 {% else %}
-                <a href="{% url 'users:signin' %}" class="btn btn-outline btn-sm">Sign In</a>
-                <a href="{% url 'users:signup' %}" class="btn btn-primary btn-sm nav-cta">Sign Up</a>
+                <a href="{% url 'users:signup' %}" class="header-subnav-link header-subnav-link-accent">Join free</a>
                 {% endif %}
             </nav>
         </div>
     </header>
 
     {% if messages %}
-    <div class="container messages-wrap">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}" role="alert">{{ message }}</div>
-        {% endfor %}
+    <div class="site-messages" role="status" aria-live="polite">
+        <div class="container messages-wrap">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>
+            {% endfor %}
+        </div>
     </div>
     {% endif %}
 

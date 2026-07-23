@@ -1,86 +1,102 @@
 {% load currency_tags %}
+
 {% for product in products %}
+
 {% with group_buy=product.active_group_buy %}
+
 <article class="product-card">
-    <a href="{{ product.get_absolute_url }}" class="product-card-link">
-        <div class="product-image">
+
+    {% include 'partials/wishlist_icon.html' with product=product is_wishlisted=product.pk|in_list:wishlisted_product_ids %}
+
+    <div class="product-image">
+
+        <a href="{{ product.get_absolute_url }}" class="product-card-media-link" tabindex="-1" aria-hidden="true">
+
             {% with image=product.primary_image %}
+
             {% if image %}
+
             <img src="{{ image.file.url }}" alt="{{ product.name }}" loading="lazy">
+
             {% else %}
+
             <div class="product-placeholder product-placeholder-{% cycle '1' '2' '3' '4' %}">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+
                     <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" stroke="currentColor" stroke-width="1.5"/>
+
                 </svg>
+
             </div>
+
             {% endif %}
+
             {% endwith %}
-            {% if group_buy %}
-                {% if group_buy.moq_reached %}
-                <span class="badge badge-success">MOQ Reached</span>
-                {% else %}
-                <span class="badge badge-active">Filling up</span>
-                {% endif %}
-            {% else %}
-            <span class="badge badge-active">Available</span>
+
+            {% if group_buy and group_buy.moq_reached %}
+
+            <span class="product-badge product-badge-success">MOQ met</span>
+
+            {% elif group_buy %}
+
+            <span class="product-badge">Group buy</span>
+
             {% endif %}
-        </div>
+
+        </a>
+
+    </div>
+
+    <a href="{{ product.get_absolute_url }}" class="product-card-link">
+
         <div class="product-body">
-            <span class="product-category" title="{{ product.category.get_breadcrumb }}">{{ product.category.name }}</span>
+
             <h3>{{ product.name }}</h3>
-            <p class="product-desc">{% if product.description %}{{ product.description|truncatechars:85 }}{% else %}Factory-direct import available for crowd buying.{% endif %}</p>
 
-            <div class="product-pricing">
-                <div class="product-price">
-                    {% if product.min_price %}
-                    <strong>{% money_from product.min_price %}</strong>
-                    {% elif group_buy %}
-                    <strong>{% money group_buy.unit_price %}</strong>
-                    {% else %}
-                    <strong>—</strong>
-                    {% endif %}
-                    <span>/ unit</span>
-                </div>
-                {% if group_buy %}
-                <span class="savings-tag">Group buy</span>
+            <div class="product-price-row">
+
+                {% if product.min_price %}
+
+                <span class="product-price">{% money_from product.min_price %}</span>
+
+                {% elif group_buy %}
+
+                <span class="product-price">{% money group_buy.unit_price %}</span>
+
                 {% else %}
-                <span class="savings-tag savings-tag-muted">{{ product.variations.count }} variant{{ product.variations.count|pluralize }}</span>
+
+                <span class="product-price">—</span>
+
                 {% endif %}
+
+                <span class="product-price-unit">/ unit</span>
+
             </div>
 
-            <div class="product-progress">
-                {% if group_buy %}
-                <div class="progress-header">
-                    <span>{{ group_buy.pledged_units }} / {{ group_buy.moq }} units</span>
-                    <span class="progress-pct">{{ group_buy.progress_percent }}%</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill{% if group_buy.moq_reached %} progress-fill-complete{% endif %}" style="width: {{ group_buy.progress_percent }}%"></div>
-                </div>
-                <p class="progress-meta">
-                    {% if group_buy.moq_reached %}
-                    <span class="text-success">Ready to import!</span>
-                    {% else %}
-                    <span>{{ group_buy.units_remaining }} more units needed</span>
-                    {% endif %}
-                </p>
-                {% else %}
-                <div class="progress-header">
-                    <span>No active group buy</span>
-                    <span class="progress-pct">—</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill progress-fill-idle" style="width: 0"></div>
-                </div>
-                <p class="progress-meta"><span>View product to buy directly</span></p>
-                {% endif %}
+            {% if group_buy %}
+
+            <p class="product-meta">{{ group_buy.pledged_units }}/{{ group_buy.moq }} units · {{ group_buy.progress_percent }}% filled</p>
+
+            <div class="product-progress-bar" aria-hidden="true">
+
+                <span class="product-progress-fill{% if group_buy.moq_reached %} is-complete{% endif %}" style="width: {{ group_buy.progress_percent }}%"></span>
+
             </div>
 
-            <span class="btn btn-primary btn-block product-card-cta">
-                {% if group_buy and group_buy.is_joinable %}Join Group Buy{% else %}View Product{% endif %}
-            </span>
+            {% else %}
+
+            <p class="product-meta">{{ product.variations.count }} variant{{ product.variations.count|pluralize }}</p>
+
+            {% endif %}
+
         </div>
+
     </a>
+
 </article>
+
 {% endwith %}
+
 {% endfor %}
+

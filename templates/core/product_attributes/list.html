@@ -30,6 +30,7 @@
                         <tr>
                             <th>Title</th>
                             <th>Description</th>
+                            <th>Section</th>
                             <th>Applies to</th>
                             <th>Sort</th>
                         </tr>
@@ -39,6 +40,7 @@
                         <tr>
                             <td><strong>{{ attribute.title }}</strong></td>
                             <td>{{ attribute.description|truncatechars:80 }}</td>
+                            <td>{{ attribute.get_section_display }}</td>
                             <td>
                                 {% if attribute.variation %}
                                 <code class="category-path">{{ attribute.variation.sku }}</code>

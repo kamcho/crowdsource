@@ -314,7 +314,39 @@
     letter-spacing: -0.02em;
 }
 
+.admin-summary-bar-inline {
+    margin-bottom: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.admin-form-inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.admin-form-inline .form-group {
+    flex: 1 1 16rem;
+    margin-bottom: 0;
+}
+
+.admin-form-inline .admin-form-actions {
+    margin-top: 0;
+}
+
 .admin-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.admin-filter-tabs {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;

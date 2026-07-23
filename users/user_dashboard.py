@@ -1,6 +1,7 @@
 def get_user_dashboard_context(user):
     from core.group_buy import GroupBuyEntry
     from core.order import Order
+    from core.wishlist_services import get_wishlisted_product_ids
 
     orders = Order.objects.filter(user=user)
     pledges = GroupBuyEntry.objects.filter(user=user)
@@ -22,6 +23,7 @@ def get_user_dashboard_context(user):
             'orders': orders.filter(status=Order.Status.PAID).count(),
             'pending_orders': orders.filter(status=Order.Status.PENDING_PAYMENT).count(),
             'cart_items': cart.item_count if cart else 0,
+            'wishlist_items': len(get_wishlisted_product_ids(user)),
         },
         'recent_orders': recent_orders,
         'recent_pledges': recent_pledges,

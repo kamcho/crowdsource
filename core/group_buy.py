@@ -107,7 +107,7 @@ class GroupBuy(models.Model):
         if self.status == self.Status.COMPLETED:
             return 'Import complete — preparing deliveries.'
         if self.status == self.Status.OPEN:
-            return f'{self.pledged_units} / {self.moq} units pledged overall'
+            return f'{self.pledged_units} / {self.moq} units booked overall'
         return ''
 
 
@@ -164,7 +164,7 @@ class GroupBuyEntry(models.Model):
             return
 
         if not self.group_buy.is_joinable and not self.pk:
-            raise ValidationError('This group buy is no longer accepting pledges.')
+            raise ValidationError('This group buy is no longer accepting bookings.')
 
         if self.variation_id and self.variation.product_id != self.group_buy.product_id:
             raise ValidationError({'variation': 'Variation must belong to this product.'})
@@ -182,7 +182,7 @@ class GroupBuyEntry(models.Model):
                 variation__isnull=True,
             ).exclude(pk=self.pk)
             if duplicate.exists():
-                raise ValidationError('You already have a pledge for this product. Update the quantity instead.')
+                raise ValidationError('You already have a booking for this product. Update the quantity instead.')
 
     def save(self, *args, **kwargs):
         self.full_clean()

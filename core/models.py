@@ -95,6 +95,10 @@ class Product(models.Model):
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=220, unique=True, blank=True)
     description = models.TextField(blank=True)
+    is_special_class = models.BooleanField(
+        default=False,
+        help_text='Special goods use a higher air freight rate per kg.',
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -176,6 +180,9 @@ from core.product_variation import (  # noqa: E402, F401
 )
 from core.group_buy import GroupBuy, GroupBuyEntry  # noqa: E402, F401
 from core.cart import Cart, CartItem  # noqa: E402, F401
+from core.wishlist import WishlistItem  # noqa: E402, F401
 from core.order import Order, OrderItem  # noqa: E402, F401
 from core.payment import Payment  # noqa: E402, F401
+from core.complaint import Complaint, ComplaintMessage  # noqa: E402, F401
+from core.product_import import ProductImportDraft, ProductImportMedia  # noqa: E402, F401
 

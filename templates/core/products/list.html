@@ -17,7 +17,10 @@
                 <h1>Products</h1>
                 <p>Manage catalog products and their images or videos.</p>
             </div>
+            <div class="admin-header-actions">
+            <a href="{% url 'core:product_import_list' %}" class="btn btn-outline">AI import</a>
             <a href="{% url 'core:product_create' %}" class="btn btn-primary">Add Product</a>
+            </div>
         </div>
 
         <div class="admin-card">

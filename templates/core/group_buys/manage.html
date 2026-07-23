@@ -22,7 +22,7 @@
                 <p>
                     <span class="status-badge status-badge-gb-{{ group_buy.status }}">{{ group_buy.get_status_display }}</span>
                     {% if group_buy.is_joinable %}
-                    <span class="category-desc text-success"> · Accepting pledges</span>
+                    <span class="category-desc text-success"> · Accepting bookings</span>
                     {% endif %}
                 </p>
             </div>
@@ -34,7 +34,7 @@
 
         <div class="admin-summary-bar">
             <div class="admin-summary-stat">
-                <span class="admin-summary-label">Pledged</span>
+                <span class="admin-summary-label">Booked</span>
                 <strong>{{ pledged_total }} / {{ group_buy.moq }}</strong>
             </div>
             <div class="admin-summary-stat">
@@ -110,7 +110,7 @@
                 <form method="post" class="manage-inline-action">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="refresh_status">
-                    <button type="submit" class="btn btn-outline btn-sm">Refresh MOQ status from pledges</button>
+                    <button type="submit" class="btn btn-outline btn-sm">Refresh MOQ status from bookings</button>
                 </form>
             </div>
 
@@ -166,7 +166,7 @@
                 <p class="manage-section-lead">Set up a bulk import batch for this campaign. You can create one before MOQ is met to prepare supplier orders early.</p>
                 {% if pledged_total < group_buy.moq %}
                 <div class="manage-alert manage-alert-warning">
-                    MOQ not met yet ({{ pledged_total }} / {{ group_buy.moq }} units). The group buy stays open for pledges until MOQ is reached or you change its status.
+                    MOQ not met yet ({{ pledged_total }} / {{ group_buy.moq }} units). The group buy stays open for bookings until MOQ is reached or you change its status.
                 </div>
                 {% endif %}
                 <form method="post" class="admin-form" novalidate>
@@ -202,7 +202,7 @@
         </div>
 
         <div class="admin-card manage-table-card">
-            <h2 class="manage-section-title">Pledges ({{ entries|length }})</h2>
+            <h2 class="manage-section-title">Bookings ({{ entries|length }})</h2>
             {% if entries %}
             <div class="data-table-wrap">
                 <table class="data-table">
@@ -229,7 +229,7 @@
                 </table>
             </div>
             {% else %}
-            <p class="manage-section-lead">No pledges yet.</p>
+            <p class="manage-section-lead">No bookings yet.</p>
             {% endif %}
         </div>
 

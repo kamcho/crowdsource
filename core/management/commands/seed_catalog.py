@@ -255,6 +255,16 @@ PRODUCT_ATTRIBUTES = {
         {'title': 'Material', 'description': '18/8 stainless steel, BPA-free lid', 'sort_order': 0},
         {'title': 'Insulation', 'description': 'Double-wall vacuum insulation', 'sort_order': 1},
     ],
+    'Canvas Tote Bag': [
+        {'title': 'Material', 'description': 'Heavy-duty cotton canvas', 'sort_order': 0, 'section': 'key'},
+        {'title': 'Handles', 'description': 'Reinforced carry handles', 'sort_order': 1, 'section': 'key'},
+        {'title': 'Colors', 'description': 'Natural, Black, Navy available for bulk orders', 'sort_order': 2, 'section': 'key'},
+        {'title': 'Sizes', 'description': 'Medium and Large', 'sort_order': 3, 'section': 'key'},
+        {'title': 'Use', 'description': 'Shopping, promotions, and event giveaways', 'sort_order': 4, 'section': 'key'},
+        {'title': 'Selling Units', 'description': 'Single item', 'sort_order': 0, 'section': 'packaging'},
+        {'title': 'Single package size', 'description': '40X35X2 cm', 'sort_order': 1, 'section': 'packaging'},
+        {'title': 'Single gross weight', 'description': '0.180 kg', 'sort_order': 2, 'section': 'packaging'},
+    ],
 }
 
 VARIATION_ATTRIBUTES = {

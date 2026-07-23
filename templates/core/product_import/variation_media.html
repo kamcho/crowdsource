@@ -1,0 +1,73 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Step 5: Variation images — AI Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/product_import.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        {% include 'core/product_import/partials/wizard_steps.html' %}
+
+        <div class="admin-header">
+            <div>
+                <h1>Variation images</h1>
+                <p>Optionally attach images per SKU (e.g. color swatches).</p>
+            </div>
+        </div>
+
+        {% if variations %}
+        {% for variation in variations %}
+        <div class="admin-card import-variation-media-card">
+            <h2 class="import-section-title"><code>{{ variation.sku }}</code> · ${{ variation.price }}</h2>
+            <p class="field-hint">
+                {% for key, value in variation.option_selections.items %}{{ key }}: {{ value }}{% if not forloop.last %} · {% endif %}{% endfor %}
+            </p>
+
+            {% if variation.media %}
+            <div class="import-media-grid">
+                {% for media in variation.media %}
+                <div class="import-media-card">
+                    <img src="{{ media.file.url }}" alt="">
+                    <form method="post" class="import-media-remove">
+                        {% csrf_token %}
+                        <input type="hidden" name="remove_id" value="{{ media.pk }}">
+                        <button type="submit" class="btn btn-outline btn-sm">Remove</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data" class="admin-form import-variation-upload">
+                {% csrf_token %}
+                <input type="hidden" name="variation_sku" value="{{ variation.sku }}">
+                <div class="form-group">
+                    <label>Upload for this variation</label>
+                    <input type="file" name="images" class="form-input" accept="image/*" multiple>
+                </div>
+                <button type="submit" class="btn btn-outline btn-sm">Upload</button>
+            </form>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="admin-card">
+            <p class="category-desc">No variations defined — skip this step.</p>
+        </div>
+        {% endif %}
+
+        <form method="post" class="admin-form">
+            {% csrf_token %}
+            <div class="admin-form-actions">
+                <button type="submit" name="action" value="back" class="btn btn-outline">Back</button>
+                <button type="submit" name="action" value="continue" class="btn btn-primary">Continue to review</button>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

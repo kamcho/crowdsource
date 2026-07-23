@@ -1,8 +1,9 @@
 from django.urls import reverse
 
 from core.refund import Refund
+from core.complaint import Complaint
 
-from .category_utils import build_category_image_map, build_category_nav_tree
+from .category_utils import build_category_image_map, build_category_nav_tree, build_category_tree
 from .currency import get_display_currency, get_exchange_rate
 from .models import Category
 
@@ -16,6 +17,21 @@ def cart_summary(request):
     return {'cart_item_count': cart.item_count}
 
 
+def wishlist_summary(request):
+    if not getattr(request, 'user', None) or not request.user.is_authenticated:
+        return {
+            'wishlist_count': 0,
+            'wishlisted_product_ids': [],
+        }
+    from core.wishlist_services import get_wishlisted_product_ids
+
+    product_ids = get_wishlisted_product_ids(request.user)
+    return {
+        'wishlist_count': len(product_ids),
+        'wishlisted_product_ids': product_ids,
+    }
+
+
 def admin_sidebar(request):
     user = getattr(request, 'user', None)
     if not user or not user.is_authenticated or not user.is_ops_user:
@@ -25,6 +41,9 @@ def admin_sidebar(request):
     return {
         'stats': {
             'refunds_pending': Refund.objects.filter(status=Refund.Status.PENDING).count(),
+            'complaints_open': Complaint.objects.filter(
+                status__in=[Complaint.Status.OPEN, Complaint.Status.IN_PROGRESS],
+            ).count(),
         },
     }
 
@@ -53,4 +72,7 @@ def category_nav(request):
             })
         return enriched
 
-    return {'category_nav_tree': attach_meta(tree)}
+    return {
+        'category_nav_tree': attach_meta(tree),
+        'category_filter_rows': build_category_tree(categories),
+    }

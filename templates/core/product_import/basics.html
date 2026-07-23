@@ -1,0 +1,79 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Step 1: Product details — AI Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/product_import.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        {% include 'core/product_import/partials/wizard_steps.html' %}
+
+        <div class="admin-header">
+            <div>
+                <h1>Product details</h1>
+                <p>Review the AI-extracted name and description. Edit anything before moving on.</p>
+            </div>
+            <form method="post" action="{% url 'core:product_import_discard' draft.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline btn-sm">Discard draft</button>
+            </form>
+        </div>
+
+        <div class="admin-card">
+            <form method="post" class="admin-form" novalidate>
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<span class="field-error">{{ form.name.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+                        {{ form.category }}
+                        {% if form.category.errors %}<span class="field-error">{{ form.category.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.supplier.id_for_label }}">{{ form.supplier.label }}</label>
+                        {{ form.supplier }}
+                        {% if form.supplier.errors %}<span class="field-error">{{ form.supplier.errors.0 }}</span>{% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<span class="field-error">{{ form.description.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <div class="form-checkbox-row">
+                            {{ form.is_special_class }}
+                            <label for="{{ form.is_special_class.id_for_label }}">{{ form.is_special_class.label }}</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-checkbox-row">
+                            {{ form.is_active }}
+                            <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Save & continue</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

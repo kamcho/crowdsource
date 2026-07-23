@@ -1,0 +1,77 @@
+<div class="product-shipping-calculator" id="product-shipping-calculator">
+    <div class="product-shipping-calculator-header">
+        <h2 class="product-shipping-calculator-title">Shipping estimate</h2>
+        <p class="product-shipping-calculator-note">
+            {% if is_special_class %}
+            Special goods class · higher air rate applies
+            {% else %}
+            Normal goods class
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="product-shipping-quantity">
+        <label for="shipping-quantity">Quantity (units)</label>
+        <input type="number"
+               id="shipping-quantity"
+               class="form-input product-shipping-quantity-input"
+               min="1"
+               step="1"
+               value="1"
+               inputmode="numeric">
+    </div>
+
+    <dl class="product-shipping-specs" id="product-shipping-specs">
+        <div>
+            <dt>Unit weight</dt>
+            <dd id="shipping-spec-weight">—</dd>
+        </div>
+        <div>
+            <dt>Unit size</dt>
+            <dd id="shipping-spec-size">—</dd>
+        </div>
+        <div>
+            <dt>Unit CBM</dt>
+            <dd id="shipping-spec-cbm">—</dd>
+        </div>
+    </dl>
+
+    <div class="product-shipping-results">
+        <div class="product-shipping-estimate" id="shipping-estimate-air">
+            <h3 class="product-shipping-estimate-title">Air freight</h3>
+            <p class="product-shipping-rate-line" id="shipping-rate-line-air"></p>
+            <p class="product-shipping-total" id="shipping-total-air">—</p>
+            <p class="product-shipping-basis" id="shipping-basis-air"></p>
+            <p class="product-shipping-arrival" id="shipping-arrival-air"></p>
+            <p class="product-shipping-error" id="shipping-error-air" hidden></p>
+            {% if user.is_authenticated and user.is_admin_user and shipping_needs_weight %}
+            <p class="product-shipping-admin-action">
+                <a href="{% url 'core:product_attribute_create' product.pk %}?title=Single+gross+weight&amp;section=packaging&amp;description=0.180+kg&amp;next={{ request.path|urlencode }}">Add weight attribute (admin)</a>
+            </p>
+            {% endif %}
+        </div>
+
+        <div class="product-shipping-estimate" id="shipping-estimate-sea">
+            <h3 class="product-shipping-estimate-title">Sea freight</h3>
+            <p class="product-shipping-rate-line" id="shipping-rate-line-sea"></p>
+            <p class="product-shipping-total" id="shipping-total-sea">—</p>
+            <p class="product-shipping-basis" id="shipping-basis-sea"></p>
+            <p class="product-shipping-arrival" id="shipping-arrival-sea"></p>
+            <p class="product-shipping-error" id="shipping-error-sea" hidden></p>
+            {% if user.is_authenticated and user.is_admin_user and shipping_needs_size %}
+            <p class="product-shipping-admin-action">
+                <a href="{% url 'core:product_attribute_create' product.pk %}?title=Single+package+size&amp;section=packaging&amp;description=40X35X2+cm&amp;next={{ request.path|urlencode }}">Add package size attribute (admin)</a>
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <p class="product-shipping-footnote">
+        Estimates use packaging attributes and current freight rates. Final shipping is confirmed after MOQ.
+        {% if user.is_authenticated and user.is_admin_user %}
+        <span class="product-shipping-admin-footnote">
+            <a href="{% url 'core:product_attribute_list' product.pk %}">Manage product attributes</a>
+        </span>
+        {% endif %}
+    </p>
+</div>

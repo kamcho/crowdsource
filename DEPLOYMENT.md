@@ -1,5 +1,8 @@
 # Deploying CrowdSource Import to a DigitalOcean Droplet
 
+> **Dedicated droplet quick start:** see [PRODUCTION.md](./PRODUCTION.md)  
+> This file is the full reference (includes optional notes for sharing a server).
+
 Stack: **Ubuntu 24.04 + Nginx + Gunicorn (WSGI) + PostgreSQL + GitHub Actions**
 
 Throughout this guide:

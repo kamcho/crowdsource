@@ -16,7 +16,7 @@
         <div class="commerce-header">
             <div>
                 <h1>Your cart</h1>
-                <p>Save items from multiple group buys, then check out to confirm your pledges.</p>
+                <p>Save items from multiple group buys, then check out to confirm your bookings.</p>
             </div>
         </div>
 
@@ -36,7 +36,13 @@
                         <div>
                             <a href="{{ item.product.get_absolute_url }}" class="cart-line-title">{{ item.product.name }}</a>
                             <p class="cart-line-meta">
-                                {% if item.variation %}{{ item.variation.display_name }}{% else %}Standard{% endif %}
+                                {% if item.variation %}
+                                {{ item.variation.display_name }}
+                                {% elif item.product.active_variations.exists %}
+                                <span class="cart-line-variation-pending">Variation not selected yet</span>
+                                {% else %}
+                                Standard
+                                {% endif %}
                                 · Group buy · {% money item.unit_price %}/unit
                             </p>
                         </div>
@@ -61,12 +67,12 @@
                     <span>Subtotal</span>
                     <strong>{% money cart.subtotal %}</strong>
                 </div>
-                <p class="cart-summary-note">Checkout saves your pledges. Pay anytime from the pledges page to confirm your order.</p>
+                <p class="cart-summary-note">Checkout saves your bookings. Pay anytime from the bookings page to confirm your order.</p>
             </div>
 
             <form method="post" class="commerce-actions">
                 {% csrf_token %}
-                <button type="submit" name="checkout" value="1" class="btn btn-primary">Checkout → Save pledges</button>
+                <button type="submit" name="checkout" value="1" class="btn btn-primary">Checkout → Save bookings</button>
             </form>
         </div>
         {% else %}

@@ -12,7 +12,7 @@
 {% block content %}
 <section class="page-section">
     <div class="container commerce-card commerce-card-narrow">
-        <p class="commerce-breadcrumb"><a href="{% url 'pledge_list' %}">My pledges</a> / M-Pesa payment</p>
+        <p class="commerce-breadcrumb"><a href="{% url 'pledge_list' %}">My bookings</a> / M-Pesa payment</p>
 
         <h1>Complete M-Pesa payment</h1>
         {% if product %}
@@ -74,7 +74,7 @@
         {% endif %}
 
         <div class="commerce-actions">
-            <a href="{% url 'pledge_list' %}" class="btn btn-outline" id="payment-back-link">Back to pledges</a>
+            <a href="{% url 'pledge_list' %}" class="btn btn-outline" id="payment-back-link">Back to bookings</a>
         </div>
     </div>
 </section>
@@ -107,7 +107,7 @@
                 } else if (data.status === 'failed' || data.status === 'cancelled') {
                     stopped = true;
                     panel.classList.add('import-batch-pending');
-                    metaEl.textContent = 'Payment not completed. You can try again from your pledges page.';
+                    metaEl.textContent = 'Payment not completed. You can try again from your bookings page.';
                     var retryForm = document.getElementById('payment-retry-form');
                     if (retryForm) {
                         retryForm.style.display = 'none';

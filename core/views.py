@@ -7,6 +7,7 @@ from django.db.models import Count, Prefetch, Q, Sum, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 
 from .admin_dashboard import get_admin_dashboard_context
@@ -21,7 +22,9 @@ from .forms import (
     ProductAttributeForm,
     RefundCreateForm,
     SupplierForm,
+    ComplaintStaffReplyForm,
     get_pledge_formset,
+    save_variation_pledges_from_post,
     get_variation_file_formset,
     ProductFileFormSet,
     ProductForm,
@@ -30,6 +33,7 @@ from .forms import (
     ProductVariationForm,
 )
 from .group_buy import GroupBuy, GroupBuyEntry
+from .group_buy_services import ensure_default_group_buy_for_product
 from .fulfillment import Fulfillment
 from .fulfillment_services import create_fulfillment_for_order
 from .import_batch import ImportBatch
@@ -37,9 +41,13 @@ from .import_services import create_import_batch
 from .models import Category, Product
 from .supplier import Supplier
 from .order import Order
-from .pricing import product_variation_price_range
+from .pricing import build_price_tiers, product_variation_price_range
+from .wishlist_services import is_wishlisted
+from .shipping_services import build_shipping_calculator_context
 from .refund import MPESA_REVERSAL_REQUIRED_IN_PRODUCTION, Refund
 from .refund_services import cancel_refund, complete_refund, create_refund
+from .complaint import Complaint
+from .complaint_services import add_complaint_message, update_complaint_status
 from .product_attribute import ProductAttribute
 from .product_file import ProductFile
 from .product_variation import ProductOption, ProductOptionValue, ProductVariation
@@ -128,12 +136,182 @@ def _build_product_detail_context(product):
         {'title': attribute.title, 'description': attribute.description}
         for attribute in product.product_attributes
     ]
+    option_value_images = {}
+    for variation in product.variations.filter(is_active=True).prefetch_related(
+        'option_values',
+        'files',
+    ):
+        image = variation.primary_image
+        if not image:
+            continue
+        image_url = image.file.url
+        for option_value in variation.option_values.all():
+            option_value_images.setdefault(str(option_value.pk), image_url)
+
     return {
         'product_media': product_media,
         'variation_media': variation_media,
         'product_attributes': product_attributes,
         'variation_attributes': variation_attributes,
+        'option_value_images': option_value_images,
     }
+
+
+def _attribute_table_rows(attributes):
+    """Pair attributes into Alibaba-style table rows (label/value × 2 per row)."""
+    items = list(attributes)
+    if not items:
+        return []
+    rows = []
+    for index in range(0, len(items), 2):
+        pair = items[index:index + 2]
+        while len(pair) < 2:
+            pair.append(None)
+        rows.append(pair)
+    return rows
+
+
+ATTRIBUTE_SECTION_HEADINGS = {
+    ProductAttribute.Section.KEY: 'Key attributes',
+    ProductAttribute.Section.PACKAGING: 'Packaging and delivery',
+}
+
+ATTRIBUTE_SECTION_ORDER = (
+    ProductAttribute.Section.KEY,
+    ProductAttribute.Section.PACKAGING,
+)
+
+
+def _append_catalog_summary_rows(rows, product, group_buy=None):
+    """Add variation and option summaries when missing from stored attributes."""
+    titles = {row['title'].lower() for row in rows}
+    active_variations = product.active_variations
+    variation_count = (
+        active_variations.count()
+        if hasattr(active_variations, 'count')
+        else len(active_variations)
+    )
+    if variation_count and 'variations' not in titles:
+        rows.append({
+            'title': 'Variations',
+            'description': f'{variation_count} SKU{"s" if variation_count != 1 else ""} available',
+        })
+    for option in product.options.all():
+        if option.name.lower() in titles:
+            continue
+        values = ', '.join(value.value for value in option.values.all())
+        if values:
+            rows.append({
+                'title': option.name,
+                'description': values,
+            })
+    if group_buy and 'moq' not in titles:
+        rows.append({
+            'title': 'MOQ',
+            'description': f'{group_buy.moq} units',
+        })
+    return rows
+
+
+def _build_attribute_sections(product, group_buy=None):
+    """Group product-level attributes into Alibaba-style sections."""
+    stored = list(product.product_attributes)
+    if stored:
+        grouped = {}
+        section_order = []
+        for attribute in stored:
+            section = attribute.section or ProductAttribute.Section.KEY
+            if section not in grouped:
+                grouped[section] = []
+                section_order.append(section)
+            grouped[section].append({
+                'title': attribute.title,
+                'description': attribute.description,
+            })
+        key_section = ProductAttribute.Section.KEY
+        if key_section in grouped:
+            grouped[key_section] = _append_catalog_summary_rows(
+                grouped[key_section],
+                product,
+                group_buy,
+            )
+        return [
+            {
+                'heading': ATTRIBUTE_SECTION_HEADINGS.get(
+                    section,
+                    section.replace('_', ' ').title(),
+                ),
+                'rows': _attribute_table_rows(grouped[section]),
+            }
+            for section in sorted(
+                section_order,
+                key=lambda value: (
+                    ATTRIBUTE_SECTION_ORDER.index(value)
+                    if value in ATTRIBUTE_SECTION_ORDER
+                    else len(ATTRIBUTE_SECTION_ORDER)
+                ),
+            )
+        ]
+
+    fallback = _build_display_attributes(product, group_buy)
+    return [{
+        'heading': 'Key attributes',
+        'rows': _attribute_table_rows(fallback),
+    }]
+
+
+def _build_display_attributes(product, group_buy=None):
+    """Product-level attributes for the middle-column specs grid."""
+    stored = list(product.product_attributes)
+    if stored:
+        return [
+            {'title': attribute.title, 'description': attribute.description}
+            for attribute in stored
+        ]
+
+    rows = [
+        {
+            'title': 'Category',
+            'description': product.category.get_breadcrumb(),
+        },
+    ]
+
+    active_variations = product.active_variations
+    variation_count = active_variations.count() if hasattr(active_variations, 'count') else len(active_variations)
+    if variation_count:
+        rows.append({
+            'title': 'Variations',
+            'description': f'{variation_count} SKU{"s" if variation_count != 1 else ""} available',
+        })
+
+    for option in product.options.all():
+        values = ', '.join(value.value for value in option.values.all())
+        if values:
+            rows.append({
+                'title': option.name,
+                'description': values,
+            })
+
+    if group_buy:
+        rows.append({
+            'title': 'MOQ',
+            'description': f'{group_buy.moq} units',
+        })
+        rows.append({
+            'title': 'Group buy closes',
+            'description': group_buy.closes_at.strftime('%b %d, %Y'),
+        })
+
+    if product.description:
+        excerpt = product.description.strip().replace('\n', ' ')
+        if len(excerpt) > 120:
+            excerpt = f'{excerpt[:117]}…'
+        rows.append({
+            'title': 'Overview',
+            'description': excerpt,
+        })
+
+    return rows
 
 
 def product_detail(request, slug):
@@ -153,6 +331,9 @@ def product_detail(request, slug):
         category__is_active=True,
     )
     group_buy = product.active_group_buy
+    if not group_buy:
+        group_buy = ensure_default_group_buy_for_product(product)
+
     user_entries = []
     pledge_formset = None
 
@@ -166,13 +347,22 @@ def product_detail(request, slug):
             if not request.user.is_authenticated:
                 return redirect(f'{reverse("users:signin")}?next={request.path}')
 
-            pledge_formset = get_pledge_formset(group_buy, request.user, data=request.POST)
-            if pledge_formset.is_valid():
-                with transaction.atomic():
-                    pledge_formset.save()
-                messages.success(request, 'Your pledge has been saved.')
-                return redirect('pledge_list')
-            messages.error(request, 'Please correct the errors below.')
+            if product.active_variations.exists():
+                try:
+                    with transaction.atomic():
+                        save_variation_pledges_from_post(group_buy, request.user, request.POST)
+                    messages.success(request, 'Your booking has been saved.')
+                    return redirect('pledge_list')
+                except ValidationError as exc:
+                    messages.error(request, exc.messages[0] if exc.messages else str(exc))
+            else:
+                pledge_formset = get_pledge_formset(group_buy, request.user, data=request.POST)
+                if pledge_formset.is_valid():
+                    with transaction.atomic():
+                        pledge_formset.save()
+                    messages.success(request, 'Your booking has been saved.')
+                    return redirect('pledge_list')
+                messages.error(request, 'Please correct the errors below.')
         elif group_buy.is_joinable and request.user.is_authenticated:
             pledge_formset = get_pledge_formset(group_buy, request.user)
         elif request.user.is_authenticated and user_entries:
@@ -182,12 +372,19 @@ def product_detail(request, slug):
         str(entry.variation_id): entry.quantity
         for entry in user_entries if entry.variation_id
     }
+    pledged_quantities = pledged_by_variation.copy()
 
     related_products = get_related_products(product)
     detail_context = _build_product_detail_context(product)
     price_min, price_max = product_variation_price_range(product)
     if price_min is None and group_buy:
         price_min = price_max = group_buy.unit_price
+
+    price_tiers = build_price_tiers(product, group_buy)
+    pledger_count = group_buy.entries.values('user').distinct().count() if group_buy else 0
+    display_attributes = _build_display_attributes(product, group_buy)
+    attribute_sections = _build_attribute_sections(product, group_buy)
+    shipping_calculator = build_shipping_calculator_context(product)
 
     return render(request, 'core/products/detail.html', {
         'product': product,
@@ -196,9 +393,16 @@ def product_detail(request, slug):
         'pledge_formset': pledge_formset,
         'user_pledged_total': group_buy.user_pledged_units(request.user) if group_buy and request.user.is_authenticated else 0,
         'pledged_by_variation': pledged_by_variation,
+        'pledged_quantities': pledged_quantities,
         'related_products': related_products,
         'price_min': price_min,
         'price_max': price_max,
+        'price_tiers': price_tiers,
+        'pledger_count': pledger_count,
+        'display_attributes': display_attributes,
+        'attribute_sections': attribute_sections,
+        'is_wishlisted': is_wishlisted(request.user, product) if request.user.is_authenticated else False,
+        **shipping_calculator,
         **detail_context,
     })
 
@@ -422,20 +626,38 @@ def product_attribute_list(request, product_id):
 @admin_required
 def product_attribute_create(request, product_id):
     product = get_object_or_404(Product, pk=product_id)
+    next_url = request.GET.get('next') or request.POST.get('next')
 
     if request.method == 'POST':
         form = ProductAttributeForm(request.POST, product=product)
         if form.is_valid():
             attribute = form.save()
             messages.success(request, f'Attribute "{attribute.title}" added.')
+            if next_url and url_has_allowed_host_and_scheme(
+                next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
+                return redirect(next_url)
             return redirect('core:product_attribute_list', product_id=product.pk)
         messages.error(request, 'Please correct the errors below.')
     else:
-        form = ProductAttributeForm(product=product)
+        initial = {}
+        title = (request.GET.get('title') or '').strip()
+        description = (request.GET.get('description') or '').strip()
+        section = (request.GET.get('section') or '').strip()
+        if title:
+            initial['title'] = title
+        if description:
+            initial['description'] = description
+        if section in ProductAttribute.Section.values:
+            initial['section'] = section
+        form = ProductAttributeForm(product=product, initial=initial)
 
     return render(request, 'core/product_attributes/create.html', {
         'form': form,
         'product': product,
+        'next': next_url,
     })
 
 
@@ -617,7 +839,7 @@ def group_buy_manage(request, group_buy_id):
 
         if action == 'refresh_status':
             group_buy.refresh_status()
-            messages.success(request, 'MOQ status refreshed from current pledges.')
+            messages.success(request, 'MOQ status refreshed from current bookings.')
             return redirect('core:group_buy_manage', group_buy_id=group_buy.pk)
 
         if action == 'create_import_batch':
@@ -800,14 +1022,132 @@ def refund_list(request):
     })
 
 
+@staff_required
+def complaint_list(request):
+    status_filter = request.GET.get('status', 'open')
+    complaints = Complaint.objects.select_related(
+        'user',
+        'order__group_buy__product',
+    ).prefetch_related('messages').order_by('-created_at')
+
+    if status_filter and status_filter != 'all':
+        if status_filter == 'open':
+            complaints = complaints.filter(
+                status__in=[Complaint.Status.OPEN, Complaint.Status.IN_PROGRESS],
+            )
+        else:
+            complaints = complaints.filter(status=status_filter)
+
+    summary = {
+        'open': Complaint.objects.filter(
+            status__in=[Complaint.Status.OPEN, Complaint.Status.IN_PROGRESS],
+        ).count(),
+        'resolved': Complaint.objects.filter(status=Complaint.Status.RESOLVED).count(),
+        'closed': Complaint.objects.filter(status=Complaint.Status.CLOSED).count(),
+        'total': Complaint.objects.count(),
+    }
+
+    if request.method == 'POST':
+        complaint = get_object_or_404(Complaint, pk=request.POST.get('complaint_id'))
+        form = ComplaintStaffReplyForm(request.POST, complaint=complaint)
+        if form.is_valid():
+            try:
+                if form.cleaned_data['body'].strip():
+                    add_complaint_message(
+                        complaint=complaint,
+                        author=request.user,
+                        body=form.cleaned_data['body'],
+                        is_staff_reply=True,
+                    )
+                update_complaint_status(
+                    complaint=complaint,
+                    status=form.cleaned_data['status'],
+                    staff_notes=form.cleaned_data['staff_notes'],
+                )
+                messages.success(request, f'Complaint {complaint.reference} updated.')
+            except ValidationError as exc:
+                messages.error(request, '; '.join(getattr(exc, 'messages', [str(exc)])))
+        else:
+            messages.error(request, 'Please correct the errors below.')
+
+        redirect_status = request.GET.get('status', status_filter)
+        url = reverse('core:complaint_list')
+        if redirect_status:
+            return redirect(f'{url}?status={redirect_status}')
+        return redirect('core:complaint_list')
+
+    return render(request, 'core/complaints/manage.html', {
+        'complaints': complaints,
+        'status_filter': status_filter,
+        'summary': summary,
+    })
+
+
 @admin_required
 def supplier_list(request):
+    query = request.GET.get('q', '').strip()
+    status_filter = request.GET.get('status', 'active')
+
     suppliers = Supplier.objects.annotate(
-        product_count=Count('products'),
-        batch_count=Count('import_batches'),
-    ).order_by('name')
+        product_count=Count('products', distinct=True),
+        batch_count=Count('import_batches', distinct=True),
+    )
+
+    if query:
+        suppliers = suppliers.filter(
+            Q(name__icontains=query)
+            | Q(contact_name__icontains=query)
+            | Q(email__icontains=query)
+            | Q(phone__icontains=query)
+            | Q(wechat_id__icontains=query)
+            | Q(country__icontains=query)
+        )
+
+    if status_filter == 'active':
+        suppliers = suppliers.filter(is_active=True)
+    elif status_filter == 'inactive':
+        suppliers = suppliers.filter(is_active=False)
+
+    suppliers = suppliers.order_by('name')
+
+    summary = {
+        'total': Supplier.objects.count(),
+        'active': Supplier.objects.filter(is_active=True).count(),
+        'inactive': Supplier.objects.filter(is_active=False).count(),
+        'with_products': Supplier.objects.filter(products__isnull=False).distinct().count(),
+    }
+
     return render(request, 'core/suppliers/list.html', {
         'suppliers': suppliers,
+        'query': query,
+        'status_filter': status_filter,
+        'summary': summary,
+    })
+
+
+@admin_required
+def supplier_manage(request, supplier_id):
+    supplier = get_object_or_404(
+        Supplier.objects.annotate(
+            product_count=Count('products', distinct=True),
+            batch_count=Count('import_batches', distinct=True),
+        ),
+        pk=supplier_id,
+    )
+    products = (
+        supplier.products.select_related('category')
+        .prefetch_related('variations')
+        .order_by('-created_at')
+    )
+    import_batches = (
+        supplier.import_batches.select_related('group_buy__product')
+        .order_by('-created_at')
+    )
+
+    return render(request, 'core/suppliers/manage.html', {
+        'supplier': supplier,
+        'products': products,
+        'import_batches': import_batches,
     })
 
 
@@ -818,7 +1158,7 @@ def supplier_create(request):
         if form.is_valid():
             supplier = form.save()
             messages.success(request, f'Supplier "{supplier.name}" created.')
-            return redirect('core:supplier_list')
+            return redirect('core:supplier_manage', supplier_id=supplier.pk)
         messages.error(request, 'Please correct the errors below.')
     else:
         form = SupplierForm()
@@ -834,9 +1174,9 @@ def supplier_edit(request, supplier_id):
     if request.method == 'POST':
         form = SupplierForm(request.POST, instance=supplier)
         if form.is_valid():
-            form.save()
+            supplier = form.save()
             messages.success(request, f'Supplier "{supplier.name}" updated.')
-            return redirect('core:supplier_list')
+            return redirect('core:supplier_manage', supplier_id=supplier.pk)
         messages.error(request, 'Please correct the errors below.')
     else:
         form = SupplierForm(instance=supplier)

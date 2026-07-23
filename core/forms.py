@@ -5,9 +5,11 @@ from django.forms import inlineformset_factory
 
 from .category_utils import build_category_tree
 from .address import Address
+from .complaint import Complaint
 from .fulfillment import Fulfillment
 from .group_buy import GroupBuy, GroupBuyEntry
 from .import_batch import ImportBatch
+from .order import Order
 from .refund import Refund
 from .supplier import Supplier
 from .models import Category, Product
@@ -79,7 +81,7 @@ class CategoryForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ('category', 'supplier', 'name', 'description', 'is_active')
+        fields = ('category', 'supplier', 'name', 'description', 'is_special_class', 'is_active')
         widgets = {
             'category': forms.Select(attrs={'class': 'form-input form-select'}),
             'supplier': forms.Select(attrs={'class': 'form-input form-select'}),
@@ -91,6 +93,9 @@ class ProductForm(forms.ModelForm):
                 'class': 'form-input form-textarea',
                 'placeholder': 'Describe the product for buyers',
                 'rows': 5,
+            }),
+            'is_special_class': forms.CheckboxInput(attrs={
+                'class': 'form-checkbox',
             }),
             'is_active': forms.CheckboxInput(attrs={
                 'class': 'form-checkbox',
@@ -114,6 +119,7 @@ class ProductForm(forms.ModelForm):
         self.fields['supplier'].empty_label = '— Select supplier —'
         self.fields['name'].label = 'Product name'
         self.fields['description'].label = 'Description'
+        self.fields['is_special_class'].label = 'Special goods class (higher air freight rate)'
         self.fields['is_active'].label = 'Active (visible on the platform)'
 
 
@@ -258,7 +264,7 @@ def get_variation_file_formset(variation, data=None):
 class ProductAttributeForm(forms.ModelForm):
     class Meta:
         model = ProductAttribute
-        fields = ('variation', 'title', 'description', 'sort_order')
+        fields = ('variation', 'title', 'description', 'section', 'sort_order')
         widgets = {
             'variation': forms.Select(attrs={'class': 'form-input form-select'}),
             'title': forms.TextInput(attrs={
@@ -270,6 +276,7 @@ class ProductAttributeForm(forms.ModelForm):
                 'placeholder': 'Attribute value or details',
                 'rows': 3,
             }),
+            'section': forms.Select(attrs={'class': 'form-input form-select'}),
             'sort_order': forms.NumberInput(attrs={
                 'class': 'form-input',
                 'min': 0,
@@ -284,6 +291,7 @@ class ProductAttributeForm(forms.ModelForm):
         self.fields['variation'].label = 'Applies to'
         self.fields['title'].label = 'Title'
         self.fields['description'].label = 'Description'
+        self.fields['section'].label = 'Section'
         self.fields['sort_order'].label = 'Sort order'
         if product:
             self.fields['variation'].queryset = product.variations.filter(is_active=True)
@@ -563,7 +571,7 @@ class JoinGroupBuyLineForm(forms.ModelForm):
             raise ValidationError({'variation': 'Select a variation for this line.'})
 
         if self.group_buy and not self.group_buy.is_joinable and not self.instance.pk:
-            raise ValidationError('This group buy is no longer accepting pledges.')
+            raise ValidationError('This group buy is no longer accepting bookings.')
 
         return cleaned
 
@@ -630,12 +638,12 @@ class BaseJoinGroupBuyFormSet(forms.BaseModelFormSet):
             and form.cleaned_data.get('quantity')
         ]
         if not active_forms:
-            raise ValidationError('Add at least one variation and quantity to your pledge.')
+            raise ValidationError('Add at least one variation and quantity to your booking.')
 
         if not self.group_buy.is_joinable:
             new_lines = [form for form in active_forms if not form.instance.pk]
             if new_lines:
-                raise ValidationError('This group buy is no longer accepting new pledges.')
+                raise ValidationError('This group buy is no longer accepting new bookings.')
 
         seen_variations = []
         for form in active_forms:
@@ -672,8 +680,11 @@ JoinGroupBuyFormSet = forms.modelformset_factory(
 
 def get_pledge_formset(group_buy, user, data=None):
     has_variations = group_buy.product.variations.filter(is_active=True).exists()
+    if has_variations:
+        return None
+
     queryset = GroupBuyEntry.objects.filter(group_buy=group_buy, user=user)
-    extra = 2 if has_variations else (0 if queryset.exists() else 1)
+    extra = 0 if queryset.exists() else 1
 
     FormSet = forms.modelformset_factory(
         GroupBuyEntry,
@@ -686,6 +697,63 @@ def get_pledge_formset(group_buy, user, data=None):
     if data is not None:
         return FormSet(data, queryset=queryset, group_buy=group_buy, user=user)
     return FormSet(queryset=queryset, group_buy=group_buy, user=user)
+
+
+def save_variation_pledges_from_post(group_buy, user, post_data):
+    """Save one quantity field per variation from the product detail sidebar."""
+    variations = list(
+        group_buy.product.variations.filter(is_active=True).order_by('sku')
+    )
+    if not variations:
+        raise ValidationError('This product has no active variations.')
+
+    existing_entries = {
+        entry.variation_id: entry
+        for entry in GroupBuyEntry.objects.filter(group_buy=group_buy, user=user)
+    }
+    saved_entries = []
+    active_lines = 0
+
+    for variation in variations:
+        raw_qty = post_data.get(f'pledge_qty_{variation.pk}', '').strip()
+        if not raw_qty:
+            quantity = 0
+        else:
+            try:
+                quantity = int(raw_qty)
+            except (TypeError, ValueError):
+                raise ValidationError(f'Enter a whole number for {variation.display_name}.')
+            if quantity < 0:
+                raise ValidationError(f'Quantity for {variation.display_name} cannot be negative.')
+
+        entry = existing_entries.get(variation.pk)
+        if quantity == 0:
+            if entry:
+                entry.delete()
+            continue
+
+        if not group_buy.is_joinable and not entry:
+            raise ValidationError('This group buy is no longer accepting new bookings.')
+
+        active_lines += 1
+        if entry:
+            entry.quantity = quantity
+            entry.save()
+            saved_entries.append(entry)
+        else:
+            saved_entries.append(
+                GroupBuyEntry.objects.create(
+                    group_buy=group_buy,
+                    user=user,
+                    variation=variation,
+                    quantity=quantity,
+                )
+            )
+
+    if active_lines == 0:
+        raise ValidationError('Add at least one quantity to your booking.')
+
+    return saved_entries
 
 
 DATETIME_LOCAL_FORMAT = '%Y-%m-%dT%H:%M'
@@ -994,3 +1062,265 @@ class FulfillmentForm(forms.ModelForm):
         self.fields['status'].label = 'Delivery status'
         self.fields['tracking_reference'].label = 'Tracking reference'
         self.fields['notes'].label = 'Internal notes'
+
+
+class ComplaintForm(forms.Form):
+    order = forms.ModelChoiceField(
+        queryset=Order.objects.none(),
+        required=False,
+        empty_label='Not linked to an order',
+        widget=forms.Select(attrs={'class': 'form-input form-select'}),
+    )
+    category = forms.ChoiceField(
+        choices=Complaint.Category.choices,
+        widget=forms.Select(attrs={'class': 'form-input form-select'}),
+    )
+    subject = forms.CharField(
+        max_length=200,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Brief summary of the issue',
+        }),
+    )
+    description = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-input form-textarea',
+            'rows': 5,
+            'placeholder': 'Describe what happened and how we can help.',
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        initial_order = kwargs.pop('initial_order', None)
+        super().__init__(*args, **kwargs)
+        self.fields['order'].label = 'Related order (optional)'
+        self.fields['category'].label = 'Issue type'
+        self.fields['subject'].label = 'Subject'
+        self.fields['description'].label = 'Details'
+        if self.user:
+            self.fields['order'].queryset = Order.objects.filter(
+                user=self.user,
+            ).select_related('group_buy__product').order_by('-created_at')
+        if initial_order:
+            self.fields['order'].initial = initial_order.pk
+
+    def clean_order(self):
+        order = self.cleaned_data.get('order')
+        if order and self.user and order.user_id != self.user.pk:
+            raise ValidationError('You can only link your own orders.')
+        return order
+
+
+class ComplaintMessageForm(forms.Form):
+    body = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-input form-textarea',
+            'rows': 3,
+            'placeholder': 'Add a follow-up message…',
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['body'].label = 'Your message'
+
+
+class ComplaintStaffReplyForm(forms.Form):
+    body = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-input form-textarea',
+            'rows': 3,
+            'placeholder': 'Reply to the customer…',
+        }),
+    )
+    status = forms.ChoiceField(
+        choices=Complaint.Status.choices,
+        widget=forms.Select(attrs={'class': 'form-input form-select'}),
+    )
+    staff_notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-input form-textarea',
+            'rows': 2,
+            'placeholder': 'Internal notes (not visible to customer)',
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        complaint = kwargs.pop('complaint', None)
+        super().__init__(*args, **kwargs)
+        self.fields['body'].label = 'Reply to customer'
+        self.fields['status'].label = 'Status'
+        self.fields['staff_notes'].label = 'Internal notes'
+        if complaint:
+            self.fields['status'].initial = complaint.status
+
+
+class ProductImportPasteForm(forms.Form):
+    source_url = forms.URLField(
+        required=False,
+        widget=forms.URLInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'https://www.alibaba.com/product-detail/... (optional)',
+        }),
+    )
+    raw_paste = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-input form-textarea import-paste-input',
+            'rows': 16,
+            'placeholder': 'Paste product title, description, specs, packaging, MOQ, variation table, SKU prices…',
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['source_url'].label = 'Source URL (optional)'
+        self.fields['raw_paste'].label = 'Supplier listing content'
+
+    def clean_raw_paste(self):
+        value = self.cleaned_data['raw_paste'].strip()
+        if len(value) < 40:
+            raise ValidationError('Paste more product content so OpenAI can structure it (at least 40 characters).')
+        return value
+
+
+class ProductImportBasicsForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = ('name', 'description', 'category', 'supplier', 'is_special_class', 'is_active')
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-input'}),
+            'description': forms.Textarea(attrs={'class': 'form-input form-textarea', 'rows': 6}),
+            'category': forms.Select(attrs={'class': 'form-input form-select'}),
+            'supplier': forms.Select(attrs={'class': 'form-input form-select'}),
+            'is_special_class': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['category'].queryset = Category.objects.filter(is_active=True).order_by('name')
+        from core.supplier import Supplier
+        self.fields['supplier'].queryset = Supplier.objects.filter(is_active=True).order_by('name')
+        self.fields['supplier'].required = False
+        self.fields['supplier'].empty_label = 'No supplier linked'
+        self.fields['name'].label = 'Product name'
+        self.fields['description'].label = 'Description'
+        self.fields['category'].label = 'Category'
+        self.fields['supplier'].label = 'Supplier'
+
+
+class ProductImportSupplierForm(forms.Form):
+    name = forms.CharField(
+        max_length=200,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Factory or trading company name',
+        }),
+    )
+    contact_name = forms.CharField(
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Sales contact'}),
+    )
+    email = forms.EmailField(
+        required=False,
+        widget=forms.EmailInput(attrs={'class': 'form-input'}),
+    )
+    phone = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': '+86 ...'}),
+    )
+    wechat_id = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'WeChat ID'}),
+    )
+    alibaba_url = forms.URLField(
+        required=False,
+        widget=forms.URLInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'https://...alibaba.com/company_profile/...',
+        }),
+    )
+    country = forms.CharField(
+        max_length=100,
+        required=False,
+        initial='China',
+        widget=forms.TextInput(attrs={'class': 'form-input'}),
+    )
+    notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'form-input form-textarea', 'rows': 4}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['name'].label = 'Supplier name'
+        self.fields['contact_name'].label = 'Contact person'
+        self.fields['wechat_id'].label = 'WeChat ID'
+        self.fields['alibaba_url'].label = 'Alibaba / storefront URL'
+        self.fields['country'].label = 'Country'
+        self.fields['notes'].label = 'Notes'
+
+
+class ProductImportCategoriesForm(forms.Form):
+    segment_1 = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'e.g. Consumer Electronics',
+        }),
+    )
+    segment_2 = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Optional subcategory',
+        }),
+    )
+    segment_3 = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Optional child category',
+        }),
+    )
+    segment_4 = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Optional product category',
+        }),
+    )
+
+    def __init__(self, *args, proposal=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['segment_1'].label = 'Top-level category'
+        self.fields['segment_2'].label = 'Subcategory'
+        self.fields['segment_3'].label = 'Child category'
+        self.fields['segment_4'].label = 'Product category'
+
+        segments = (proposal or {}).get('segments') or []
+        for index in range(4):
+            if index < len(segments):
+                self.fields[f'segment_{index + 1}'].initial = segments[index].get('name', '')
+
+    def clean(self):
+        cleaned = super().clean()
+        names = [
+            cleaned.get('segment_1', '').strip(),
+            cleaned.get('segment_2', '').strip(),
+            cleaned.get('segment_3', '').strip(),
+            cleaned.get('segment_4', '').strip(),
+        ]
+        if not names[0]:
+            self.add_error('segment_1', 'Enter at least a top-level category name.')
+        cleaned['segment_names'] = [name for name in names if name]
+        return cleaned
+

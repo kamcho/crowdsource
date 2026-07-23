@@ -134,26 +134,77 @@
 </section>
 
 <!-- Products Section -->
-<section class="products" id="products">
-    <div class="container">
-        <div class="section-header">
-            <span class="section-label">Catalog</span>
-            <h2>Trending products</h2>
-            <p>Browse factory-direct products ready for crowd buying.</p>
+<section class="products products-browse" id="products">
+    <div class="container container-wide">
+        <div class="section-header products-section-header">
+            <div>
+                {% if search %}
+                <span class="section-label">Search results</span>
+                <h2>Results for “{{ search }}”</h2>
+                {% elif category %}
+                <span class="section-label">Category</span>
+                <h2>{{ category.name }}</h2>
+                {% else %}
+                <span class="section-label">Catalog</span>
+                <h2>Trending products</h2>
+                {% endif %}
+                <p>Refine results with categories on the left.</p>
+            </div>
+            <form class="products-search-form products-search-form-wide" method="get" role="search">
+                {% if category_slug %}<input type="hidden" name="category" value="{{ category_slug }}">{% endif %}
+                <input type="search" name="q" value="{{ search }}" placeholder="Search products..." aria-label="Search products">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </form>
         </div>
 
-        <div class="product-grid">
-            {% include 'home/partials/product_cards.html' %}
-            {% if not products %}
-            <p class="empty-state">No products available yet. Check back soon!</p>
-            {% endif %}
-        </div>
+        <div class="products-browse-layout">
+            {% include 'partials/category_browse_sidebar.html' %}
 
-        {% if total_product_count > products|length %}
-        <div class="products-view-all-wrap">
-            <a href="{% url 'home:product_browse' %}" class="btn btn-outline btn-lg">View all {{ total_product_count }} products</a>
+            <div class="products-browse-main">
+                <p class="products-browse-summary">
+                    {% if landing_max_products %}
+                    Showing up to {{ landing_max_products }} of {{ total_product_count }} product{{ total_product_count|pluralize }}
+                    {% else %}
+                    Showing {{ total_product_count }} product{{ total_product_count|pluralize }}
+                    {% endif %}
+                    {% if search %}matching “{{ search }}”{% endif %}
+                    {% if category %}in {{ category.name }}{% endif %}
+                </p>
+
+                <div
+                    id="productGrid"
+                    class="product-grid product-grid-4col"
+                    data-load-url="{% url 'home:product_browse_load' %}"
+                    data-next-page="{% if page_obj.has_next %}{{ page_obj.next_page_number }}{% endif %}"
+                    data-has-next="{% if page_obj.has_next %}true{% else %}false{% endif %}"
+                    data-category="{{ category_slug }}"
+                    data-search="{{ search }}"
+                    data-landing="true"
+                >
+                    {% include 'home/partials/product_cards.html' %}
+                </div>
+
+                <div id="productScrollSentinel" class="products-scroll-sentinel" aria-hidden="true"></div>
+
+                <div id="productScrollLoader" class="products-scroll-loader" hidden>
+                    <span class="products-scroll-spinner" aria-hidden="true"></span>
+                    <span>Loading more products…</span>
+                </div>
+
+                <div id="productScrollEnd" class="products-scroll-end"{% if page_obj.has_next %} hidden{% endif %}>
+                    {% if landing_max_products and total_product_count > landing_max_products %}
+                    <p>Showing the first {{ landing_max_products }} products.</p>
+                    <a href="{% url 'home:product_browse' %}" class="btn btn-outline">View all {{ total_product_count }} products</a>
+                    {% elif total_product_count %}
+                    <p>You've seen all {{ total_product_count }} product{{ total_product_count|pluralize }}.</p>
+                    {% endif %}
+                </div>
+
+                {% if not products %}
+                <p class="empty-state">No products match your search. Try a different term or category.</p>
+                {% endif %}
+            </div>
         </div>
-        {% endif %}
     </div>
 </section>
 
@@ -266,4 +317,8 @@
     </div>
 </section>
 
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/products.js' %}"></script>
 {% endblock %}
