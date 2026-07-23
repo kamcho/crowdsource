@@ -397,8 +397,9 @@
 
 /* ── Stats strip ── */
 .stats-strip {
-    padding: 0 0 3rem;
-    margin-top: -0.5rem;
+    padding: 4rem 0 3rem;
+    border-top: 1px solid var(--color-border-light);
+    background: var(--color-bg-subtle);
 }
 
 .stats-grid {
@@ -600,7 +601,7 @@
 
 /* ── Products ── */
 .products {
-    padding: 5rem 0;
+    padding: 3rem 0 5rem;
 }
 
 .product-grid {

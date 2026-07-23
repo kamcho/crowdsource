@@ -133,6 +133,59 @@
     </div>
 </section>
 
+<!-- Products Section -->
+<section class="products" id="products">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-label">Catalog</span>
+            <h2>Trending products</h2>
+            <p>Browse factory-direct products ready for crowd buying.</p>
+        </div>
+
+        <div class="product-grid">
+            {% include 'home/partials/product_cards.html' %}
+            {% if not products %}
+            <p class="empty-state">No products available yet. Check back soon!</p>
+            {% endif %}
+        </div>
+
+        {% if total_product_count > products|length %}
+        <div class="products-view-all-wrap">
+            <a href="{% url 'home:product_browse' %}" class="btn btn-outline btn-lg">View all {{ total_product_count }} products</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Categories Section -->
+<section class="categories" id="categories">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-label">Browse by category</span>
+            <h2>Shop Alibaba-style</h2>
+            <p>Pick a parent on the left — subcategories appear in a grid on the right, Alibaba-style.</p>
+        </div>
+
+        {% if category_nav_tree %}
+        <div class="categories-preview">
+            {% for category in category_nav_tree %}
+            <button type="button" class="category-preview-card" data-category-drawer-open data-category-slug="{{ category.slug }}">
+                <span>{{ category.name }}</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            {% endfor %}
+        </div>
+        <div class="categories-open-btn">
+            <button type="button" class="btn btn-primary btn-lg" data-category-drawer-open>Browse all categories</button>
+        </div>
+        {% else %}
+        <p class="empty-state">Categories coming soon.</p>
+        {% endif %}
+    </div>
+</section>
+
 <!-- Stats strip -->
 <section class="stats-strip" aria-label="Platform statistics">
     <div class="container stats-grid">
@@ -199,59 +252,6 @@
                 <p>We source from the factory, handle customs, and ship directly to you.</p>
             </article>
         </div>
-    </div>
-</section>
-
-<!-- Categories Section -->
-<section class="categories" id="categories">
-    <div class="container">
-        <div class="section-header">
-            <span class="section-label">Browse by category</span>
-            <h2>Shop Alibaba-style</h2>
-            <p>Pick a parent on the left — subcategories appear in a grid on the right, Alibaba-style.</p>
-        </div>
-
-        {% if category_nav_tree %}
-        <div class="categories-preview">
-            {% for category in category_nav_tree %}
-            <button type="button" class="category-preview-card" data-category-drawer-open data-category-slug="{{ category.slug }}">
-                <span>{{ category.name }}</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
-            {% endfor %}
-        </div>
-        <div class="categories-open-btn">
-            <button type="button" class="btn btn-primary btn-lg" data-category-drawer-open>Browse all categories</button>
-        </div>
-        {% else %}
-        <p class="empty-state">Categories coming soon.</p>
-        {% endif %}
-    </div>
-</section>
-
-<!-- Products Section -->
-<section class="products" id="products">
-    <div class="container">
-        <div class="section-header">
-            <span class="section-label">Catalog</span>
-            <h2>Trending products</h2>
-            <p>Browse factory-direct products ready for crowd buying.</p>
-        </div>
-
-        <div class="product-grid">
-            {% include 'home/partials/product_cards.html' %}
-            {% if not products %}
-            <p class="empty-state">No products available yet. Check back soon!</p>
-            {% endif %}
-        </div>
-
-        {% if total_product_count > products|length %}
-        <div class="products-view-all-wrap">
-            <a href="{% url 'home:product_browse' %}" class="btn btn-outline btn-lg">View all {{ total_product_count }} products</a>
-        </div>
-        {% endif %}
     </div>
 </section>
 
