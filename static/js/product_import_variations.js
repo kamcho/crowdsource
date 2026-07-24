@@ -15,6 +15,7 @@
     var defaultPrice = state.default_price || '0.00';
 
     var mergingOptions = false;
+    var syncTimer = null;
 
     function escapeHtml(value) {
         return String(value || '')
@@ -23,11 +24,21 @@
             .replace(/"/g, '&quot;');
     }
 
+    function parseOptionValues(raw) {
+        return String(raw || '')
+            .split(/[,;\n|]+/)
+            .map(function (v) { return v.trim(); })
+            .filter(Boolean);
+    }
+
     function abbrevForSku(value) {
         var cleaned = String(value || '').replace(/[^a-zA-Z0-9]+/g, '');
         if (!cleaned) return 'X';
-        if (cleaned.length <= 2) return cleaned.toUpperCase();
-        return cleaned.slice(0, 3).toUpperCase();
+        if (cleaned.length <= 4) return cleaned.toUpperCase();
+        var upper = cleaned.toUpperCase();
+        var skeleton = upper.replace(/[AEIOU]/g, '');
+        if (skeleton.length >= 3) return skeleton.slice(0, 4);
+        return upper.slice(0, 4);
     }
 
     function selectionKey(selections, optionNames) {
@@ -80,11 +91,13 @@
                 return;
             }
             var option = validOptions[index];
+            var optionName = option.name.trim();
             option.values.forEach(function (valueItem) {
                 var label = String(valueItem.value || '').trim();
                 if (!label) return;
-                current[option.name.trim()] = label;
-                buildCombo(index + 1, current);
+                var next = Object.assign({}, current);
+                next[optionName] = label;
+                buildCombo(index + 1, next);
             });
         }
         buildCombo(0, {});
@@ -183,9 +196,7 @@
             if (!name) {
                 return;
             }
-            var values = block.querySelector('.option-values').value.split(',')
-                .map(function (v) { return v.trim(); })
-                .filter(Boolean)
+            var values = parseOptionValues(block.querySelector('.option-values').value)
                 .map(function (value, valIndex) {
                     return { value: value, sort_order: valIndex };
                 });
@@ -254,6 +265,60 @@
         headerRow.innerHTML = cells.join('');
     }
 
+    function captureVariationsFromDom() {
+        var rows = variationsBody.querySelectorAll('tr');
+        if (!rows.length || rows[0].querySelector('.import-variations-empty')) {
+            return state.variations;
+        }
+
+        var optionNames = state.options.map(function (opt) { return opt.name.trim(); });
+        var captured = [];
+        rows.forEach(function (row) {
+            var skuInput = row.querySelector('.variation-sku');
+            var priceInput = row.querySelector('.variation-price');
+            var activeInput = row.querySelector('.variation-active');
+            if (!skuInput || !priceInput || !activeInput) {
+                return;
+            }
+            var sku = skuInput.value.trim();
+            var price = priceInput.value.trim();
+            var isActive = activeInput.checked;
+            var selections = {};
+            row.querySelectorAll('.variation-option').forEach(function (select) {
+                var optionName = select.getAttribute('data-option');
+                if (select.value) {
+                    selections[optionName] = select.value;
+                }
+            });
+            if (!sku && !optionNames.every(function (name) { return selections[name]; })) {
+                return;
+            }
+            captured.push({
+                sku: sku,
+                price: price || defaultPrice,
+                is_active: isActive,
+                option_selections: selections,
+            });
+        });
+        return captured;
+    }
+
+    function bindVariationRowEvents() {
+        variationsBody.querySelectorAll('.remove-variation').forEach(function (button) {
+            button.addEventListener('click', function () {
+                state.variations = captureVariationsFromDom();
+                state.variations.splice(parseInt(button.getAttribute('data-index'), 10), 1);
+                renderVariationRows(state.options);
+            });
+        });
+
+        variationsBody.querySelectorAll('.variation-sku, .variation-price, .variation-active, .variation-option').forEach(function (input) {
+            input.addEventListener('change', function () {
+                state.variations = captureVariationsFromDom();
+            });
+        });
+    }
+
     function renderVariationRows(options) {
         variationsBody.innerHTML = '';
 
@@ -299,12 +364,7 @@
             variationsBody.appendChild(row);
         });
 
-        variationsBody.querySelectorAll('.remove-variation').forEach(function (button) {
-            button.addEventListener('click', function () {
-                state.variations.splice(parseInt(button.getAttribute('data-index'), 10), 1);
-                renderVariationRows(options);
-            });
-        });
+        bindVariationRowEvents();
     }
 
     function syncOptionsFromDom() {
@@ -328,48 +388,26 @@
         return state.options;
     }
 
-    function preserveEditedVariations() {
-        var options = state.options;
-        var rows = variationsBody.querySelectorAll('tr');
-        if (!rows.length || rows[0].querySelector('.import-variations-empty')) {
-            return state.variations;
-        }
-
-        var optionNames = options.map(function (opt) { return opt.name; });
-        var edited = [];
-        rows.forEach(function (row) {
-            var sku = row.querySelector('.variation-sku').value.trim();
-            var price = row.querySelector('.variation-price').value.trim();
-            var isActive = row.querySelector('.variation-active').checked;
-            var selections = {};
-            row.querySelectorAll('.variation-option').forEach(function (select) {
-                if (select.value) {
-                    selections[select.getAttribute('data-option')] = select.value;
-                }
-            });
-            if (!sku && !optionNames.every(function (name) { return selections[name]; })) {
-                return;
-            }
-            edited.push({
-                sku: sku,
-                price: price || defaultPrice,
-                is_active: isActive,
-                option_selections: selections,
-            });
-        });
-        return edited;
-    }
-
     function renderAll() {
         syncOptionsFromDom();
-        state.variations = syncVariationsFromOptions(state.options, preserveEditedVariations());
+        state.variations = syncVariationsFromOptions(state.options, state.variations);
         renderTableHeader(state.options);
         renderVariationRows(state.options);
     }
 
+    function scheduleOptionSync() {
+        if (syncTimer) {
+            clearTimeout(syncTimer);
+        }
+        syncTimer = setTimeout(function () {
+            syncTimer = null;
+            renderAll();
+        }, 250);
+    }
+
     function collectVariationsFromDom() {
         var options = syncOptionsFromDom();
-        var edited = preserveEditedVariations();
+        var edited = captureVariationsFromDom();
         return {
             options: options,
             variations: syncVariationsFromOptions(options, edited),
@@ -394,12 +432,22 @@
             }
             return;
         }
-        state.variations = syncVariationsFromOptions(state.options, preserveEditedVariations());
+        state.variations = syncVariationsFromOptions(state.options, captureVariationsFromDom());
         renderVariationRows(state.options);
     });
 
     optionsEditor.addEventListener('input', function (event) {
         if (event.target.classList.contains('option-name') || event.target.classList.contains('option-values')) {
+            scheduleOptionSync();
+        }
+    });
+
+    optionsEditor.addEventListener('change', function (event) {
+        if (event.target.classList.contains('option-name') || event.target.classList.contains('option-values')) {
+            if (syncTimer) {
+                clearTimeout(syncTimer);
+                syncTimer = null;
+            }
             renderAll();
         }
     });

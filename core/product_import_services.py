@@ -260,9 +260,13 @@ def _abbrev_for_sku(value):
     cleaned = re.sub(r'[^a-zA-Z0-9]+', '', str(value).strip())
     if not cleaned:
         return 'X'
-    if len(cleaned) <= 2:
+    if len(cleaned) <= 4:
         return cleaned.upper()
-    return cleaned[:3].upper()
+    upper = cleaned.upper()
+    skeleton = re.sub(r'[AEIOU]', '', upper)
+    if len(skeleton) >= 3:
+        return skeleton[:4]
+    return upper[:4]
 
 
 def _selection_key(selections, option_names):
@@ -293,8 +297,9 @@ def _option_combinations(options):
                 label = str(value_item).strip()
             if not label:
                 continue
-            current[option_name] = label
-            build(index + 1, current)
+            next_current = dict(current)
+            next_current[option_name] = label
+            build(index + 1, next_current)
 
     build(0, {})
     return valid_options, combos

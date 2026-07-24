@@ -833,7 +833,31 @@ class ProductImportTests(TestCase):
         white = next(v for v in variations if v['option_selections']['Color'] == 'White')
         self.assertEqual(black['sku'], 'CUSTOM-BLK')
         self.assertEqual(black['price'], '4.50')
-        self.assertEqual(white['sku'], 'BAG-WHI')
+        self.assertEqual(white['sku'], 'BAG-WHT')
+
+    def test_sync_variations_from_options_generates_black_white_pink(self):
+        from core.product_import_services import sync_variations_from_options
+
+        options = [{
+            'name': 'Color',
+            'values': [
+                {'value': 'Black'},
+                {'value': 'White'},
+                {'value': 'Pink'},
+            ],
+        }]
+        variations = sync_variations_from_options(
+            options,
+            [{'sku': '2NFW-WHT', 'price': '1.00', 'is_active': True, 'option_selections': {'Color': 'White'}}],
+            sku_prefix='2NFW',
+        )
+        self.assertEqual(len(variations), 3)
+        colors = {row['option_selections']['Color'] for row in variations}
+        self.assertEqual(colors, {'Black', 'White', 'Pink'})
+        skus = {row['option_selections']['Color']: row['sku'] for row in variations}
+        self.assertEqual(skus['White'], '2NFW-WHT')
+        self.assertTrue(skus['Black'].startswith('2NFW-'))
+        self.assertTrue(skus['Pink'].startswith('2NFW-'))
 
     def test_sku_prefix_from_product_name(self):
         from core.product_import_services import sku_prefix_from_product_name
