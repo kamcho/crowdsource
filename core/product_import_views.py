@@ -34,6 +34,8 @@ from core.product_import_services import (
     set_product_import_media_primary,
     skip_category_step,
     skip_supplier_step,
+    sku_prefix_from_product_name,
+    sync_variations_from_options,
     update_draft_attributes,
     update_draft_from_basics,
     update_draft_supplier_data,
@@ -319,11 +321,29 @@ def product_import_variations(request, draft_id):
         except ValidationError as exc:
             messages.error(request, '; '.join(getattr(exc, 'messages', [str(exc)])))
 
+    options = data.get('options', [])
+    variations = data.get('variations', [])
+    sku_prefix = sku_prefix_from_product_name(data.get('name', ''))
+    synced_variations = sync_variations_from_options(
+        options,
+        variations,
+        sku_prefix=sku_prefix,
+    )
+    if synced_variations != variations:
+        update_draft_variations(draft, options=options, variations=synced_variations)
+        variations = synced_variations
+
     context = _step_context(draft)
     context.update({
         'import_variations_data': {
-            'options': data.get('options', []),
-            'variations': data.get('variations', []),
+            'options': options,
+            'variations': variations,
+            'sku_prefix': sku_prefix,
+            'default_price': (
+                synced_variations[0]['price']
+                if synced_variations
+                else '0.00'
+            ),
         },
     })
     return render(request, 'core/product_import/variations.html', context)

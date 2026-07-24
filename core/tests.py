@@ -788,6 +788,59 @@ class ProductImportTests(TestCase):
         self.assertEqual(draft.draft_data['supplier_id'], supplier.pk)
         self.assertFalse(draft.draft_data['show_supplier_step'])
 
+    def test_sync_variations_from_options_generates_all_combinations(self):
+        from core.product_import_services import sync_variations_from_options
+
+        options = [
+            {
+                'name': 'Color',
+                'values': [{'value': 'Black'}, {'value': 'White'}, {'value': 'Pink'}],
+            },
+            {
+                'name': 'Size',
+                'values': [{'value': 'M'}, {'value': 'L'}],
+            },
+        ]
+        variations = sync_variations_from_options(
+            options,
+            [],
+            sku_prefix='CTB',
+            default_price='2.80',
+        )
+        self.assertEqual(len(variations), 6)
+        self.assertEqual(
+            variations[0]['option_selections'],
+            {'Color': 'Black', 'Size': 'M'},
+        )
+        self.assertTrue(all(variation['sku'].startswith('CTB-') for variation in variations))
+        self.assertTrue(all(variation['price'] == '2.80' for variation in variations))
+
+    def test_sync_variations_from_options_preserves_existing_rows(self):
+        from core.product_import_services import sync_variations_from_options
+
+        options = [
+            {'name': 'Color', 'values': [{'value': 'Black'}, {'value': 'White'}]},
+        ]
+        existing = [{
+            'sku': 'CUSTOM-BLK',
+            'price': '4.50',
+            'is_active': True,
+            'option_selections': {'Color': 'Black'},
+        }]
+        variations = sync_variations_from_options(options, existing, sku_prefix='BAG')
+        self.assertEqual(len(variations), 2)
+        black = next(v for v in variations if v['option_selections']['Color'] == 'Black')
+        white = next(v for v in variations if v['option_selections']['Color'] == 'White')
+        self.assertEqual(black['sku'], 'CUSTOM-BLK')
+        self.assertEqual(black['price'], '4.50')
+        self.assertEqual(white['sku'], 'BAG-WHI')
+
+    def test_sku_prefix_from_product_name(self):
+        from core.product_import_services import sku_prefix_from_product_name
+
+        self.assertEqual(sku_prefix_from_product_name('Canvas Tote Bag'), 'CTB')
+        self.assertEqual(sku_prefix_from_product_name(''), 'IMPORT')
+
     def test_publish_import_draft(self):
         from core.group_buy import GroupBuy
         from core.openai_product_import import normalize_parsed_draft

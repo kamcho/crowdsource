@@ -11,6 +11,8 @@
     var state = JSON.parse(dataNode.textContent || '{"options":[],"variations":[]}');
     if (!state.options) state.options = [];
     if (!state.variations) state.variations = [];
+    var skuPrefix = (state.sku_prefix || 'IMPORT').toUpperCase();
+    var defaultPrice = state.default_price || '0.00';
 
     var mergingOptions = false;
 
@@ -19,6 +21,119 @@
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/"/g, '&quot;');
+    }
+
+    function abbrevForSku(value) {
+        var cleaned = String(value || '').replace(/[^a-zA-Z0-9]+/g, '');
+        if (!cleaned) return 'X';
+        if (cleaned.length <= 2) return cleaned.toUpperCase();
+        return cleaned.slice(0, 3).toUpperCase();
+    }
+
+    function selectionKey(selections, optionNames) {
+        return optionNames.map(function (name) {
+            return name + ':' + String((selections || {})[name] || '').trim();
+        }).join('|');
+    }
+
+    function averagePrice(variations) {
+        var prices = (variations || []).map(function (variation) {
+            var price = parseFloat(variation.price);
+            return isNaN(price) ? null : price;
+        }).filter(function (price) { return price !== null; });
+        if (!prices.length) return defaultPrice;
+        var total = prices.reduce(function (sum, price) { return sum + price; }, 0);
+        return (total / prices.length).toFixed(2);
+    }
+
+    function generateSku(prefix, selections, optionNames, index, usedSkus) {
+        var parts = [prefix];
+        optionNames.forEach(function (name) {
+            parts.push(abbrevForSku(selections[name]));
+        });
+        var baseSku = parts.filter(Boolean).join('-').slice(0, 80) || (prefix + '-' + (index + 1));
+        var sku = baseSku;
+        var counter = 1;
+        while (usedSkus[sku]) {
+            var suffix = '-' + counter;
+            sku = baseSku.slice(0, Math.max(1, 80 - suffix.length)) + suffix;
+            counter += 1;
+        }
+        usedSkus[sku] = true;
+        return sku;
+    }
+
+    function syncVariationsFromOptions(options, variations) {
+        var validOptions = options.filter(function (opt) {
+            return opt.name && opt.name.trim() && opt.values && opt.values.length;
+        });
+        if (!validOptions.length) {
+            return [];
+        }
+
+        var optionNames = validOptions.map(function (opt) { return opt.name.trim(); });
+        var combos = [];
+
+        function buildCombo(index, current) {
+            if (index >= validOptions.length) {
+                combos.push(Object.assign({}, current));
+                return;
+            }
+            var option = validOptions[index];
+            option.values.forEach(function (valueItem) {
+                var label = String(valueItem.value || '').trim();
+                if (!label) return;
+                current[option.name.trim()] = label;
+                buildCombo(index + 1, current);
+            });
+        }
+        buildCombo(0, {});
+
+        var fallbackPrice = averagePrice(variations);
+        var existingByKey = {};
+        (variations || []).forEach(function (variation) {
+            var selections = variation.option_selections || {};
+            if (!optionNames.every(function (name) { return String(selections[name] || '').trim(); })) {
+                return;
+            }
+            existingByKey[selectionKey(selections, optionNames)] = variation;
+        });
+
+        var synced = [];
+        var usedSkus = {};
+        combos.forEach(function (combo, index) {
+            var key = selectionKey(combo, optionNames);
+            var row;
+            if (existingByKey[key]) {
+                row = Object.assign({}, existingByKey[key], { option_selections: combo });
+                var sku = String(row.sku || '').trim();
+                if (!sku) {
+                    row.sku = generateSku(skuPrefix, combo, optionNames, index, usedSkus);
+                } else {
+                    var baseSku = sku.slice(0, 80);
+                    var counter = 1;
+                    while (usedSkus[sku]) {
+                        var suffix = '-' + counter;
+                        sku = baseSku.slice(0, Math.max(1, 80 - suffix.length)) + suffix;
+                        counter += 1;
+                    }
+                    usedSkus[sku] = true;
+                    row.sku = sku;
+                }
+                if (!row.price) row.price = fallbackPrice;
+                if (row.is_active === undefined) row.is_active = true;
+            } else {
+                row = {
+                    sku: generateSku(skuPrefix, combo, optionNames, index, usedSkus),
+                    price: fallbackPrice,
+                    is_active: true,
+                    option_selections: combo,
+                };
+            }
+            synced.push(row);
+        });
+
+        return synced;
     }
 
     function mergeOptionsByName(options) {
@@ -146,9 +261,19 @@
             var emptyRow = document.createElement('tr');
             emptyRow.innerHTML =
                 '<td colspan="4" class="import-variations-empty">' +
-                'Add at least one option above, then click “Add variation”.' +
+                'Add at least one option above. SKU rows will be generated automatically.' +
                 '</td>';
             variationsBody.appendChild(emptyRow);
+            return;
+        }
+
+        if (!state.variations.length) {
+            var waitingRow = document.createElement('tr');
+            waitingRow.innerHTML =
+                '<td colspan="' + (options.length + 4) + '" class="import-variations-empty">' +
+                'Enter option values to generate SKU rows automatically.' +
+                '</td>';
+            variationsBody.appendChild(waitingRow);
             return;
         }
 
@@ -203,20 +328,16 @@
         return state.options;
     }
 
-    function renderAll() {
-        syncOptionsFromDom();
-        renderTableHeader(state.options);
-        renderVariationRows(state.options);
-    }
-
-    function collectVariationsFromDom() {
-        var options = syncOptionsFromDom();
+    function preserveEditedVariations() {
+        var options = state.options;
         var rows = variationsBody.querySelectorAll('tr');
-        var variations = [];
+        if (!rows.length || rows[0].querySelector('.import-variations-empty')) {
+            return state.variations;
+        }
+
+        var optionNames = options.map(function (opt) { return opt.name; });
+        var edited = [];
         rows.forEach(function (row) {
-            if (row.querySelector('.import-variations-empty')) {
-                return;
-            }
             var sku = row.querySelector('.variation-sku').value.trim();
             var price = row.querySelector('.variation-price').value.trim();
             var isActive = row.querySelector('.variation-active').checked;
@@ -226,17 +347,33 @@
                     selections[select.getAttribute('data-option')] = select.value;
                 }
             });
-            if (!sku) {
+            if (!sku && !optionNames.every(function (name) { return selections[name]; })) {
                 return;
             }
-            variations.push({
+            edited.push({
                 sku: sku,
-                price: price || '0.00',
+                price: price || defaultPrice,
                 is_active: isActive,
                 option_selections: selections,
             });
         });
-        return { options: options, variations: variations };
+        return edited;
+    }
+
+    function renderAll() {
+        syncOptionsFromDom();
+        state.variations = syncVariationsFromOptions(state.options, preserveEditedVariations());
+        renderTableHeader(state.options);
+        renderVariationRows(state.options);
+    }
+
+    function collectVariationsFromDom() {
+        var options = syncOptionsFromDom();
+        var edited = preserveEditedVariations();
+        return {
+            options: options,
+            variations: syncVariationsFromOptions(options, edited),
+        };
     }
 
     document.getElementById('add-option').addEventListener('click', function () {
@@ -253,16 +390,11 @@
         if (!state.options.length) {
             if (mergeNote) {
                 mergeNote.hidden = false;
-                mergeNote.textContent = 'Add an option (e.g. Color with Black, White, Pink) before adding SKU rows.';
+                mergeNote.textContent = 'Add an option (e.g. Color with Black, White, Pink) first.';
             }
             return;
         }
-        state.variations.push({
-            sku: '',
-            price: '0.00',
-            is_active: true,
-            option_selections: {},
-        });
+        state.variations = syncVariationsFromOptions(state.options, preserveEditedVariations());
         renderVariationRows(state.options);
     });
 
@@ -277,5 +409,6 @@
     });
 
     renderOptionsEditor();
+    state.variations = syncVariationsFromOptions(state.options, state.variations);
     renderAll();
 })();

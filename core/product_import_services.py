@@ -1,8 +1,9 @@
 import json
 import logging
 import os
+import re
 
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
@@ -243,6 +244,158 @@ def update_draft_attributes(draft, attributes):
     draft.draft_data = data
     draft.save(update_fields=['draft_data', 'updated_at'])
     return draft
+
+
+def sku_prefix_from_product_name(name):
+    words = re.findall(r'[A-Za-z0-9]+', name or '')
+    if not words:
+        return 'IMPORT'
+    if len(words) == 1:
+        return words[0][:8].upper()
+    initials = ''.join(word[0] for word in words[:4] if word)
+    return (initials or words[0][:8]).upper()
+
+
+def _abbrev_for_sku(value):
+    cleaned = re.sub(r'[^a-zA-Z0-9]+', '', str(value).strip())
+    if not cleaned:
+        return 'X'
+    if len(cleaned) <= 2:
+        return cleaned.upper()
+    return cleaned[:3].upper()
+
+
+def _selection_key(selections, option_names):
+    return tuple((name, str(selections.get(name, '')).strip()) for name in option_names)
+
+
+def _option_combinations(options):
+    valid_options = [
+        option for option in options
+        if str(option.get('name', '')).strip() and option.get('values')
+    ]
+    if not valid_options:
+        return [], []
+
+    option_names = [str(option['name']).strip() for option in valid_options]
+    combos = []
+
+    def build(index, current):
+        if index >= len(valid_options):
+            combos.append(dict(current))
+            return
+        option = valid_options[index]
+        option_name = str(option['name']).strip()
+        for value_item in option['values']:
+            if isinstance(value_item, dict):
+                label = str(value_item.get('value', '')).strip()
+            else:
+                label = str(value_item).strip()
+            if not label:
+                continue
+            current[option_name] = label
+            build(index + 1, current)
+
+    build(0, {})
+    return valid_options, combos
+
+
+def _default_variation_price(variations):
+    prices = []
+    for variation in variations:
+        raw_price = variation.get('price')
+        if raw_price in (None, ''):
+            continue
+        try:
+            prices.append(Decimal(str(raw_price)).quantize(Decimal('0.01')))
+        except (InvalidOperation, ValueError):
+            continue
+    if not prices:
+        return '0.00'
+    average = (sum(prices) / len(prices)).quantize(Decimal('0.01'))
+    return str(average)
+
+
+def _generate_variation_sku(prefix, selections, option_names, *, index, used_skus):
+    parts = [prefix]
+    for name in option_names:
+        parts.append(_abbrev_for_sku(selections.get(name, '')))
+    base_sku = '-'.join(part for part in parts if part)[:80] or f'{prefix}-{index + 1}'
+    sku = base_sku
+    counter = 1
+    while sku in used_skus:
+        suffix = f'-{counter}'
+        sku = f'{base_sku[:80 - len(suffix)]}{suffix}'
+        counter += 1
+    used_skus.add(sku)
+    return sku
+
+
+def sync_variations_from_options(options, variations, *, sku_prefix='IMPORT', default_price=None):
+    """Build SKU rows for every option combination, preserving existing edits."""
+    valid_options, combos = _option_combinations(options)
+    if not valid_options:
+        return []
+
+    option_names = [str(option['name']).strip() for option in valid_options]
+    prefix = (sku_prefix or 'IMPORT').strip().upper() or 'IMPORT'
+    fallback_price = default_price or _default_variation_price(variations)
+
+    existing_by_key = {}
+    for variation in variations:
+        selections = variation.get('option_selections') or {}
+        if not isinstance(selections, dict):
+            continue
+        if not all(str(selections.get(name, '')).strip() for name in option_names):
+            continue
+        key = _selection_key(selections, option_names)
+        existing_by_key[key] = variation
+
+    synced = []
+    used_skus = set()
+    for index, combo in enumerate(combos):
+        key = _selection_key(combo, option_names)
+        if key in existing_by_key:
+            row = dict(existing_by_key[key])
+            row['option_selections'] = combo
+            sku = str(row.get('sku', '')).strip()
+            if not sku:
+                sku = _generate_variation_sku(
+                    prefix,
+                    combo,
+                    option_names,
+                    index=index,
+                    used_skus=used_skus,
+                )
+            else:
+                base_sku = sku[:80]
+                counter = 1
+                while sku in used_skus:
+                    suffix = f'-{counter}'
+                    sku = f'{base_sku[:80 - len(suffix)]}{suffix}'
+                    counter += 1
+                used_skus.add(sku)
+            row['sku'] = sku[:80]
+            row.setdefault('price', fallback_price)
+            row.setdefault('is_active', True)
+            synced.append(row)
+            continue
+
+        sku = _generate_variation_sku(
+            prefix,
+            combo,
+            option_names,
+            index=index,
+            used_skus=used_skus,
+        )
+        synced.append({
+            'sku': sku,
+            'price': fallback_price,
+            'is_active': True,
+            'option_selections': combo,
+        })
+
+    return synced
 
 
 def update_draft_variations(draft, *, options, variations):
