@@ -2,7 +2,12 @@
 {% load static %}
 {% load currency_tags %}
 
-{% block title %}{{ product.name }} — CrowdSource Import{% endblock %}
+{% block title %}{{ product.name }} — Kenya Imports{% endblock %}
+{% block meta_description %}{{ product.description|truncatechars:155|default:product.name }}{% endblock %}
+{% block og_title %}{{ product.name }} — Kenya Imports{% endblock %}
+{% block og_description %}{{ product.description|truncatechars:155|default:product.name }}{% endblock %}
+{% block og_type %}product{% endblock %}
+{% block og_image %}{% if product.primary_image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ product.primary_image.file.url }}">{% endif %}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/landing.css' %}">

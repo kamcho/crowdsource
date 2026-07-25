@@ -17,14 +17,25 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 
 from core import commerce_views as commerce_views
 from core import mpesa_views
 from core import views as core_views
+from home import views as home_views
+from home.sitemaps import CategoryBrowseSitemap, ProductSitemap, StaticPageSitemap
+
+sitemaps = {
+    'static': StaticPageSitemap,
+    'products': ProductSitemap,
+    'categories': CategoryBrowseSitemap,
+}
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('robots.txt', home_views.robots_txt, name='robots_txt'),
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     path('', include('home.urls')),
     path('products/<slug:slug>/', core_views.product_detail, name='product_detail'),
     path('cart/', commerce_views.cart_detail, name='cart_detail'),

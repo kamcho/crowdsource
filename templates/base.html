@@ -4,8 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Join group buys to meet factory MOQ and import products from China at wholesale prices.">
-    <title>{% block title %}CrowdSource Import{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Shop factory-direct imports from China. Join group buys, hit MOQ, and save on wholesale prices delivered to Kenya.{% endblock %}">
+    <title>{% block title %}Kenya Imports — Factory-Direct Group Buys{% endblock %}</title>
+    <link rel="canonical" href="{% block canonical_url %}{{ request.build_absolute_uri }}{% endblock %}">
+    <meta property="og:site_name" content="Kenya Imports">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}Kenya Imports — Factory-Direct Group Buys{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Shop factory-direct imports from China. Join group buys, hit MOQ, and save on wholesale prices delivered to Kenya.{% endblock %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    {% block og_image %}{% endblock %}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
@@ -162,9 +169,13 @@
                 <a href="#">MOQ Guide</a>
                 <a href="#">Contact Us</a>
             </div>
+            <div class="footer-col">
+                <h4>Legal</h4>
+                <a href="{% url 'home:privacy_policy' %}">Privacy Policy</a>
+            </div>
         </div>
         <div class="container footer-bottom">
-            <p>&copy; {% now "Y" %} CrowdSource Import. All rights reserved.</p>
+            <p>&copy; {% now "Y" %} CrowdSource Import. All rights reserved. · <a href="{% url 'home:privacy_policy' %}">Privacy Policy</a></p>
         </div>
     </footer>
     {% include 'partials/category_drawer.html' %}

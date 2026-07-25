@@ -54,10 +54,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+    'django.contrib.sitemaps',
     'phonenumber_field',
     'users',
     'core',
-    'home',
+    'home.apps.HomeConfig',
 ]
 
 MIDDLEWARE = [
@@ -151,6 +153,18 @@ STORAGES = {
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Public site URL for sitemaps and SEO (no trailing slash)
+SITE_ID = 1
+SITE_NAME = os.environ.get('SITE_NAME', 'Kenya Imports').strip()
+SITE_DOMAIN = os.environ.get(
+    'SITE_DOMAIN',
+    '127.0.0.1:8001' if DEBUG else 'kenyaimports.com',
+).strip()
+SITE_PROTOCOL = os.environ.get(
+    'SITE_PROTOCOL',
+    'http' if DEBUG else 'https',
+).strip().rstrip(':')
 
 LOGIN_URL = 'users:signin'
 LOGIN_REDIRECT_URL = 'users:profile'

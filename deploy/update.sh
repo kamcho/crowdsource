@@ -22,6 +22,25 @@ if [[ -f "$APP_DIR/.env" ]]; then
   chmod 640 "$APP_DIR/.env"
 fi
 
+echo "==> Ensuring SEO site settings in .env"
+ENV_FILE="$APP_DIR/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  set_env_var() {
+    local key="$1"
+    local value="$2"
+    if grep -q "^${key}=" "$ENV_FILE"; then
+      sed -i "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+    else
+      printf '%s=%s\n' "$key" "$value" >> "$ENV_FILE"
+    fi
+  }
+  set_env_var SITE_NAME "Kenya Imports"
+  set_env_var SITE_DOMAIN "kenyaimports.com"
+  set_env_var SITE_PROTOCOL "https"
+  chown "$APP_USER":www-data "$ENV_FILE"
+  chmod 640 "$ENV_FILE"
+fi
+
 echo "==> Installing Python dependencies"
 sudo -u "$APP_USER" "$VENV/pip" install --upgrade pip
 sudo -u "$APP_USER" "$VENV/pip" install -r requirements.txt

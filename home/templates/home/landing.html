@@ -1,7 +1,10 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}CrowdSource Import — Buy Together, Save More{% endblock %}
+{% block title %}Kenya Imports — Buy Together, Save More{% endblock %}
+{% block meta_description %}Join group buys to meet factory MOQ and import products from China at wholesale prices. Save on shipping with Kenya Imports.{% endblock %}
+{% block og_title %}Kenya Imports — Buy Together, Save More{% endblock %}
+{% block og_description %}Join group buys to meet factory MOQ and import products from China at wholesale prices. Save on shipping with Kenya Imports.{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/landing.css' %}">
@@ -148,13 +151,17 @@
                 <span class="section-label">Catalog</span>
                 <h2>Trending products</h2>
                 {% endif %}
-                <p>Refine results with categories on the left.</p>
+                <p class="products-section-hint products-section-hint-desktop">Refine results with categories on the left.</p>
+                <p class="products-section-hint products-section-hint-mobile">Use <strong>All categories</strong> above to filter by category.</p>
             </div>
+            <div class="products-section-header-actions">
+            <button type="button" class="btn btn-outline products-categories-mobile-btn" data-category-drawer-open>Browse categories</button>
             <form class="products-search-form products-search-form-wide" method="get" role="search">
                 {% if category_slug %}<input type="hidden" name="category" value="{{ category_slug }}">{% endif %}
                 <input type="search" name="q" value="{{ search }}" placeholder="Search products..." aria-label="Search products">
                 <button type="submit" class="btn btn-primary">Search</button>
             </form>
+            </div>
         </div>
 
         <div class="products-browse-layout">
@@ -214,7 +221,8 @@
         <div class="section-header">
             <span class="section-label">Browse by category</span>
             <h2>Shop Alibaba-style</h2>
-            <p>Pick a parent on the left — subcategories appear in a grid on the right, Alibaba-style.</p>
+            <p class="categories-section-hint-desktop">Pick a parent on the left — subcategories appear in a grid on the right, Alibaba-style.</p>
+            <p class="categories-section-hint-mobile">Tap a category below or use <strong>All categories</strong> in the header.</p>
         </div>
 
         {% if category_nav_tree %}

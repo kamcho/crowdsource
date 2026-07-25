@@ -909,12 +909,51 @@
 }
 
 @media (max-width: 768px) {
+    .dashboard-layout {
+        --topbar-height: 52px;
+    }
+
+    .dashboard-topbar {
+        padding: 0 0.875rem;
+        gap: 0.625rem;
+    }
+
+    .dashboard-topbar-title {
+        font-size: 1.0625rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dashboard-mobile-toggle {
+        width: 2.125rem;
+        height: 2.125rem;
+        flex-shrink: 0;
+    }
+
+    .dashboard-topbar-icon-btn {
+        width: 2.125rem;
+        height: 2.125rem;
+    }
+
+    .dashboard-topbar-profile {
+        padding: 0.2rem 0.45rem 0.2rem 0.2rem;
+    }
+
     .dashboard-topbar-search {
         display: none;
     }
 
     .dashboard-topbar-profile-name {
         display: none;
+    }
+
+    .dashboard-content {
+        padding: 1rem 0.875rem 2rem;
+    }
+
+    .dashboard-messages {
+        padding: 0 0.875rem;
+        margin-top: 0.75rem;
     }
 
     .dash-stats-grid,

@@ -1,4 +1,4 @@
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_GET
@@ -62,6 +62,10 @@ def product_browse(request):
     return render(request, 'home/products.html', context)
 
 
+def privacy_policy(request):
+    return render(request, 'home/privacy.html')
+
+
 @require_GET
 def product_browse_load(request):
     is_landing = request.GET.get('landing') == '1'
@@ -78,3 +82,26 @@ def product_browse_load(request):
         'has_next': page_obj.has_next(),
         'next_page': page_obj.next_page_number() if page_obj.has_next() else None,
     })
+
+
+@require_GET
+def robots_txt(request):
+    sitemap_url = request.build_absolute_uri(reverse('sitemap'))
+    lines = [
+        'User-agent: *',
+        'Allow: /',
+        'Disallow: /admin/',
+        'Disallow: /core/',
+        'Disallow: /users/',
+        'Disallow: /cart/',
+        'Disallow: /orders/',
+        'Disallow: /pledges/',
+        'Disallow: /payments/',
+        'Disallow: /addresses/',
+        'Disallow: /wishlist/',
+        'Disallow: /complaints/',
+        'Disallow: /currency/',
+        'Disallow: /products/load/',
+        f'Sitemap: {sitemap_url}',
+    ]
+    return HttpResponse('\n'.join(lines) + '\n', content_type='text/plain; charset=utf-8')

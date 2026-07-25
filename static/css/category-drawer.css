@@ -321,6 +321,10 @@ body.category-drawer-open {
 }
 
 @media (max-width: 720px) {
+    .categories-open-btn {
+        margin-top: 1.25rem;
+    }
+
     .category-drawer-panel {
         width: 100vw;
     }
