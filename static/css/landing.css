@@ -133,12 +133,12 @@
 /* Hero visual cards */
 .hero-visual {
     position: relative;
-    min-height: 480px;
+    min-height: 300px;
 }
 
 .hero-carousel {
     position: relative;
-    max-width: 440px;
+    max-width: 380px;
     margin: 0 auto;
     z-index: 2;
 }
@@ -214,17 +214,17 @@
 .hero-card-main {
     position: relative;
     z-index: 2;
-    padding: 1.25rem 1.25rem 1.5rem;
-    max-width: 440px;
+    padding: 0.875rem 1rem 1rem;
+    max-width: 380px;
     margin: 0 auto;
     overflow: hidden;
 }
 
 .hero-card-media.product-image {
-    width: calc(100% + 2.5rem);
-    margin: 0 -1.25rem 1rem;
+    width: calc(100% + 2rem);
+    margin: 0 -1rem 0.65rem;
     height: auto;
-    aspect-ratio: 1 / 1;
+    aspect-ratio: 2 / 1;
     border-radius: 0;
     background: var(--color-bg-muted);
 }
@@ -237,14 +237,14 @@
 }
 
 .hero-card-product {
-    margin-bottom: 1.15rem;
+    margin-bottom: 0.65rem;
 }
 
 .hero-card-product h3 {
-    font-size: 1.0625rem;
+    font-size: 0.9375rem;
     font-weight: 700;
-    margin-bottom: 0.2rem;
-    line-height: 1.35;
+    margin-bottom: 0.15rem;
+    line-height: 1.3;
 }
 
 .hero-card-category {
@@ -256,7 +256,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1rem;
+    margin-bottom: 0.65rem;
 }
 
 .live-tag {
@@ -279,6 +279,27 @@
 .hero-card-time {
     font-size: 0.8125rem;
     color: var(--color-text-muted);
+}
+
+.hero-card-main .price-compare {
+    gap: 0.5rem;
+    margin-bottom: 0.65rem;
+}
+
+.hero-card-main .price-item {
+    padding: 0.5rem 0.625rem;
+}
+
+.hero-card-main .price-item-highlight strong {
+    font-size: 1.0625rem;
+}
+
+.hero-card-main .progress-block {
+    margin-bottom: 0.65rem;
+}
+
+.hero-card-main .buyer-avatars {
+    padding-top: 0.65rem;
 }
 
 .price-compare {
