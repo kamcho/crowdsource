@@ -31,7 +31,7 @@
                             <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </span>
-                    <span class="logo-text">CrowdSource</span>
+                    <span class="logo-text">Kenya Imports</span>
                 </a>
 
                 <form class="header-search" action="{% url 'home:product_browse' %}" method="get" role="search">
@@ -119,6 +119,7 @@
                     All categories
                 </button>
                 <a href="{% url 'home:product_browse' %}" class="header-subnav-link{% if request.path == '/products/' %} is-active{% endif %}">Products</a>
+                <a href="{% url 'home:landing' %}#about" class="header-subnav-link">About</a>
                 <a href="{% url 'home:landing' %}#how-it-works" class="header-subnav-link">How it works</a>
                 {% if user.is_authenticated %}
                 <a href="{% url 'users:signout' %}" class="header-subnav-link header-subnav-link-muted">Sign out</a>
@@ -153,9 +154,9 @@
                             <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </span>
-                    CrowdSource
+                    Kenya Imports
                 </a>
-                <p>Group buying platform for factory-direct imports from China. Meet MOQ together, save together.</p>
+                <p>Kenya Imports is a group-buying platform for factory-direct imports from China. Meet MOQ together, save together.</p>
             </div>
             <div class="footer-col">
                 <h4>Platform</h4>
@@ -175,7 +176,7 @@
             </div>
         </div>
         <div class="container footer-bottom">
-            <p>&copy; {% now "Y" %} CrowdSource Import. All rights reserved. · <a href="{% url 'home:privacy_policy' %}">Privacy Policy</a></p>
+            <p>&copy; {% now "Y" %} Kenya Imports. All rights reserved. · <a href="{% url 'home:privacy_policy' %}">Privacy Policy</a></p>
         </div>
     </footer>
     {% include 'partials/category_drawer.html' %}

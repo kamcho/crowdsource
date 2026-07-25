@@ -466,6 +466,55 @@
     font-size: 1.0625rem;
 }
 
+/* ── App purpose (OAuth / homepage clarity) ── */
+.app-about {
+    padding: 3rem 0;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border-light);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.app-about h2 {
+    font-size: 1.75rem;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+}
+
+.app-about h3 {
+    font-size: 1.125rem;
+    margin: 1.75rem 0 0.75rem;
+}
+
+.app-about p,
+.app-about li {
+    color: var(--color-text-secondary);
+    font-size: 1rem;
+    line-height: 1.75;
+}
+
+.app-about p {
+    margin-bottom: 1rem;
+}
+
+.app-about ul {
+    margin: 0 0 1rem;
+    padding-left: 1.35rem;
+}
+
+.app-about li {
+    margin-bottom: 0.45rem;
+}
+
+.app-about a {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.app-about a:hover {
+    text-decoration: underline;
+}
+
 /* ── How it works ── */
 .how-it-works {
     padding: 5rem 0;
