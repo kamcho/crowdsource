@@ -136,6 +136,79 @@
     min-height: 420px;
 }
 
+.hero-carousel {
+    position: relative;
+    max-width: 400px;
+    margin: 0 auto;
+    z-index: 2;
+}
+
+.hero-carousel-viewport {
+    overflow: hidden;
+    border-radius: var(--radius-xl);
+}
+
+.hero-carousel-track {
+    display: flex;
+    transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+
+.hero-carousel-slide {
+    flex: 0 0 100%;
+    min-width: 100%;
+}
+
+.hero-carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.45rem;
+    margin-top: 0.85rem;
+}
+
+.hero-carousel-dot {
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: var(--color-border);
+    cursor: pointer;
+    transition: width 0.2s ease, background 0.2s ease;
+}
+
+.hero-carousel-dot.is-active {
+    width: 22px;
+    background: var(--color-primary);
+}
+
+.hero-card-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.hero-card-link:hover {
+    box-shadow: var(--shadow-xl);
+    transform: translateY(-2px);
+}
+
+.hero-thumb-image {
+    object-fit: cover;
+    background: var(--color-bg-subtle);
+}
+
+.price-compare-single {
+    grid-template-columns: 1fr;
+}
+
+.hero-card-cta {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
 .hero-card {
     background: var(--color-surface);
     border: 1px solid var(--color-border);

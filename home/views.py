@@ -8,6 +8,7 @@ from django.urls import reverse
 from .catalog import (
     LANDING_PRODUCT_MAX,
     get_filter_category,
+    get_hero_carousel_products,
     get_public_products_queryset,
     paginate_products,
 )
@@ -54,6 +55,7 @@ def landing(request):
         'category_slug': category_slug,
         'browse_base_url': reverse('home:landing'),
         'active_category': category,
+        'hero_carousel_products': get_hero_carousel_products(),
     })
 
 

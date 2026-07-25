@@ -6,6 +6,7 @@ from core.models import Category, Product
 
 PRODUCTS_PAGE_SIZE = 12
 LANDING_PRODUCT_MAX = 100
+HERO_CAROUSEL_MAX = 6
 
 
 def _category_descendant_ids(category):
@@ -54,3 +55,13 @@ def get_filter_category(slug):
     if not slug:
         return None
     return Category.objects.filter(slug=slug, is_active=True).first()
+
+
+def get_hero_carousel_products(*, limit=HERO_CAROUSEL_MAX):
+    products = []
+    for product in get_public_products_queryset()[:40]:
+        if product.active_group_buy:
+            products.append(product)
+        if len(products) >= limit:
+            break
+    return products

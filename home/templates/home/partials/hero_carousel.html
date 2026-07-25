@@ -1,0 +1,124 @@
+{% load currency_tags %}
+
+<div class="hero-carousel" data-hero-carousel data-interval="3000">
+    <div class="hero-carousel-viewport">
+        <div class="hero-carousel-track" data-hero-carousel-track>
+            <div class="hero-carousel-slide" data-hero-carousel-slide>
+                <div class="hero-card hero-card-main">
+                    <div class="hero-card-top">
+                        <span class="live-tag"><span class="live-pulse"></span>Live group buy</span>
+                        <span class="hero-card-time">Closes in 4 days</span>
+                    </div>
+                    <div class="hero-card-product">
+                        <div class="hero-thumb hero-thumb-1"></div>
+                        <div>
+                            <h3>Wireless Earbuds Pro</h3>
+                            <p class="hero-card-category">Electronics</p>
+                        </div>
+                    </div>
+                    <div class="price-compare">
+                        <div class="price-item">
+                            <span>Retail</span>
+                            <del>$29.99</del>
+                        </div>
+                        <div class="price-item price-item-highlight">
+                            <span>Group price</span>
+                            <strong>$12.50</strong>
+                        </div>
+                    </div>
+                    <div class="progress-block">
+                        <div class="progress-header">
+                            <span>342 of 500 units</span>
+                            <span class="progress-pct">68%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 68%"></div>
+                        </div>
+                        <p class="progress-note"><strong>158 more</strong> units needed to unlock MOQ</p>
+                    </div>
+                    <div class="buyer-avatars">
+                        <div class="avatar-stack">
+                            <span class="avatar">A</span>
+                            <span class="avatar">K</span>
+                            <span class="avatar">M</span>
+                            <span class="avatar">+</span>
+                        </div>
+                        <span>24 people joined today</span>
+                    </div>
+                </div>
+            </div>
+
+            {% for product in hero_carousel_products %}
+            {% with group_buy=product.active_group_buy image=product.primary_image %}
+            <div class="hero-carousel-slide" data-hero-carousel-slide>
+                <a href="{{ product.get_absolute_url }}" class="hero-card hero-card-main hero-card-link">
+                    <div class="hero-card-top">
+                        <span class="live-tag"><span class="live-pulse"></span>Live group buy</span>
+                        {% if group_buy.moq_reached %}
+                        <span class="hero-card-time">MOQ reached</span>
+                        {% else %}
+                        <span class="hero-card-time">Closes in {{ group_buy.closes_at|timeuntil }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="hero-card-product">
+                        {% if image %}
+                        <img src="{{ image.file.url }}" alt="" class="hero-thumb hero-thumb-image">
+                        {% else %}
+                        <div class="hero-thumb hero-thumb-1"></div>
+                        {% endif %}
+                        <div>
+                            <h3>{{ product.name }}</h3>
+                            <p class="hero-card-category">{{ product.category.name }}</p>
+                        </div>
+                    </div>
+                    <div class="price-compare price-compare-single">
+                        <div class="price-item price-item-highlight">
+                            <span>Group price</span>
+                            <strong>{% money group_buy.unit_price %}</strong>
+                        </div>
+                    </div>
+                    <div class="progress-block">
+                        <div class="progress-header">
+                            <span>{{ group_buy.pledged_units }} of {{ group_buy.moq }} units</span>
+                            <span class="progress-pct">{{ group_buy.progress_percent }}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill{% if group_buy.moq_reached %} progress-fill-complete{% endif %}" style="width: {{ group_buy.progress_percent }}%"></div>
+                        </div>
+                        {% if group_buy.moq_reached %}
+                        <p class="progress-meta">Group buy unlocked — import in progress soon</p>
+                        {% else %}
+                        <p class="progress-note"><strong>{{ group_buy.units_remaining }} more</strong> units needed to unlock MOQ</p>
+                        {% endif %}
+                    </div>
+                    <div class="buyer-avatars">
+                        <span class="hero-card-cta">View product →</span>
+                    </div>
+                </a>
+            </div>
+            {% endwith %}
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if hero_carousel_products %}
+    <div class="hero-carousel-dots" role="tablist" aria-label="Featured group buys">
+        <button
+            type="button"
+            class="hero-carousel-dot is-active"
+            data-hero-carousel-dot
+            aria-label="Slide 1"
+            aria-selected="true"
+        ></button>
+        {% for product in hero_carousel_products %}
+        <button
+            type="button"
+            class="hero-carousel-dot"
+            data-hero-carousel-dot
+            aria-label="Slide {{ forloop.counter|add:1 }}"
+            aria-selected="false"
+        ></button>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

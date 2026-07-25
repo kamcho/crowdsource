@@ -117,48 +117,7 @@
         </div>
 
         <div class="hero-visual">
-            <div class="hero-card hero-card-main">
-                <div class="hero-card-top">
-                    <span class="live-tag"><span class="live-pulse"></span>Live group buy</span>
-                    <span class="hero-card-time">Closes in 4 days</span>
-                </div>
-                <div class="hero-card-product">
-                    <div class="hero-thumb hero-thumb-1"></div>
-                    <div>
-                        <h3>Wireless Earbuds Pro</h3>
-                        <p class="hero-card-category">Electronics</p>
-                    </div>
-                </div>
-                <div class="price-compare">
-                    <div class="price-item">
-                        <span>Retail</span>
-                        <del>$29.99</del>
-                    </div>
-                    <div class="price-item price-item-highlight">
-                        <span>Group price</span>
-                        <strong>$12.50</strong>
-                    </div>
-                </div>
-                <div class="progress-block">
-                    <div class="progress-header">
-                        <span>342 of 500 units</span>
-                        <span class="progress-pct">68%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 68%"></div>
-                    </div>
-                    <p class="progress-note"><strong>158 more</strong> buyers needed to unlock MOQ</p>
-                </div>
-                <div class="buyer-avatars">
-                    <div class="avatar-stack">
-                        <span class="avatar">A</span>
-                        <span class="avatar">K</span>
-                        <span class="avatar">M</span>
-                        <span class="avatar">+</span>
-                    </div>
-                    <span>24 people joined today</span>
-                </div>
-            </div>
+            {% include 'home/partials/hero_carousel.html' %}
 
             <div class="hero-card hero-card-float hero-card-secondary">
                 <div class="mini-stat">
@@ -375,5 +334,6 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/hero-carousel.js' %}"></script>
 <script src="{% static 'js/products.js' %}"></script>
 {% endblock %}
