@@ -9,8 +9,12 @@
                         <span class="live-tag"><span class="live-pulse"></span>Live group buy</span>
                         <span class="hero-card-time">Closes in 4 days</span>
                     </div>
-                    <div class="hero-card-media">
-                        <div class="hero-thumb hero-thumb-1" aria-hidden="true"></div>
+                    <div class="hero-card-media product-image">
+                        <div class="product-placeholder product-placeholder-1" aria-hidden="true">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                        </div>
                     </div>
                     <div class="hero-card-product">
                         <h3>Wireless Earbuds Pro</h3>
@@ -60,11 +64,15 @@
                         <span class="hero-card-time">Closes in {{ group_buy.closes_at|timeuntil }}</span>
                         {% endif %}
                     </div>
-                    <div class="hero-card-media">
+                    <div class="hero-card-media product-image">
                         {% if image %}
-                        <img src="{{ image.file.url }}" alt="{{ product.name }}" class="hero-thumb hero-thumb-image">
+                        <img src="{{ image.file.url }}" alt="{{ product.name }}">
                         {% else %}
-                        <div class="hero-thumb hero-thumb-1" aria-hidden="true"></div>
+                        <div class="product-placeholder product-placeholder-{% cycle '1' '2' '3' '4' %}" aria-hidden="true">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                        </div>
                         {% endif %}
                     </div>
                     <div class="hero-card-product">
