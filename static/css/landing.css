@@ -133,12 +133,12 @@
 /* Hero visual cards */
 .hero-visual {
     position: relative;
-    min-height: 420px;
+    min-height: 480px;
 }
 
 .hero-carousel {
     position: relative;
-    max-width: 400px;
+    max-width: 440px;
     margin: 0 auto;
     z-index: 2;
 }
@@ -219,16 +219,50 @@
 .hero-card-main {
     position: relative;
     z-index: 2;
-    padding: 1.5rem;
-    max-width: 400px;
+    padding: 1.25rem 1.25rem 1.5rem;
+    max-width: 440px;
     margin: 0 auto;
+    overflow: hidden;
+}
+
+.hero-card-media {
+    width: calc(100% + 2.5rem);
+    height: 220px;
+    margin: 0 -1.25rem 1rem;
+    overflow: hidden;
+    background: var(--color-bg-subtle);
+}
+
+.hero-card-media .hero-thumb,
+.hero-card-media .hero-thumb-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    object-fit: cover;
+}
+
+.hero-card-product {
+    margin-bottom: 1.15rem;
+}
+
+.hero-card-product h3 {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+    line-height: 1.35;
+}
+
+.hero-card-category {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
 }
 
 .hero-card-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1rem;
 }
 
 .live-tag {
@@ -253,33 +287,8 @@
     color: var(--color-text-muted);
 }
 
-.hero-card-product {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    margin-bottom: 1.25rem;
-}
-
-.hero-thumb {
-    width: 60px;
-    height: 60px;
-    border-radius: var(--radius);
-    flex-shrink: 0;
-}
-
 .hero-thumb-1 {
-    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-}
-
-.hero-card-product h3 {
-    font-size: 1rem;
-    font-weight: 700;
-    margin-bottom: 0.15rem;
-}
-
-.hero-card-category {
-    font-size: 0.8125rem;
-    color: var(--color-text-muted);
+    background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 50%, #bfdbfe 100%);
 }
 
 .price-compare {
