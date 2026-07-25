@@ -121,6 +121,7 @@
                 </button>
                 <a href="{% url 'home:product_browse' %}" class="header-subnav-link{% if request.path == '/products/' %} is-active{% endif %}">Products</a>
                 <a href="{% url 'home:landing' %}#application-purpose" class="header-subnav-link">About</a>
+                <a href="{% url 'home:privacy_policy' %}" class="header-subnav-link">Privacy</a>
                 <a href="{% url 'home:landing' %}#how-it-works" class="header-subnav-link">How it works</a>
                 {% if user.is_authenticated %}
                 <a href="{% url 'users:signout' %}" class="header-subnav-link header-subnav-link-muted">Sign out</a>
