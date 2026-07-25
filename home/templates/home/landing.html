@@ -12,6 +12,25 @@
 
 {% block content %}
 
+<!-- Application purpose (required for app store / OAuth verification) -->
+<section class="app-purpose-banner" id="application-purpose">
+    <div class="container container-narrow">
+        <p class="app-purpose-brand">Kenya Imports</p>
+        <h1>Application purpose</h1>
+        <p>
+            <strong>Kenya Imports</strong> is a group-buying e-commerce application for customers in Kenya.
+            It lets you browse factory-direct products from China, join shared group buys to meet supplier
+            minimum order quantities (MOQ), place orders, pay securely, and track deliveries to your door.
+        </p>
+        <p>
+            Sign in (including <strong>Sign in with Google</strong>) is used to identify your account so we
+            can save your profile, cart, orders, and delivery addresses. Google sign-in is only for
+            authentication — we do not sell or share your personal data with third parties.
+            Read our <a href="{% url 'home:privacy_policy' %}">Privacy Policy</a>.
+        </p>
+    </div>
+</section>
+
 <!-- Hero Section -->
 <section class="hero" id="hero">
     <div class="hero-bg" aria-hidden="true">
@@ -23,13 +42,13 @@
         <div class="hero-content">
             <div class="hero-badge">
                 <span class="badge-dot"></span>
-                Factory-direct · Crowd-powered imports
+                Kenya Imports · Factory-direct group buys
             </div>
-            <h1>
+            <h2 class="hero-title">
                 Import from China at
                 <span class="text-gradient">wholesale prices</span>
                 — together.
-            </h1>
+            </h2>
             <p class="hero-lead">
                 Can't meet the factory MOQ alone? Join others buying the same product.
                 Once the group hits minimum order quantity, everyone unlocks bulk pricing
@@ -133,34 +152,6 @@
                 </div>
             </div>
         </div>
-    </div>
-</section>
-
-<!-- App purpose (visible to users and app verification reviewers) -->
-<section class="app-about" id="about">
-    <div class="container container-narrow">
-        <h2>About Kenya Imports</h2>
-        <p>
-            <strong>Kenya Imports</strong> is an online group-buying application for shoppers in Kenya.
-            It connects buyers who want factory-direct products from China but cannot meet a supplier’s
-            minimum order quantity (MOQ) on their own. Our platform lets you browse products, join a
-            shared group buy, pay when the group reaches MOQ, and receive delivery in Kenya.
-        </p>
-        <p>With Kenya Imports you can:</p>
-        <ul>
-            <li>Browse and search a catalog of import-ready products</li>
-            <li>Join group buys and track progress toward MOQ</li>
-            <li>Place orders, pay via M-Pesa, and manage delivery addresses</li>
-            <li>View order history, bookings, and support requests from your account</li>
-        </ul>
-        <h3>Why sign in?</h3>
-        <p>
-            You need an account to save your profile, cart, orders, and delivery details.
-            You may register with your phone number or use <strong>Sign in with Google</strong> —
-            Google is used only to verify your identity and link your Kenya Imports account.
-            We do not sell or share your personal data with third parties; see our
-            <a href="{% url 'home:privacy_policy' %}">Privacy Policy</a> for details.
-        </p>
     </div>
 </section>
 

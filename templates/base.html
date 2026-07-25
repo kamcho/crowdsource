@@ -12,6 +12,7 @@
     <meta property="og:title" content="{% block og_title %}Kenya Imports — Factory-Direct Group Buys{% endblock %}">
     <meta property="og:description" content="{% block og_description %}Shop factory-direct imports from China. Join group buys, hit MOQ, and save on wholesale prices delivered to Kenya.{% endblock %}">
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta name="application-name" content="Kenya Imports">
     {% block og_image %}{% endblock %}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -119,7 +120,7 @@
                     All categories
                 </button>
                 <a href="{% url 'home:product_browse' %}" class="header-subnav-link{% if request.path == '/products/' %} is-active{% endif %}">Products</a>
-                <a href="{% url 'home:landing' %}#about" class="header-subnav-link">About</a>
+                <a href="{% url 'home:landing' %}#application-purpose" class="header-subnav-link">About</a>
                 <a href="{% url 'home:landing' %}#how-it-works" class="header-subnav-link">How it works</a>
                 {% if user.is_authenticated %}
                 <a href="{% url 'users:signout' %}" class="header-subnav-link header-subnav-link-muted">Sign out</a>
