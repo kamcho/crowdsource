@@ -14,7 +14,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .auth_utils import user_needs_phone_link
-from .forms import CompleteProfileForm, SignInForm, SignUpForm
+from .forms import CategoryPreferencesForm, CompleteProfileForm, SignInForm, SignUpForm
 from .google_auth import GoogleAuthError, get_or_create_user_from_google, verify_google_credential
 from .ratelimit import throttle_google_auth, throttle_login_attempt
 
@@ -205,3 +205,53 @@ def profile_view(request):
     context = {'user': request.user}
     context.update(get_user_dashboard_context(request.user))
     return render(request, 'users/profile.html', context)
+
+
+@login_required(login_url='users:signin')
+def category_preferences_view(request):
+    from core.category_utils import build_category_tree
+    from core.models import Category
+    from core.preference_services import (
+        VIEWS_FOR_PARENT_PREFERENCE,
+        get_explicit_preferred_category_ids,
+        get_viewed_category_stats,
+        infer_category_ids_from_activity,
+        set_user_category_preferences,
+    )
+    from core.user_preference import UserCategoryPreference
+
+    categories = Category.objects.filter(is_active=True)
+    category_tree = build_category_tree(categories)
+    inferred_category_ids = set(infer_category_ids_from_activity(request.user))
+    viewed_preference_ids = set(
+        UserCategoryPreference.objects.filter(
+            user=request.user,
+            source=UserCategoryPreference.Source.VIEWED,
+        ).values_list('category_id', flat=True)
+    )
+    category_view_stats = get_viewed_category_stats(request.user)
+
+    if request.method == 'POST':
+        form = CategoryPreferencesForm(request.POST, user=request.user)
+        selected_category_ids = {int(value) for value in request.POST.getlist('categories') if value.isdigit()}
+        if form.is_valid():
+            set_user_category_preferences(
+                request.user,
+                [category.pk for category in form.cleaned_data['categories']],
+            )
+            messages.success(request, 'Your category preferences were saved.')
+            return redirect('users:category_preferences')
+        messages.error(request, 'Please correct the errors below.')
+    else:
+        form = CategoryPreferencesForm(user=request.user)
+        selected_category_ids = set(get_explicit_preferred_category_ids(request.user))
+
+    return render(request, 'users/category_preferences.html', {
+        'form': form,
+        'category_tree': category_tree,
+        'inferred_category_ids': inferred_category_ids,
+        'viewed_preference_ids': viewed_preference_ids,
+        'category_view_stats': category_view_stats,
+        'selected_category_ids': selected_category_ids,
+        'views_for_preference': VIEWS_FOR_PARENT_PREFERENCE,
+    })

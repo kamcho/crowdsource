@@ -386,6 +386,11 @@ def product_detail(request, slug):
     attribute_sections = _build_attribute_sections(product, group_buy)
     shipping_calculator = build_shipping_calculator_context(product)
 
+    if request.user.is_authenticated:
+        from core.preference_services import record_product_view
+
+        record_product_view(request.user, product)
+
     return render(request, 'core/products/detail.html', {
         'product': product,
         'group_buy': group_buy,

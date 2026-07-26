@@ -1186,3 +1186,129 @@ class SupplierAdminTests(TestCase):
             self.client.get(response.url),
             'Guangzhou Bag Factory',
         )
+
+
+class CategoryPreferenceTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        from core.group_buy import GroupBuy, GroupBuyEntry
+        from core.wishlist import WishlistItem
+
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            phone='+254712345678',
+            password='testpass123',
+            first_name='Test',
+            last_name='Buyer',
+        )
+        self.other_user = User.objects.create_user(
+            phone='+254798765432',
+            password='testpass123',
+            first_name='Other',
+            last_name='User',
+        )
+        self.electronics = Category.objects.create(name='Electronics')
+        self.lighting = Category.objects.create(name='Lighting')
+        self.product_electronics = Product.objects.create(
+            category=self.electronics,
+            name='Earbuds',
+            is_active=True,
+        )
+        self.product_lighting = Product.objects.create(
+            category=self.lighting,
+            name='Desk Lamp',
+            is_active=True,
+        )
+        self.group_buy = GroupBuy.objects.create(
+            product=self.product_electronics,
+            moq=10,
+            unit_price='12.50',
+            closes_at=timezone.now() + timedelta(days=5),
+        )
+        self.client = Client()
+        self.client.login(phone='+254712345678', password='testpass123')
+
+    def test_set_and_get_explicit_preferences(self):
+        from core.preference_services import (
+            get_explicit_preferred_category_ids,
+            get_suggested_products_for_user,
+            set_user_category_preferences,
+        )
+
+        set_user_category_preferences(self.user, [self.electronics.pk])
+        self.assertEqual(get_explicit_preferred_category_ids(self.user), [self.electronics.pk])
+
+        suggestions = get_suggested_products_for_user(self.user)
+        self.assertEqual(len(suggestions), 1)
+        self.assertEqual(suggestions[0].pk, self.product_electronics.pk)
+
+    def test_inferred_preferences_from_wishlist(self):
+        from core.preference_services import (
+            get_effective_preferred_category_ids,
+            get_suggested_products_for_user,
+        )
+        from core.wishlist import WishlistItem
+
+        WishlistItem.objects.create(user=self.user, product=self.product_lighting)
+
+        self.assertIn(self.lighting.pk, get_effective_preferred_category_ids(self.user))
+        suggestions = get_suggested_products_for_user(self.user)
+        self.assertEqual(suggestions[0].pk, self.product_lighting.pk)
+
+    def test_category_preferences_page_saves_selection(self):
+        response = self.client.post(
+            reverse('users:category_preferences'),
+            {'categories': [str(self.lighting.pk)]},
+        )
+        self.assertRedirects(response, reverse('users:category_preferences'))
+
+        from core.preference_services import get_explicit_preferred_category_ids
+
+        self.assertEqual(get_explicit_preferred_category_ids(self.user), [self.lighting.pk])
+
+    def test_landing_shows_suggested_products_for_logged_in_user(self):
+        from core.preference_services import set_user_category_preferences
+
+        set_user_category_preferences(self.user, [self.electronics.pk])
+        response = self.client.get(reverse('home:landing'))
+        self.assertContains(response, 'Suggested for you')
+        self.assertContains(response, 'Earbuds')
+
+    def test_viewing_products_adds_parent_category_to_preferences(self):
+        from core.preference_services import record_product_view
+        from core.user_preference import UserCategoryPreference
+
+        parent = Category.objects.create(name='Home')
+        child = Category.objects.create(name='Kitchen', parent=parent)
+        products = [
+            Product.objects.create(category=child, name=f'Product {index}', is_active=True)
+            for index in range(3)
+        ]
+
+        for product in products:
+            record_product_view(self.user, product)
+
+        preference = UserCategoryPreference.objects.get(user=self.user, category=parent)
+        self.assertEqual(preference.source, UserCategoryPreference.Source.VIEWED)
+
+    def test_repeated_view_of_same_product_is_debounced(self):
+        from core.preference_services import record_product_view
+        from core.user_preference import UserCategoryViewStat
+
+        parent = Category.objects.create(name='Fashion')
+        child = Category.objects.create(name='Bags', parent=parent)
+
+        for _ in range(3):
+            record_product_view(self.user, self.product_electronics)
+
+        stat = UserCategoryViewStat.objects.get(user=self.user, category=self.electronics)
+        self.assertEqual(stat.view_count, 1)
+
+    def test_product_detail_records_view_for_authenticated_user(self):
+        from core.user_preference import UserProductView
+
+        response = self.client.get(self.product_electronics.get_absolute_url())
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(UserProductView.objects.filter(user=self.user, product=self.product_electronics).count(), 1)
+

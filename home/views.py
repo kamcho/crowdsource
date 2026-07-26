@@ -56,7 +56,16 @@ def landing(request):
         'browse_base_url': reverse('home:landing'),
         'active_category': category,
         'hero_carousel_products': get_hero_carousel_products(),
+        'suggested_products': _suggested_products_for_request(request, has_filters),
     })
+
+
+def _suggested_products_for_request(request, has_filters):
+    if has_filters or not request.user.is_authenticated:
+        return []
+    from core.preference_services import get_suggested_products_for_user
+
+    return get_suggested_products_for_user(request.user)
 
 
 def product_browse(request):

@@ -58,6 +58,15 @@ def build_category_nav_tree(categories):
     return [build_node(root) for root in by_parent.get(None, [])]
 
 
+def get_category_descendant_ids(category):
+    from core.models import Category
+
+    ids = [category.pk]
+    for child in Category.objects.filter(parent=category, is_active=True):
+        ids.extend(get_category_descendant_ids(child))
+    return ids
+
+
 def build_category_image_map(categories):
     """Map category ids to a representative product image URL."""
     from core.models import Product

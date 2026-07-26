@@ -1,0 +1,69 @@
+{% extends 'dashboard/user_base.html' %}
+
+{% block title %}Category Preferences — Kenya Imports{% endblock %}
+{% block topbar_title %}Category preferences{% endblock %}
+
+{% block content %}
+<div class="user-dash-hero">
+    <div class="user-dash-welcome">
+        <h1>What are you shopping for?</h1>
+        <p>Pick categories you care about and we will suggest matching products on the homepage. We also learn from products you view — after browsing a category several times, its parent category is added automatically.</p>
+    </div>
+</div>
+
+{% if category_view_stats %}
+<div class="user-profile-card category-preferences-card category-view-stats-card">
+    <h2>Browsing activity</h2>
+    <p class="category-preferences-hint">Views in the last 30 minutes count once per product. After {{ views_for_preference }} views in a category, we add its parent to your preferences.</p>
+    <ul class="category-view-stats-list">
+        {% for stat in category_view_stats %}
+        <li>
+            <span>{{ stat.category.name }}</span>
+            <strong>{{ stat.view_count }} view{{ stat.view_count|pluralize }}</strong>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="user-profile-card category-preferences-card">
+    <form method="post" class="category-preferences-form">
+        {% csrf_token %}
+
+        {% if inferred_category_ids or viewed_preference_ids %}
+        <p class="category-preferences-hint">
+            <span class="category-preferences-tag">Suggested</span> = wishlist, bookings, or orders.
+            <span class="category-preferences-tag category-preferences-tag-viewed">From browsing</span> = added automatically from product views.
+        </p>
+        {% endif %}
+
+        <ul class="category-preferences-list">
+            {% for category, depth in category_tree %}
+            <li class="category-preferences-item" style="--pref-depth: {{ depth }}">
+                <label class="category-preferences-label">
+                    <input
+                        type="checkbox"
+                        name="categories"
+                        value="{{ category.id }}"
+                        {% if category.id in selected_category_ids %}checked{% endif %}
+                    >
+                    <span class="category-preferences-name">{{ category.name }}</span>
+                    {% if category.id in viewed_preference_ids %}
+                    <span class="category-preferences-tag category-preferences-tag-viewed">From browsing</span>
+                    {% elif category.id in inferred_category_ids and category.id not in selected_category_ids %}
+                    <span class="category-preferences-tag">Suggested</span>
+                    {% endif %}
+                </label>
+            </li>
+            {% empty %}
+            <li class="empty-state">No categories available yet.</li>
+            {% endfor %}
+        </ul>
+
+        <div class="category-preferences-actions">
+            <button type="submit" class="btn btn-primary">Save preferences</button>
+            <a href="{% url 'users:profile' %}" class="btn btn-outline">Back to dashboard</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

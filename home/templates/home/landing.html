@@ -142,6 +142,37 @@
     </div>
 </section>
 
+{% if suggested_products %}
+<section class="products products-suggested" id="suggested-for-you">
+    <div class="container container-wide">
+        <div class="section-header products-section-header">
+            <div>
+                <span class="section-label">Personalized</span>
+                <h2>Suggested for you</h2>
+                <p class="products-section-hint">Based on your category preferences.</p>
+            </div>
+            <div class="products-section-header-actions">
+                <a href="{% url 'users:category_preferences' %}" class="btn btn-outline">Edit preferences</a>
+            </div>
+        </div>
+        <div class="product-grid product-grid-4col">
+            {% include 'home/partials/product_cards.html' with products=suggested_products %}
+        </div>
+    </div>
+</section>
+{% elif user.is_authenticated and not search and not category %}
+<section class="products products-suggested products-suggested-empty">
+    <div class="container container-wide">
+        <div class="section-header">
+            <span class="section-label">Personalized</span>
+            <h2>Get product suggestions</h2>
+            <p class="products-section-hint">Tell us which categories you like and we will suggest matching group buys.</p>
+            <a href="{% url 'users:category_preferences' %}" class="btn btn-primary">Choose categories</a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
 <!-- Products Section -->
 <section class="products products-browse" id="products">
     <div class="container container-wide">

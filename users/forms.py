@@ -3,6 +3,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 from phonenumber_field.formfields import PhoneNumberField
 
+from core.models import Category
+
 from .models import User
 
 
@@ -127,3 +129,20 @@ class CompleteProfileForm(forms.Form):
         if password1 and password2 and password1 != password2:
             self.add_error('password2', 'Passwords do not match.')
         return cleaned
+
+
+class CategoryPreferencesForm(forms.Form):
+    categories = forms.ModelMultipleChoiceField(
+        queryset=Category.objects.filter(is_active=True).order_by('name'),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label='Categories you are interested in',
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+        if user and user.is_authenticated:
+            from core.preference_services import get_explicit_preferred_category_ids
+
+            self.fields['categories'].initial = get_explicit_preferred_category_ids(user)

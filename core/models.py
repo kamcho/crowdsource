@@ -184,5 +184,6 @@ from core.wishlist import WishlistItem  # noqa: E402, F401
 from core.order import Order, OrderItem  # noqa: E402, F401
 from core.payment import Payment  # noqa: E402, F401
 from core.complaint import Complaint, ComplaintMessage  # noqa: E402, F401
-from core.product_import import ProductImportDraft, ProductImportMedia  # noqa: E402, F401
+from core.user_preference import UserCategoryPreference  # noqa: E402, F401
+from core.user_preference import UserCategoryViewStat, UserProductView  # noqa: E402, F401
 

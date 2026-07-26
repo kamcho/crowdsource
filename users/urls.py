@@ -11,4 +11,5 @@ urlpatterns = [
     path('auth/google/', views.google_auth_view, name='google_auth'),
     path('complete-profile/', views.complete_profile_view, name='complete_profile'),
     path('profile/', views.profile_view, name='profile'),
+    path('preferences/categories/', views.category_preferences_view, name='category_preferences'),
 ]
