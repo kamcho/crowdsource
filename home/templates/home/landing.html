@@ -12,53 +12,6 @@
 
 {% block content %}
 
-<!-- Homepage disclosure for OAuth / app verification (public, no login required) -->
-<section class="app-purpose-banner" id="application-purpose">
-    <div class="container container-narrow">
-        <h1>Kenya Imports</h1>
-        <p class="app-purpose-tagline">Group-buying e-commerce for factory-direct imports to Kenya</p>
-
-        <h2>What this application does</h2>
-        <p>
-            Kenya Imports is an online marketplace that helps shoppers in Kenya import products from
-            China at wholesale prices. You can browse a product catalog, join group buys with other
-            buyers to meet factory minimum order quantities (MOQ), place orders, pay via M-Pesa, and
-            track deliveries — all from one account.
-        </p>
-        <ul class="app-purpose-list">
-            <li>Browse and search import-ready products by category</li>
-            <li>Join or start group buys and track MOQ progress</li>
-            <li>Add items to your cart and complete checkout</li>
-            <li>Save delivery addresses and view order history</li>
-            <li>Contact support about orders or delivery issues</li>
-        </ul>
-
-        <h2>Why we request your data</h2>
-        <p>
-            Kenya Imports asks for personal information only to identify you and operate your account.
-            We do <strong>not</strong> sell, rent, or share your data with third parties for advertising
-            or marketing. Specifically:
-        </p>
-        <ul class="app-purpose-list">
-            <li><strong>Name and email</strong> — from your profile or Google Sign-In, to identify your account</li>
-            <li><strong>Phone number</strong> — to sign in, confirm orders, and send delivery updates</li>
-            <li><strong>Google account ID</strong> — if you choose Sign in with Google, to link your account securely</li>
-            <li><strong>Delivery addresses</strong> — to ship products you order</li>
-            <li><strong>Order and payment records</strong> — to process group buys, payments, and refunds</li>
-        </ul>
-        <p>
-            <strong>Sign in with Google</strong> is optional. When you use it, Google shares basic profile
-            information (such as your name and email) so we can create or link your Kenya Imports account.
-            We use that data only for authentication and account management.
-        </p>
-
-        <p class="app-purpose-privacy">
-            <strong>Privacy Policy:</strong>
-            <a href="{% url 'home:privacy_policy' %}">{{ request.scheme }}://{{ request.get_host }}{% url 'home:privacy_policy' %}</a>
-        </p>
-    </div>
-</section>
-
 <!-- Hero Section -->
 <section class="hero" id="hero">
     <div class="hero-bg" aria-hidden="true">

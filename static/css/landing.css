@@ -559,69 +559,6 @@
     font-size: 1.0625rem;
 }
 
-/* ── App purpose (OAuth / homepage clarity) ── */
-.app-purpose-banner {
-    padding: 2rem 0 1.5rem;
-    background: linear-gradient(180deg, #eff6ff 0%, var(--color-surface) 100%);
-    border-bottom: 1px solid var(--color-border-light);
-}
-
-.app-purpose-banner h1 {
-    font-size: 2rem;
-    letter-spacing: -0.02em;
-    margin-bottom: 0.35rem;
-}
-
-.app-purpose-tagline {
-    color: var(--color-text-muted);
-    font-size: 1.0625rem;
-    margin-bottom: 1.5rem;
-}
-
-.app-purpose-banner h2 {
-    font-size: 1.125rem;
-    margin: 1.5rem 0 0.65rem;
-    color: var(--color-text);
-}
-
-.app-purpose-list {
-    margin: 0 0 1rem;
-    padding-left: 1.35rem;
-    color: var(--color-text-secondary);
-    line-height: 1.75;
-}
-
-.app-purpose-list li {
-    margin-bottom: 0.4rem;
-}
-
-.app-purpose-privacy {
-    margin-top: 1.5rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--color-border-light);
-}
-
-.app-purpose-privacy a {
-    word-break: break-all;
-}
-
-.app-purpose-banner p {
-    color: var(--color-text-secondary);
-    font-size: 1rem;
-    line-height: 1.75;
-    margin-bottom: 0.85rem;
-}
-
-.app-purpose-banner a {
-    color: var(--color-primary);
-    font-weight: 600;
-    text-decoration: none;
-}
-
-.app-purpose-banner a:hover {
-    text-decoration: underline;
-}
-
 .hero-title {
     font-size: clamp(2rem, 4vw, 3.25rem);
     font-weight: 800;
