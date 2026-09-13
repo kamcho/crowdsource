@@ -22,6 +22,7 @@ from django.urls import include, path
 
 from core import commerce_views as commerce_views
 from core import mpesa_views
+from core import whatsapp_views
 from core import views as core_views
 from home import views as home_views
 from home.sitemaps import CategoryBrowseSitemap, ProductSitemap, StaticPageSitemap
@@ -50,6 +51,7 @@ urlpatterns = [
     path('payments/<int:payment_id>/pending/', mpesa_views.payment_pending, name='payment_pending'),
     path('payments/<int:payment_id>/status/', mpesa_views.payment_status, name='payment_status'),
     path('payments/mpesa/callback/', mpesa_views.mpesa_callback, name='mpesa_callback'),
+    path('webhooks/whatsapp/', whatsapp_views.whatsapp_webhook, name='whatsapp_webhook'),
     path('orders/', commerce_views.order_list, name='order_list'),
     path('orders/<int:order_id>/', commerce_views.order_detail, name='order_detail'),
     path('complaints/', commerce_views.complaint_list, name='complaint_list'),
@@ -67,3 +69,8 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+handler400 = 'home.error_views.bad_request'
+handler403 = 'home.error_views.permission_denied'
+handler404 = 'home.error_views.page_not_found'
+handler500 = 'home.error_views.server_error'

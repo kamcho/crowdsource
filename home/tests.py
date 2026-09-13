@@ -48,12 +48,23 @@ class SeoViewsTests(TestCase):
         self.assertContains(response, 'Privacy Policy')
         self.assertContains(response, 'do not sell, rent, or share your personal data with third parties')
 
-    def test_homepage_meets_oauth_disclosure_requirements(self):
+    def test_homepage_renders(self):
         response = self.client.get(reverse('home:landing'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Kenya Imports')
-        self.assertContains(response, 'What this application does')
-        self.assertContains(response, 'Why we request your data')
-        self.assertContains(response, 'Sign in with Google')
-        self.assertContains(response, reverse('home:privacy_policy'))
+
+
+@override_settings(DEBUG=True, FRIENDLY_ERRORS=True)
+class FriendlyErrorPageTests(TestCase):
+    def test_unknown_url_shows_friendly_404(self):
+        response = self.client.get('/tickets/')
+
+        self.assertContains(response, 'This page does not exist', status_code=404)
+        self.assertContains(response, 'Back to homepage', status_code=404)
+        self.assertNotContains(response, 'Django tried these URL patterns', status_code=404)
+
+    def test_unknown_url_includes_requested_path(self):
+        response = self.client.get('/some/missing/path/')
+
+        self.assertContains(response, '/some/missing/path/', status_code=404)

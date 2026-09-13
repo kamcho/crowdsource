@@ -1,0 +1,40 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container container-narrow">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:import_shipment_list' %}">Import shipments</a> / New</p>
+                <h1>{{ title }}</h1>
+            </div>
+        </div>
+        <div class="admin-card">
+            <form method="post" class="admin-form" novalidate>
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<span class="field-error">{{ form.name.errors.0 }}</span>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                    {{ form.notes }}
+                </div>
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Create shipment</button>
+                    <a href="{% url 'core:import_shipment_list' %}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,63 @@
+.error-page {
+    padding: 5rem 0 6rem;
+    background: linear-gradient(180deg, var(--color-primary-soft) 0%, var(--color-bg) 42%);
+}
+
+.error-page-inner {
+    max-width: 640px;
+    text-align: center;
+}
+
+.error-code {
+    display: inline-block;
+    margin-bottom: 1rem;
+    font-size: 4.5rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--color-primary);
+}
+
+.error-page h1 {
+    font-size: clamp(1.75rem, 4vw, 2.35rem);
+    letter-spacing: -0.02em;
+    margin-bottom: 0.85rem;
+}
+
+.error-message {
+    color: var(--color-text-secondary);
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+}
+
+.error-path {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 1.75rem;
+}
+
+.error-path code {
+    font-size: 0.8125rem;
+    background: var(--color-bg-muted);
+    padding: 0.15rem 0.4rem;
+    border-radius: var(--radius-sm);
+    word-break: break-all;
+}
+
+.error-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+@media (max-width: 640px) {
+    .error-page {
+        padding: 3.5rem 0 4rem;
+    }
+
+    .error-actions .btn {
+        width: 100%;
+    }
+}

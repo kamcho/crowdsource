@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.http import JsonResponse
 from django.db import transaction
 from django.db.models import Count, Prefetch, Q, Sum, Value
 from django.db.models.functions import Coalesce
@@ -11,14 +12,23 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 
 from .admin_dashboard import get_admin_dashboard_context
+from .category_link_services import (
+    build_go_together_overview,
+    get_go_together_category_ids,
+    set_go_together_categories,
+)
 from .category_utils import build_category_tree
 from .decorators import admin_required, staff_required
 from .forms import (
     CategoryForm,
+    CategoryGoTogetherForm,
     FulfillmentForm,
     GroupBuyForm,
     ImportBatchCreateForm,
     ImportBatchForm,
+    ImportBatchAdditionalCostFormSet,
+    ImportShipmentForm,
+    ImportShipmentAddProductForm,
     ProductAttributeForm,
     RefundCreateForm,
     SupplierForm,
@@ -37,7 +47,18 @@ from .group_buy_services import ensure_default_group_buy_for_product
 from .fulfillment import Fulfillment
 from .fulfillment_services import create_fulfillment_for_order
 from .import_batch import ImportBatch
-from .import_services import create_import_batch
+from .import_cost import ImportShipment
+from .import_cost_services import build_batch_cost_summary, build_shipment_analytics
+from .import_services import (
+    create_import_batch,
+    group_buys_available_for_shipment,
+    link_group_buy_to_shipment,
+    unlink_import_batch_from_shipment,
+)
+from .import_shipment_picker import (
+    filter_group_buys_for_search,
+    group_buy_picker_items,
+)
 from .models import Category, Product
 from .supplier import Supplier
 from .order import Order
@@ -74,6 +95,16 @@ def get_related_products(product, limit=6):
 
     seen_ids = {product.pk, *(item.pk for item in related)}
     remaining = limit - len(related)
+
+    go_together_ids = get_go_together_category_ids(product.category)
+    if go_together_ids and remaining:
+        go_together_products = list(
+            base_qs.filter(category_id__in=go_together_ids)
+            .exclude(pk__in=seen_ids)[:remaining]
+        )
+        related.extend(go_together_products)
+        seen_ids.update(item.pk for item in go_together_products)
+        remaining = limit - len(related)
 
     if product.category.parent_id:
         siblings = list(
@@ -446,6 +477,57 @@ def category_create(request):
 
 
 @admin_required
+def category_go_together_list(request):
+    categories = list(Category.objects.select_related('parent').filter(is_active=True))
+    category_rows = build_category_tree(categories)
+    overview_rows = build_go_together_overview(category_rows)
+    linked_pair_count = sum(row['link_count'] for row in overview_rows) // 2
+    return render(request, 'core/categories/go_together_list.html', {
+        'overview_rows': overview_rows,
+        'linked_pair_count': linked_pair_count,
+        'total_categories': len(categories),
+    })
+
+
+@admin_required
+def category_go_together_manage(request, category_id):
+    category = get_object_or_404(Category, pk=category_id)
+    selected_ids = get_go_together_category_ids(category)
+
+    if request.method == 'POST':
+        form = CategoryGoTogetherForm(
+            request.POST,
+            source_category=category,
+        )
+        if form.is_valid():
+            set_go_together_categories(
+                category,
+                form.cleaned_data['linked_categories'].values_list('pk', flat=True),
+            )
+            messages.success(
+                request,
+                f'Go-together links updated for "{category.get_breadcrumb()}".',
+            )
+            return redirect('core:category_go_together_manage', category_id=category.pk)
+        messages.error(request, 'Please correct the errors below.')
+    else:
+        form = CategoryGoTogetherForm(
+            initial={'linked_categories': selected_ids},
+            source_category=category,
+        )
+
+    categories = list(Category.objects.filter(is_active=True).select_related('parent'))
+    category_tree = build_category_tree(categories)
+
+    return render(request, 'core/categories/go_together_manage.html', {
+        'category': category,
+        'form': form,
+        'category_tree': category_tree,
+        'selected_category_ids': set(selected_ids),
+    })
+
+
+@admin_required
 def product_list(request):
     products = Product.objects.select_related('category', 'supplier').prefetch_related(
         'files', 'options', 'variations'
@@ -750,7 +832,12 @@ def group_buy_list(request):
 
 
 def _group_buy_manage_context(group_buy):
-    import_batch = ImportBatch.objects.select_related('supplier').filter(group_buy=group_buy).first()
+    import_batch = (
+        ImportBatch.objects.select_related('supplier', 'shipment')
+        .prefetch_related('additional_costs')
+        .filter(group_buy=group_buy)
+        .first()
+    )
     entries = list(
         group_buy.entries.select_related('user', 'variation').order_by('-created_at')
     )
@@ -771,9 +858,23 @@ def _group_buy_manage_context(group_buy):
         .order_by('-created_at')
     )
     pledged_total = sum(entry.quantity for entry in entries)
+    import_cost_summary = build_batch_cost_summary(import_batch) if import_batch else None
+    additional_cost_formset = (
+        ImportBatchAdditionalCostFormSet(instance=import_batch) if import_batch else None
+    )
+    product = group_buy.product
+    price_min, price_max = product_variation_price_range(product)
+    price_tiers = build_price_tiers(product, group_buy)
     return {
         'group_buy': group_buy,
+        'product': product,
+        'price_min': price_min,
+        'price_max': price_max,
+        'price_tiers': price_tiers,
+        'pledger_count': len(entries),
         'import_batch': import_batch,
+        'import_cost_summary': import_cost_summary,
+        'additional_cost_formset': additional_cost_formset,
         'entries': entries,
         'paid_orders': paid_orders,
         'refund_orders': refund_orders,
@@ -820,7 +921,13 @@ def group_buy_create(request):
 @staff_required
 def group_buy_manage(request, group_buy_id):
     group_buy = get_object_or_404(
-        GroupBuy.objects.select_related('product', 'product__category', 'product__supplier'),
+        GroupBuy.objects.select_related('product', 'product__category', 'product__supplier')
+        .prefetch_related(
+            Prefetch(
+                'product__files',
+                queryset=ProductFile.objects.filter(variation__isnull=True),
+            ),
+        ),
         pk=group_buy_id,
     )
     context = _group_buy_manage_context(group_buy)
@@ -874,15 +981,34 @@ def group_buy_manage(request, group_buy_id):
 
         if action == 'save_import_batch' and import_batch:
             batch_form = ImportBatchForm(request.POST, instance=import_batch)
-            if batch_form.is_valid():
-                batch_form.save()
-                messages.success(request, 'Import batch updated.')
+            cost_formset = ImportBatchAdditionalCostFormSet(request.POST, instance=import_batch)
+            if batch_form.is_valid() and cost_formset.is_valid():
+                with transaction.atomic():
+                    batch_form.save()
+                    cost_formset.save()
+                messages.success(request, 'Import batch and costing updated.')
                 return redirect('core:group_buy_manage', group_buy_id=group_buy.pk)
             messages.error(request, 'Please correct the import batch errors below.')
             context['form'] = GroupBuyForm(instance=group_buy)
             context['import_batch_form'] = batch_form
+            context['additional_cost_formset'] = cost_formset
+            context['import_cost_summary'] = build_batch_cost_summary(import_batch)
             context['import_batch_create_form'] = ImportBatchCreateForm(product_supplier=group_buy.product.supplier)
             return render(request, 'core/group_buys/manage.html', context)
+
+        if action == 'apply_suggested_price' and import_batch:
+            summary = build_batch_cost_summary(import_batch)
+            suggested = summary and summary.get('suggested_unit_price')
+            if suggested and suggested > 0:
+                group_buy.unit_price = suggested
+                group_buy.save(update_fields=['unit_price', 'updated_at'])
+                messages.success(
+                    request,
+                    f'Group buy unit price set to ${suggested} (landed cost + {summary["margin_percent"]}% margin).',
+                )
+            else:
+                messages.error(request, 'Enter supplier cost and units first to get a price suggestion.')
+            return redirect('core:group_buy_manage', group_buy_id=group_buy.pk)
 
         if action == 'update_fulfillment':
             fulfillment = get_object_or_404(
@@ -965,8 +1091,129 @@ def group_buy_manage(request, group_buy_id):
     import_batch = context['import_batch']
     context['form'] = GroupBuyForm(instance=group_buy)
     context['import_batch_form'] = ImportBatchForm(instance=import_batch) if import_batch else None
+    if import_batch and context.get('additional_cost_formset') is None:
+        context['additional_cost_formset'] = ImportBatchAdditionalCostFormSet(instance=import_batch)
     context['import_batch_create_form'] = ImportBatchCreateForm(product_supplier=group_buy.product.supplier)
     return render(request, 'core/group_buys/manage.html', context)
+
+
+@staff_required
+def import_shipment_list(request):
+    shipments = (
+        ImportShipment.objects.annotate(batch_count=Count('import_batches'))
+        .order_by('-created_at')
+    )
+    return render(request, 'core/import_shipments/list.html', {
+        'shipments': shipments,
+    })
+
+
+@staff_required
+def import_shipment_create(request):
+    if request.method == 'POST':
+        form = ImportShipmentForm(request.POST)
+        if form.is_valid():
+            shipment = form.save()
+            messages.success(request, f'Shipment "{shipment.name}" created.')
+            return redirect('core:import_shipment_manage', shipment_id=shipment.pk)
+        messages.error(request, 'Please correct the errors below.')
+    else:
+        form = ImportShipmentForm()
+    return render(request, 'core/import_shipments/form.html', {
+        'form': form,
+        'title': 'New shipment batch',
+    })
+
+
+@staff_required
+def import_shipment_manage(request, shipment_id):
+    shipment = get_object_or_404(
+        ImportShipment.objects.prefetch_related(
+            'import_batches__group_buy__product',
+            'import_batches__additional_costs',
+        ),
+        pk=shipment_id,
+    )
+
+    if request.method == 'POST':
+        action = request.POST.get('action', 'save_shipment')
+        if action == 'delete_shipment':
+            name = shipment.name
+            shipment.delete()
+            messages.success(request, f'Shipment "{name}" deleted.')
+            return redirect('core:import_shipment_list')
+
+        if action == 'add_product':
+            add_form = ImportShipmentAddProductForm(request.POST, shipment=shipment)
+            if add_form.is_valid():
+                try:
+                    link_group_buy_to_shipment(add_form.cleaned_data['group_buy'], shipment)
+                    messages.success(request, 'Product added to this shipment.')
+                except ValidationError as exc:
+                    messages.error(request, '; '.join(getattr(exc, 'messages', [str(exc)])))
+            else:
+                messages.error(request, 'Could not add product — pick one from the list.')
+            return redirect('core:import_shipment_manage', shipment_id=shipment.pk)
+
+        if action == 'remove_product':
+            batch = get_object_or_404(ImportBatch, pk=request.POST.get('import_batch_id'), shipment=shipment)
+            unlink_import_batch_from_shipment(batch)
+            messages.success(request, f'Removed "{batch.group_buy.product.name}" from this shipment.')
+            return redirect('core:import_shipment_manage', shipment_id=shipment.pk)
+
+        form = ImportShipmentForm(request.POST, instance=shipment)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Shipment batch updated.')
+            return redirect('core:import_shipment_manage', shipment_id=shipment.pk)
+        messages.error(request, 'Please correct the errors below.')
+    else:
+        form = ImportShipmentForm(instance=shipment)
+
+    batch_summaries = []
+    for batch in shipment.import_batches.select_related('group_buy__product', 'group_buy__product__category').prefetch_related('group_buy__product__files'):
+        summary = build_batch_cost_summary(batch)
+        line_profit = None
+        if summary and summary['units']:
+            line_profit = (
+                summary['current_unit_price'] * summary['units'] - summary['landed_total']
+            )
+        batch_summaries.append({
+            'batch': batch,
+            'summary': summary,
+            'line_profit': line_profit,
+            'picker': group_buy_picker_items([batch.group_buy], request=request)[0],
+        })
+
+    available_group_buys = group_buys_available_for_shipment(shipment)
+    add_product_picker_items = group_buy_picker_items(available_group_buys, request=request)
+
+    shipment_analytics = build_shipment_analytics(batch_summaries)
+
+    return render(request, 'core/import_shipments/manage.html', {
+        'shipment': shipment,
+        'form': form,
+        'add_product_form': ImportShipmentAddProductForm(shipment=shipment),
+        'add_product_picker_items': add_product_picker_items,
+        'add_product_search_url': reverse(
+            'core:import_shipment_group_buy_search',
+            kwargs={'shipment_id': shipment.pk},
+        ),
+        'batch_summaries': batch_summaries,
+        'total_units': shipment.total_units,
+        'shipment_analytics': shipment_analytics,
+    })
+
+
+@staff_required
+def import_shipment_group_buy_search(request, shipment_id):
+    shipment = get_object_or_404(ImportShipment, pk=shipment_id)
+    query = request.GET.get('q', '').strip()
+    available = group_buys_available_for_shipment(shipment)
+    filtered = filter_group_buys_for_search(available, query)[:30]
+    return JsonResponse({
+        'results': group_buy_picker_items(filtered, request=request),
+    })
 
 
 @staff_required

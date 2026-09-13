@@ -2,6 +2,7 @@ from django import forms
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.forms import inlineformset_factory
+from django.forms.models import BaseInlineFormSet
 
 from .category_utils import build_category_tree
 from .address import Address
@@ -9,6 +10,7 @@ from .complaint import Complaint
 from .fulfillment import Fulfillment
 from .group_buy import GroupBuy, GroupBuyEntry
 from .import_batch import ImportBatch
+from .import_cost import ImportBatchAdditionalCost, ImportShipment
 from .order import Order
 from .refund import Refund
 from .supplier import Supplier
@@ -76,6 +78,36 @@ class CategoryForm(forms.ModelForm):
                 )
 
         return cleaned
+
+
+class CategoryGoTogetherForm(forms.Form):
+    linked_categories = forms.ModelMultipleChoiceField(
+        queryset=Category.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label='Categories that go together',
+    )
+
+    def __init__(self, *args, source_category=None, **kwargs):
+        self.source_category = source_category
+        super().__init__(*args, **kwargs)
+        categories = list(
+            Category.objects.filter(is_active=True).select_related('parent')
+        )
+        category_tree = build_category_tree(categories)
+        eligible_ids = [
+            category.pk
+            for category, _ in category_tree
+            if category.pk != getattr(source_category, 'pk', None)
+        ]
+        self.fields['linked_categories'].queryset = Category.objects.filter(
+            pk__in=eligible_ids,
+        )
+        self.fields['linked_categories'].choices = [
+            (category.pk, f"{'— ' * depth}{category.name}")
+            for category, depth in category_tree
+            if category.pk != getattr(source_category, 'pk', None)
+        ]
 
 
 class ProductForm(forms.ModelForm):
@@ -848,13 +880,40 @@ def _active_supplier_queryset():
 class ImportBatchForm(forms.ModelForm):
     class Meta:
         model = ImportBatch
-        fields = ('supplier', 'status', 'supplier_reference', 'estimated_arrival', 'notes')
+        fields = (
+            'supplier',
+            'status',
+            'supplier_reference',
+            'shipment',
+            'supplier_unit_cost',
+            'units_imported',
+            'target_margin_percent',
+            'estimated_arrival',
+            'notes',
+        )
         widgets = {
             'supplier': forms.Select(attrs={'class': 'form-input form-select'}),
             'status': forms.Select(attrs={'class': 'form-input form-select'}),
+            'shipment': forms.Select(attrs={'class': 'form-input form-select'}),
             'supplier_reference': forms.TextInput(attrs={
                 'class': 'form-input',
                 'placeholder': 'e.g. SUP-2026-001',
+            }),
+            'supplier_unit_cost': forms.NumberInput(attrs={
+                'class': 'form-input',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': 'USD per unit from factory',
+            }),
+            'units_imported': forms.NumberInput(attrs={
+                'class': 'form-input',
+                'min': '1',
+                'placeholder': 'Leave blank to use pledged units',
+            }),
+            'target_margin_percent': forms.NumberInput(attrs={
+                'class': 'form-input',
+                'step': '0.01',
+                'min': '0',
             }),
             'estimated_arrival': forms.DateInput(attrs={
                 'class': 'form-input',
@@ -869,11 +928,23 @@ class ImportBatchForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        from core.import_cost import ImportShipment
+
         self.fields['supplier'].queryset = _active_supplier_queryset()
         self.fields['supplier'].label = 'Supplier'
         self.fields['supplier'].empty_label = '— Select supplier —'
         self.fields['status'].label = 'Import status'
+        self.fields['shipment'].queryset = ImportShipment.objects.order_by('-created_at')
+        self.fields['shipment'].label = 'Consolidated shipment'
+        self.fields['shipment'].empty_label = '— Not grouped yet —'
+        self.fields['shipment'].help_text = (
+            'Optional: link this product to a physical batch that includes many SKUs. '
+            'All costs stay on this product’s lines below.'
+        )
         self.fields['supplier_reference'].label = 'Factory order reference'
+        self.fields['supplier_unit_cost'].label = 'Supplier unit cost (USD)'
+        self.fields['units_imported'].label = 'Units imported'
+        self.fields['target_margin_percent'].label = 'Target margin (%)'
         self.fields['estimated_arrival'].label = 'Estimated arrival'
         self.fields['notes'].label = 'Notes'
 
@@ -915,6 +986,109 @@ class ImportBatchCreateForm(forms.Form):
         self.fields['notes'].label = 'Notes'
         if product_supplier and not self.initial.get('supplier'):
             self.initial['supplier'] = product_supplier.pk
+
+
+class ImportBatchAdditionalCostForm(forms.ModelForm):
+    class Meta:
+        model = ImportBatchAdditionalCost
+        fields = ('cost_type', 'description', 'amount')
+        widgets = {
+            'cost_type': forms.Select(attrs={'class': 'form-input form-select'}),
+            'description': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Optional note',
+            }),
+            'amount': forms.NumberInput(attrs={
+                'class': 'form-input',
+                'step': '0.01',
+                'min': '0',
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['cost_type'].label = 'Type'
+        self.fields['description'].label = 'Description'
+        self.fields['amount'].label = 'Amount (USD)'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get('DELETE'):
+            return cleaned_data
+        cost_type = cleaned_data.get('cost_type')
+        amount = cleaned_data.get('amount')
+        description = (cleaned_data.get('description') or '').strip()
+        if not cost_type and amount in (None, '') and not description:
+            return cleaned_data
+        if not cost_type or amount in (None, ''):
+            raise ValidationError('Each charge needs a type and amount, or leave the row blank.')
+        return cleaned_data
+
+
+class ImportBatchAdditionalCostFormSet(BaseInlineFormSet):
+    pass
+
+
+ImportBatchAdditionalCostFormSet = inlineformset_factory(
+    ImportBatch,
+    ImportBatchAdditionalCost,
+    form=ImportBatchAdditionalCostForm,
+    formset=ImportBatchAdditionalCostFormSet,
+    extra=1,
+    can_delete=True,
+    min_num=0,
+    validate_min=False,
+)
+
+
+class ImportShipmentForm(forms.ModelForm):
+    class Meta:
+        model = ImportShipment
+        fields = ('name', 'notes')
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'e.g. Air batch March 2026 #3',
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-input form-textarea',
+                'rows': 3,
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['name'].label = 'Shipment name'
+        self.fields['notes'].label = 'Notes'
+
+
+class ImportShipmentAddProductForm(forms.Form):
+    group_buy = forms.ModelChoiceField(
+        queryset=GroupBuy.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-input form-select'}),
+    )
+
+    def __init__(self, *args, shipment=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from core.import_services import group_buys_available_for_shipment
+
+        self.shipment = shipment
+        available = list(group_buys_available_for_shipment(shipment)) if shipment else []
+        field = self.fields['group_buy']
+        field.queryset = GroupBuy.objects.filter(
+            pk__in=[gb.pk for gb in available],
+        ).select_related('product').order_by('product__name')
+        field.label = 'Product (group buy)'
+        field.empty_label = '— Select a product —'
+        field.label_from_instance = lambda obj: (
+            f'{obj.product.name} — group buy #{obj.pk} ({obj.pledged_units} pledged units)'
+        )
+
+    def clean_group_buy(self):
+        group_buy = self.cleaned_data.get('group_buy')
+        if not group_buy:
+            raise ValidationError('Choose a product to add.')
+        return group_buy
 
 
 class RefundCreateForm(forms.Form):

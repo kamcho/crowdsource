@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ error_title }} — Kenya Imports{% endblock %}
+{% block meta_description %}{{ error_message }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/errors.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="error-page">
+    <div class="container error-page-inner">
+        <p class="error-code" aria-hidden="true">{{ status_code }}</p>
+        <h1>{{ error_headline }}</h1>
+        <p class="error-message">{{ error_message }}</p>
+        {% if request_path %}
+        <p class="error-path">Requested path: <code>{{ request_path }}</code></p>
+        {% endif %}
+        <div class="error-actions">
+            <a href="{% url 'home:landing' %}" class="btn btn-primary btn-lg">Back to homepage</a>
+            <a href="{% url 'home:product_browse' %}" class="btn btn-outline btn-lg">Browse products</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

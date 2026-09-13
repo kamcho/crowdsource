@@ -1312,3 +1312,596 @@ class CategoryPreferenceTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(UserProductView.objects.filter(user=self.user, product=self.product_electronics).count(), 1)
 
+
+class CategoryGoTogetherTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        from core.group_buy import GroupBuy
+
+        User = get_user_model()
+        self.admin = User.objects.create_user(
+            phone='+254700888999',
+            password='pass',
+            role='admin',
+        )
+        self.client.login(phone='+254700888999', password='pass')
+
+        self.handbags = Category.objects.create(name='Ladies Handbags')
+        self.wristbands = Category.objects.create(name='Women Wrist Bands')
+        self.makeup = Category.objects.create(name='Makeup')
+
+        self.product_handbags = Product.objects.create(
+            category=self.handbags,
+            name='Leather Tote',
+            is_active=True,
+        )
+        self.product_wristbands = Product.objects.create(
+            category=self.wristbands,
+            name='Gold Bracelet',
+            is_active=True,
+        )
+        self.product_makeup = Product.objects.create(
+            category=self.makeup,
+            name='Lipstick Set',
+            is_active=True,
+        )
+        GroupBuy.objects.create(
+            product=self.product_handbags,
+            moq=5,
+            unit_price='20.00',
+            closes_at=timezone.now() + timedelta(days=3),
+        )
+        GroupBuy.objects.create(
+            product=self.product_wristbands,
+            moq=5,
+            unit_price='8.00',
+            closes_at=timezone.now() + timedelta(days=3),
+        )
+        GroupBuy.objects.create(
+            product=self.product_makeup,
+            moq=5,
+            unit_price='6.00',
+            closes_at=timezone.now() + timedelta(days=3),
+        )
+
+    def test_set_go_together_categories_is_symmetric(self):
+        from core.category_link_services import (
+            get_go_together_category_ids,
+            set_go_together_categories,
+        )
+
+        set_go_together_categories(self.handbags, [self.wristbands.pk, self.makeup.pk])
+
+        self.assertCountEqual(
+            get_go_together_category_ids(self.handbags),
+            [self.wristbands.pk, self.makeup.pk],
+        )
+        self.assertIn(self.handbags.pk, get_go_together_category_ids(self.wristbands))
+        self.assertIn(self.handbags.pk, get_go_together_category_ids(self.makeup))
+
+    def test_manage_page_saves_links(self):
+        response = self.client.post(
+            reverse('core:category_go_together_manage', kwargs={'category_id': self.handbags.pk}),
+            {'linked_categories': [self.wristbands.pk, self.makeup.pk]},
+        )
+        self.assertEqual(response.status_code, 302)
+
+        from core.category_link_services import get_go_together_category_ids
+
+        self.assertCountEqual(
+            get_go_together_category_ids(self.handbags),
+            [self.wristbands.pk, self.makeup.pk],
+        )
+
+    def test_go_together_list_page(self):
+        from core.category_link_services import set_go_together_categories
+
+        set_go_together_categories(self.handbags, [self.wristbands.pk])
+        response = self.client.get(reverse('core:category_go_together_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Ladies Handbags')
+        self.assertContains(response, 'Women Wrist Bands')
+
+    def test_related_products_use_go_together_categories(self):
+        from core.category_link_services import set_go_together_categories
+        from core.views import get_related_products
+
+        set_go_together_categories(self.handbags, [self.wristbands.pk, self.makeup.pk])
+        related = get_related_products(self.product_handbags, limit=6)
+        related_names = {product.name for product in related}
+
+        self.assertIn('Gold Bracelet', related_names)
+        self.assertIn('Lipstick Set', related_names)
+
+
+class WhatsAppServiceTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        from core.group_buy import GroupBuy
+
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            phone='+254712345678',
+            password='pass',
+            first_name='Jane',
+            last_name='Buyer',
+        )
+        self.category = Category.objects.create(name='Bags')
+        self.product = Product.objects.create(
+            category=self.category,
+            name='Leather Handbag',
+            description='Stylish imported handbag',
+            is_active=True,
+        )
+        GroupBuy.objects.create(
+            product=self.product,
+            moq=10,
+            unit_price='25.00',
+            closes_at=timezone.now() + timedelta(days=5),
+        )
+
+    @override_settings(
+        WHATSAPP_ENABLED=True,
+        WHATSAPP_BACKEND='console',
+        WHATSAPP_VERIFY_TOKEN='verify-me',
+        SITE_PROTOCOL='https',
+        SITE_DOMAIN='kenyaimports.com',
+    )
+    def test_webhook_verification(self):
+        response = self.client.get(
+            reverse('whatsapp_webhook'),
+            {
+                'hub.mode': 'subscribe',
+                'hub.verify_token': 'verify-me',
+                'hub.challenge': '1234567',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.decode(), '1234567')
+
+    @override_settings(
+        WHATSAPP_ENABLED=True,
+        WHATSAPP_BACKEND='console',
+        OPENAI_API_KEY='test-key',
+    )
+    @patch('core.whatsapp_services.run_whatsapp_agent')
+    def test_handle_product_id_message(self, mock_agent):
+        from core.whatsapp_agent import AgentResult
+        from core.whatsapp_services import handle_inbound_text_message
+
+        mock_agent.return_value = AgentResult(
+            reply_text=f'Here is product #{self.product.pk}:',
+            products=[self.product],
+        )
+
+        with patch('core.whatsapp.send_text') as mock_text, patch(
+            'core.whatsapp.send_image',
+        ):
+            handle_inbound_text_message(
+                from_phone='254712345678',
+                message_text=f'Tell me about product {self.product.pk}',
+                message_id='msg-1',
+            )
+
+        mock_text.assert_called()
+        sent_bodies = [call.kwargs['body'] for call in mock_text.call_args_list]
+        combined = ' '.join(sent_bodies)
+        self.assertIn('Leather Handbag', combined)
+
+    @override_settings(WHATSAPP_ENABLED=True, WHATSAPP_BACKEND='console', OPENAI_API_KEY='test-key')
+    @patch('core.whatsapp_services.run_whatsapp_agent')
+    def test_webhook_processes_inbound_payload(self, mock_agent):
+        from core.whatsapp_agent import AgentResult
+        from core.whatsapp_services import handle_inbound_text_message
+
+        mock_agent.return_value = AgentResult(
+            reply_text=f'Found product #{self.product.pk}',
+            products=[self.product],
+        )
+        payload = {
+            'object': 'whatsapp_business_account',
+            'entry': [{
+                'changes': [{
+                    'value': {
+                        'messages': [{
+                            'from': '254712345678',
+                            'id': 'wamid.test',
+                            'type': 'text',
+                            'text': {'body': f'product {self.product.pk}'},
+                        }],
+                    },
+                }],
+            }],
+        }
+        with patch(
+            'core.whatsapp_services._dispatch_inbound_message',
+            side_effect=lambda message: handle_inbound_text_message(**message),
+        ), patch('core.whatsapp.send_text') as mock_text:
+            response = self.client.post(
+                reverse('whatsapp_webhook'),
+                data=payload,
+                content_type='application/json',
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(mock_text.called)
+
+    @override_settings(WHATSAPP_ENABLED=True, WHATSAPP_BACKEND='console')
+    @patch('core.whatsapp_services.handle_inbound_text_message')
+    def test_duplicate_webhook_message_is_ignored(self, mock_handle):
+        from core.whatsapp_services import process_webhook_payload
+
+        payload = {
+            'object': 'whatsapp_business_account',
+            'entry': [{
+                'changes': [{
+                    'value': {
+                        'messages': [{
+                            'from': '254712345678',
+                            'id': 'wamid.duplicate',
+                            'type': 'text',
+                            'text': {'body': 'handbags'},
+                        }],
+                    },
+                }],
+            }],
+        }
+        with patch(
+            'core.whatsapp_services._dispatch_inbound_message',
+            side_effect=lambda message: mock_handle(**message),
+        ):
+            self.assertEqual(process_webhook_payload(payload), 1)
+            self.assertEqual(process_webhook_payload(payload), 0)
+        mock_handle.assert_called_once()
+
+    def test_search_handbags_finds_bags_category(self):
+        from core.whatsapp_tools import search_products
+
+        result = search_products(query='handbags')
+        self.assertTrue(result.data['ok'])
+        self.assertEqual(result.products[0].pk, self.product.pk)
+
+    def test_list_catalog_returns_active_products(self):
+        from core.whatsapp_tools import list_catalog
+
+        result = list_catalog(limit=3)
+        self.assertTrue(result.data['ok'])
+        self.assertGreaterEqual(len(result.products), 1)
+
+    @override_settings(OPENAI_API_KEY='test-key')
+    def test_agent_requires_openai(self):
+        from core.whatsapp_agent import WhatsAppAgentError, run_whatsapp_agent
+
+        with override_settings(OPENAI_API_KEY=''):
+            with self.assertRaises(WhatsAppAgentError):
+                run_whatsapp_agent('hello')
+
+    @override_settings(
+        WHATSAPP_ENABLED=True,
+        WHATSAPP_BACKEND='console',
+        OPENAI_API_KEY='test-key',
+    )
+    @patch('core.whatsapp_services.run_whatsapp_agent')
+    def test_order_status_for_linked_user(self, mock_agent):
+        from core.group_buy import GroupBuyEntry
+        from core.order import Order
+        from core.whatsapp_agent import AgentResult
+        from core.whatsapp_services import handle_inbound_text_message
+
+        order = Order.objects.create(
+            group_buy=self.product.group_buys.first(),
+            user=self.user,
+            status=Order.Status.PAID,
+            total_amount='50.00',
+        )
+        GroupBuyEntry.objects.create(
+            group_buy=self.product.group_buys.first(),
+            user=self.user,
+            quantity=2,
+        )
+        mock_agent.return_value = AgentResult(
+            reply_text=f'Order #{order.pk} — Leather Handbag — Paid — $50.00',
+            products=[],
+        )
+
+        with patch('core.whatsapp.send_text') as mock_text:
+            handle_inbound_text_message(
+                from_phone='254712345678',
+                message_text='Where is my order?',
+                message_id='msg-2',
+            )
+
+        sent_body = mock_text.call_args.kwargs['body']
+        self.assertIn(f'Order #{order.pk}', sent_body)
+
+    def test_get_my_orders_tool(self):
+        from core.group_buy import GroupBuyEntry
+        from core.order import Order
+        from core.whatsapp_tools import get_my_orders
+
+        order = Order.objects.create(
+            group_buy=self.product.group_buys.first(),
+            user=self.user,
+            status=Order.Status.PAID,
+            total_amount='50.00',
+        )
+        GroupBuyEntry.objects.create(
+            group_buy=self.product.group_buys.first(),
+            user=self.user,
+            quantity=2,
+        )
+
+        result = get_my_orders(user=self.user)
+        self.assertTrue(result.data['ok'])
+        self.assertEqual(result.data['orders'][0]['id'], order.pk)
+
+    @override_settings(
+        WHATSAPP_PUBLIC_BASE_URL='https://example.ngrok-free.dev',
+        SITE_PROTOCOL='http',
+        SITE_DOMAIN='127.0.0.1:8001',
+    )
+    def test_whatsapp_media_url_uses_public_base(self):
+        from core.whatsapp_media import absolute_whatsapp_media_url, is_whatsapp_reachable_url
+
+        url = absolute_whatsapp_media_url('/media/products/1/photo.jpg')
+        self.assertEqual(url, 'https://example.ngrok-free.dev/media/products/1/photo.jpg')
+        self.assertTrue(is_whatsapp_reachable_url(url))
+
+    def test_whatsapp_image_skips_avif(self):
+        from django.core.files.base import ContentFile
+
+        from core.product_file import ProductFile
+        from core.whatsapp_media import get_whatsapp_product_image
+
+        ProductFile.objects.create(
+            product=self.product,
+            file=ContentFile(b'avif', name='bag.avif'),
+            media_type=ProductFile.MediaType.IMAGE,
+            is_primary=True,
+        )
+        png_file = ProductFile.objects.create(
+            product=self.product,
+            file=ContentFile(b'png', name='bag.png'),
+            media_type=ProductFile.MediaType.IMAGE,
+        )
+        image = get_whatsapp_product_image(self.product)
+        self.assertEqual(image.pk, png_file.pk)
+
+    @override_settings(
+        WHATSAPP_ENABLED=True,
+        WHATSAPP_BACKEND='console',
+        OPENAI_API_KEY='test-key',
+        WHATSAPP_PUBLIC_BASE_URL='https://example.ngrok-free.dev',
+    )
+    @patch('core.whatsapp_services.run_whatsapp_agent')
+    def test_product_reply_sends_image_with_public_url(self, mock_agent):
+        from django.core.files.base import ContentFile
+
+        from core.product_file import ProductFile
+        from core.whatsapp_agent import AgentResult
+        from core.whatsapp_services import handle_inbound_text_message
+
+        ProductFile.objects.create(
+            product=self.product,
+            file=ContentFile(b'jpeg-bytes', name='handbag.jpg'),
+            media_type=ProductFile.MediaType.IMAGE,
+            is_primary=True,
+        )
+        mock_agent.return_value = AgentResult(
+            reply_text='ignored',
+            products=[self.product],
+        )
+
+        with patch('core.whatsapp.upload_media', return_value='media-123') as mock_upload, patch(
+            'core.whatsapp.send_image_id',
+        ) as mock_image_id, patch('core.whatsapp.send_text') as mock_text:
+            handle_inbound_text_message(
+                from_phone='254712345678',
+                message_text='show me handbags',
+                message_id='msg-3',
+            )
+
+        mock_upload.assert_called_once()
+        mock_image_id.assert_called_once()
+        intro = mock_text.call_args.kwargs['body']
+        self.assertIn('Found 1 product', intro)
+        self.assertIn('example.ngrok-free.dev', mock_image_id.call_args.kwargs['caption'])
+
+
+class ImportCostTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        from core.group_buy import GroupBuy, GroupBuyEntry
+        from core.import_cost import ImportShipment
+        from core.import_services import create_import_batch
+
+        User = get_user_model()
+        self.category = Category.objects.create(name='Bags')
+        self.product = Product.objects.create(
+            category=self.category,
+            name='Test Bag',
+            is_active=True,
+        )
+        self.group_buy = GroupBuy.objects.create(
+            product=self.product,
+            moq=100,
+            unit_price='5.00',
+            closes_at=timezone.now() + timedelta(days=7),
+        )
+        self.user = User.objects.create_user(phone='+254712345678', password='pass')
+        GroupBuyEntry.objects.create(group_buy=self.group_buy, user=self.user, quantity=100)
+        self.group_buy.refresh_status()
+        self.group_buy.refresh_from_db()
+        self.batch = create_import_batch(self.group_buy)
+        self.shipment = ImportShipment.objects.create(name='Air #1')
+
+    def test_group_buy_manage_saves_multiple_additional_costs(self):
+        from decimal import Decimal
+
+        from core.import_cost import ImportCostType
+
+        self.client.force_login(self._staff_user())
+        batch = self.batch
+        data = {
+            'action': 'save_import_batch',
+            'status': batch.status,
+            'supplier': batch.supplier_id or '',
+            'supplier_reference': '',
+            'estimated_arrival': '',
+            'supplier_unit_cost': '2.00',
+            'units_imported': '100',
+            'target_margin_percent': '16',
+            'shipment': '',
+            'notes': '',
+            'additional_costs-TOTAL_FORMS': '2',
+            'additional_costs-INITIAL_FORMS': '0',
+            'additional_costs-MIN_NUM_FORMS': '0',
+            'additional_costs-MAX_NUM_FORMS': '1000',
+            'additional_costs-0-cost_type': ImportCostType.CUSTOMS,
+            'additional_costs-0-description': 'Customs',
+            'additional_costs-0-amount': '50.00',
+            'additional_costs-1-cost_type': ImportCostType.INLAND,
+            'additional_costs-1-description': 'Nakuru',
+            'additional_costs-1-amount': '25.00',
+        }
+        url = reverse('core:group_buy_manage', args=[self.group_buy.pk])
+        response = self.client.post(url, data)
+        if response.status_code != 302:
+            self.fail(f'Expected redirect, got {response.status_code}: {response.content[:500]!r}')
+        batch.refresh_from_db()
+        costs = list(batch.additional_costs.order_by('created_at').values_list('cost_type', 'amount'))
+        self.assertEqual(len(costs), 2)
+        self.assertEqual(costs[0][1], Decimal('50.00'))
+        self.assertEqual(costs[1][1], Decimal('25.00'))
+
+    def _staff_user(self):
+        from users.models import User
+
+        user, _ = User.objects.get_or_create(
+            phone='+254799999999',
+            defaults={'role': User.Role.STAFF},
+        )
+        if user.role not in (User.Role.ADMIN, User.Role.STAFF):
+            user.role = User.Role.STAFF
+            user.save(update_fields=['role'])
+        return user
+
+    def test_landed_cost_and_suggested_price(self):
+        from decimal import Decimal
+
+        from core.import_cost import ImportBatchAdditionalCost, ImportCostType
+        from core.import_cost_services import build_batch_cost_summary
+
+        self.batch.supplier_unit_cost = Decimal('2.00')
+        self.batch.units_imported = 100
+        self.batch.target_margin_percent = Decimal('16')
+        self.batch.save()
+        ImportBatchAdditionalCost.objects.create(
+            import_batch=self.batch,
+            cost_type=ImportCostType.CUSTOMS,
+            amount=Decimal('50.00'),
+        )
+        summary = build_batch_cost_summary(self.batch)
+        self.assertEqual(summary['goods_total'], Decimal('200.00'))
+        self.assertEqual(summary['additional_costs'], Decimal('50.00'))
+        self.assertEqual(summary['landed_per_unit'], Decimal('2.50'))
+        self.assertEqual(summary['suggested_unit_price'], Decimal('2.90'))
+
+    def test_shipment_groups_products_without_merging_costs(self):
+        from decimal import Decimal
+
+        from core.group_buy import GroupBuy, GroupBuyEntry
+        from core.import_cost import ImportBatchAdditionalCost, ImportCostType
+        from core.import_cost_services import build_batch_cost_summary
+        from core.import_services import create_import_batch
+
+        product2 = Product.objects.create(category=self.category, name='Bag 2', is_active=True)
+        gb2 = GroupBuy.objects.create(
+            product=product2,
+            moq=50,
+            unit_price='4.00',
+            closes_at=timezone.now() + timedelta(days=7),
+        )
+        GroupBuyEntry.objects.create(group_buy=gb2, user=self.user, quantity=50)
+        gb2.refresh_status()
+        batch2 = create_import_batch(gb2)
+
+        self.batch.shipment = self.shipment
+        self.batch.supplier_unit_cost = Decimal('1.00')
+        self.batch.units_imported = 100
+        self.batch.save()
+        ImportBatchAdditionalCost.objects.create(
+            import_batch=self.batch,
+            cost_type=ImportCostType.CUSTOMS,
+            amount=Decimal('80.00'),
+        )
+        batch2.shipment = self.shipment
+        batch2.supplier_unit_cost = Decimal('2.00')
+        batch2.units_imported = 50
+        batch2.save()
+        ImportBatchAdditionalCost.objects.create(
+            import_batch=batch2,
+            cost_type=ImportCostType.INLAND,
+            amount=Decimal('30.00'),
+        )
+
+        summary1 = build_batch_cost_summary(self.batch)
+        summary2 = build_batch_cost_summary(batch2)
+        self.assertEqual(summary1['additional_costs'], Decimal('80.00'))
+        self.assertEqual(summary2['additional_costs'], Decimal('30.00'))
+        self.assertEqual(summary1['landed_per_unit'], Decimal('1.80'))
+        self.assertEqual(summary2['landed_per_unit'], Decimal('2.60'))
+
+    def test_build_shipment_analytics_rollup(self):
+        from decimal import Decimal
+
+        from core.import_cost import ImportBatchAdditionalCost, ImportCostType
+        from core.import_cost_services import build_batch_cost_summary, build_shipment_analytics
+
+        self.batch.supplier_unit_cost = Decimal('2.00')
+        self.batch.units_imported = 100
+        self.batch.save()
+        ImportBatchAdditionalCost.objects.create(
+            import_batch=self.batch,
+            cost_type=ImportCostType.CUSTOMS,
+            amount=Decimal('50.00'),
+        )
+        summary = build_batch_cost_summary(self.batch)
+        rows = [{'summary': summary, 'line_profit': Decimal('100')}]
+        analytics = build_shipment_analytics(rows)
+        self.assertEqual(analytics['goods_total'], Decimal('200.00'))
+        self.assertEqual(analytics['additional_total'], Decimal('50.00'))
+        self.assertEqual(analytics['landed_total'], Decimal('250.00'))
+
+    def test_link_group_buy_to_shipment_creates_batch(self):
+        from core.group_buy import GroupBuy
+        from core.import_batch import ImportBatch
+        from core.import_services import link_group_buy_to_shipment
+
+        extra = GroupBuy.objects.create(
+            product=Product.objects.create(category=self.category, name='Extra SKU', is_active=True),
+            moq=20,
+            unit_price='3.00',
+            closes_at=timezone.now() + timedelta(days=7),
+        )
+        self.assertFalse(ImportBatch.objects.filter(group_buy=extra).exists())
+        batch = link_group_buy_to_shipment(extra, self.shipment)
+        self.assertEqual(batch.shipment_id, self.shipment.pk)
+        self.assertEqual(batch.group_buy_id, extra.pk)
+
+    def test_shipment_group_buy_search_returns_json(self):
+        from core.import_services import link_group_buy_to_shipment
+        from users.models import User
+
+        link_group_buy_to_shipment(self.group_buy, self.shipment)
+        self.user.role = User.Role.ADMIN
+        self.user.save(update_fields=['role'])
+        self.client.force_login(self.user)
+
+        url = reverse('core:import_shipment_group_buy_search', kwargs={'shipment_id': self.shipment.pk})
+        response = self.client.get(url, {'q': 'Test'})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('results', response.json())
+

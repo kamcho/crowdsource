@@ -1,0 +1,77 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Manage Go-Together — {{ category.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb">
+                    <a href="{% url 'core:admin_dashboard' %}">Dashboard</a> /
+                    <a href="{% url 'core:category_list' %}">Categories</a> /
+                    <a href="{% url 'core:category_go_together_list' %}">Go-together links</a> /
+                    {{ category.name }}
+                </p>
+                <h1>Link categories for {{ category.name }}</h1>
+                <p>
+                    Choose categories that shoppers often buy alongside
+                    <strong>{{ category.get_breadcrumb }}</strong>.
+                    Links work both ways — if handbags go with makeup, makeup also goes with handbags.
+                </p>
+            </div>
+            <a href="{% url 'core:category_go_together_list' %}" class="btn btn-outline">Back to overview</a>
+        </div>
+
+        <div class="admin-card category-preferences-card">
+            <form method="post" class="category-preferences-form">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="form-errors">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <p class="category-preferences-hint">
+                    Example: for <strong>Ladies Handbags</strong>, select <strong>Women Wrist Bands</strong>
+                    and <strong>Makeup</strong>. Related products on the storefront will use these links.
+                </p>
+
+                <ul class="category-preferences-list go-together-picker-list">
+                    {% for category_item, depth in category_tree %}
+                    {% if category_item.pk != category.pk %}
+                    <li class="category-preferences-item" style="--pref-depth: {{ depth }}">
+                        <label class="category-preferences-label">
+                            <input
+                                type="checkbox"
+                                name="linked_categories"
+                                value="{{ category_item.id }}"
+                                {% if category_item.id in selected_category_ids %}checked{% endif %}
+                            >
+                            <span class="category-preferences-name">{{ category_item.name }}</span>
+                            {% if depth > 0 %}
+                            <span class="go-together-chip go-together-chip-muted">{{ category_item.get_breadcrumb }}</span>
+                            {% endif %}
+                        </label>
+                    </li>
+                    {% endif %}
+                    {% empty %}
+                    <li class="empty-state">No other categories available yet.</li>
+                    {% endfor %}
+                </ul>
+
+                <div class="category-preferences-actions">
+                    <button type="submit" class="btn btn-primary">Save go-together links</button>
+                    <a href="{% url 'core:category_go_together_list' %}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

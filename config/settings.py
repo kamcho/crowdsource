@@ -30,6 +30,7 @@ SECRET_KEY = os.environ.get(
 )
 
 DEBUG = _env_bool('DEBUG', 'true')
+FRIENDLY_ERRORS = _env_bool('FRIENDLY_ERRORS', 'true')
 
 ALLOWED_HOSTS = _env_list(
     'ALLOWED_HOSTS',
@@ -71,6 +72,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'home.middleware.FriendlyErrorsMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -228,9 +230,22 @@ TWILIO_FROM_NUMBER = os.environ.get('TWILIO_FROM_NUMBER', '').strip()
 # Email
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '').strip()
 
-# OpenAI — product import wizard
+# OpenAI — product import wizard + WhatsApp intent
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '').strip()
 OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4o-mini').strip()
+
+# WhatsApp Cloud API — customer support bot
+WHATSAPP_ENABLED = _env_bool('WHATSAPP_ENABLED', 'true')
+WHATSAPP_BACKEND = os.environ.get('WHATSAPP_BACKEND', 'cloud').strip().lower()
+WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '').strip()
+WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN', '').strip()
+WHATSAPP_VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', '').strip()
+WHATSAPP_APP_SECRET = os.environ.get('WHATSAPP_APP_SECRET', '').strip()
+WHATSAPP_WABA_ID = os.environ.get('WHATSAPP_WABA_ID', '').strip()
+WHATSAPP_PUBLIC_BASE_URL = os.environ.get('WHATSAPP_PUBLIC_BASE_URL', '').strip().rstrip('/')
+
+# Import ops — default markup on landed cost for price suggestions
+DEFAULT_IMPORT_MARGIN_PERCENT = os.environ.get('DEFAULT_IMPORT_MARGIN_PERCENT', '16').strip()
 
 EMAIL_BACKEND = os.environ.get(
     'EMAIL_BACKEND',

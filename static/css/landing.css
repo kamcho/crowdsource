@@ -675,75 +675,6 @@
     line-height: 1.65;
 }
 
-/* ── Categories ── */
-.categories {
-    padding: 5rem 0;
-    background: var(--color-bg-subtle);
-    border-top: 1px solid var(--color-border-light);
-}
-
-.category-tree {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.category-group {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem 1.75rem;
-    box-shadow: var(--shadow-xs);
-}
-
-.category-root {
-    font-size: 1.125rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 2px solid var(--color-primary-soft);
-    color: var(--color-primary);
-}
-
-.category-columns {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1.5rem;
-}
-
-.category-column h4 {
-    font-size: 0.9375rem;
-    font-weight: 700;
-    margin-bottom: 0.65rem;
-    color: var(--color-text);
-}
-
-.category-column ul {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-}
-
-.category-column li {
-    font-size: 0.875rem;
-    color: var(--color-text-secondary);
-    padding-left: 0.75rem;
-    position: relative;
-}
-
-.category-column li::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0.55em;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: var(--color-text-muted);
-}
-
 /* ── Products ── */
 .products {
     padding: 3rem 0 5rem;
@@ -1420,13 +1351,11 @@
 }
 
 .products-section-hint-mobile,
-.categories-section-hint-mobile,
 .products-categories-mobile-btn {
     display: none;
 }
 
-.products-section-hint-desktop,
-.categories-section-hint-desktop {
+.products-section-hint-desktop {
     display: block;
 }
 
@@ -1572,13 +1501,11 @@
         display: none;
     }
 
-    .products-section-hint-desktop,
-    .categories-section-hint-desktop {
+    .products-section-hint-desktop {
         display: none;
     }
 
-    .products-section-hint-mobile,
-    .categories-section-hint-mobile {
+    .products-section-hint-mobile {
         display: block;
     }
 
@@ -1592,14 +1519,6 @@
         max-width: none;
         min-width: 0;
         width: 100%;
-    }
-
-    #categories .categories-preview {
-        display: none;
-    }
-
-    #categories {
-        padding: 3rem 0;
     }
 
     .category-browse-sidebar {

@@ -225,10 +225,4 @@
             closeDrawer();
         }
     });
-
-    if (window.location.hash === '#categories') {
-        window.addEventListener('load', function () {
-            openDrawer('');
-        });
-    }
 })();

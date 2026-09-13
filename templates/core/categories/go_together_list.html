@@ -1,0 +1,90 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Go-Together Categories — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb">
+                    <a href="{% url 'core:admin_dashboard' %}">Dashboard</a> /
+                    <a href="{% url 'core:category_list' %}">Categories</a> /
+                    Go-together links
+                </p>
+                <h1>Go-together categories</h1>
+                <p>
+                    Link categories that pair well for cross-selling — e.g. ladies handbags with
+                    women wrist bands and makeup.
+                </p>
+            </div>
+            <a href="{% url 'core:category_list' %}" class="btn btn-outline">All categories</a>
+        </div>
+
+        <div class="admin-card go-together-summary-card">
+            <p class="go-together-summary">
+                <strong>{{ linked_pair_count }}</strong> linked pair{{ linked_pair_count|pluralize }}
+                across <strong>{{ total_categories }}</strong> categor{{ total_categories|pluralize:"y,ies" }}.
+            </p>
+        </div>
+
+        <div class="admin-card">
+            {% if overview_rows %}
+            <div class="data-table-wrap">
+                <table class="data-table category-tree-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Goes together with</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in overview_rows %}
+                        <tr class="category-row category-row-depth-{{ row.depth }}">
+                            <td>
+                                <div class="category-name-cell" style="padding-left: {{ row.depth }}rem;">
+                                    {% if row.depth > 0 %}
+                                    <span class="category-tree-marker" aria-hidden="true">↳</span>
+                                    {% endif %}
+                                    <strong>{{ row.category.name }}</strong>
+                                    <br><span class="category-desc">{{ row.category.get_breadcrumb }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                {% if row.linked_categories %}
+                                <div class="go-together-linked-list">
+                                    {% for linked in row.linked_categories %}
+                                    <span class="go-together-chip">{{ linked.name }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <span class="go-together-empty">No links yet</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'core:category_go_together_manage' category_id=row.category.pk %}" class="btn btn-outline btn-sm">
+                                    Manage links
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-box">
+                <p>No categories yet. Add categories first, then return here to link them.</p>
+                <a href="{% url 'core:category_create' %}" class="btn btn-primary">Add category</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 
+from decimal import Decimal
+
 
 class ImportBatch(models.Model):
     class Status(models.TextChoices):
@@ -49,6 +51,32 @@ class ImportBatch(models.Model):
         blank=True,
         help_text='Factory or supplier order reference.',
     )
+    shipment = models.ForeignKey(
+        'ImportShipment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='import_batches',
+        help_text='Optional physical batch grouping many products; costs remain on each import batch.',
+    )
+    supplier_unit_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='What you paid the supplier per unit (USD).',
+    )
+    units_imported = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text='Units in this import run (defaults to pledged units if empty).',
+    )
+    target_margin_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('16.00'),
+        help_text='Suggested markup on landed cost (%).',
+    )
     estimated_arrival = models.DateField(null=True, blank=True)
     arrived_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True)
@@ -65,6 +93,12 @@ class ImportBatch(models.Model):
     @property
     def progress_percent(self):
         return self.STATUS_PROGRESS.get(self.status, 0)
+
+    @property
+    def effective_units(self):
+        from core.import_cost_services import effective_units as _effective_units
+
+        return _effective_units(self)
 
     @property
     def buyer_status_message(self):

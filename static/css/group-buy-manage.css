@@ -1,0 +1,367 @@
+/* Group buy manage — product-detail layout inside admin dashboard */
+.group-buy-manage-page.product-detail {
+    padding: 0 0 2.5rem;
+    background: #fff;
+    margin: -0.25rem -0.5rem 0;
+}
+
+.dashboard-layout .group-buy-manage-page .container-wide {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 0.5rem;
+}
+
+.group-buy-manage-page .product-gallery-sticky {
+    top: calc(56px + 1rem);
+}
+
+.group-buy-manage-page .product-detail-top {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+}
+
+.group-buy-manage-admin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin: 0 0 0.5rem;
+}
+
+.group-buy-manage-page .status-badge {
+    vertical-align: middle;
+}
+
+.group-buy-manage-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.group-buy-manage-actions .btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+}
+
+.group-buy-manage-kpi-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.875rem;
+}
+
+.group-buy-manage-kpi-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.group-buy-manage-kpi-list li:last-child {
+    border-bottom: none;
+}
+
+.group-buy-manage-kpi-list span {
+    color: var(--color-text-muted);
+}
+
+.group-buy-manage-page .product-detail-tabs {
+    margin-top: 0.5rem;
+}
+
+.group-buy-manage-tabs-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.25rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.75rem;
+}
+
+.group-buy-manage-tabs-nav a {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    padding: 0.25rem 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+}
+
+.group-buy-manage-tabs-nav a:hover {
+    color: var(--color-search);
+}
+
+.group-buy-manage-panel {
+    scroll-margin-top: calc(56px + 1rem);
+}
+
+.group-buy-manage-page .product-detail-tab-panel {
+    margin-bottom: 2rem;
+}
+
+.group-buy-manage-page .product-detail-tab-panel > h2 {
+    margin-bottom: 1rem;
+}
+
+.group-buy-manage-page .admin-card {
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: var(--radius-md, 8px);
+    padding: 1.25rem 1.35rem;
+    margin-bottom: 1.25rem;
+}
+
+.group-buy-manage-page .group-buy-manage-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 0;
+}
+
+.group-buy-manage-page .manage-table-card {
+    margin-bottom: 0;
+}
+
+.group-buy-manage-page .import-cost-panel {
+    background: linear-gradient(180deg, #f8fafc 0%, #fff 48%);
+    border: 1px solid #e2e8f0;
+    border-radius: var(--radius-md, 10px);
+    margin: 1.25rem 0;
+    padding: 1.25rem 1.35rem 1.35rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.group-buy-manage-page .import-cost-panel-head {
+    margin-bottom: 1rem;
+}
+
+.group-buy-manage-page .import-cost-panel-head .manage-subsection-title {
+    margin-bottom: 0.35rem;
+}
+
+.group-buy-manage-page .import-cost-panel-lead {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    line-height: 1.45;
+}
+
+.group-buy-manage-page .import-cost-panel-alert {
+    margin-bottom: 1rem;
+}
+
+.group-buy-manage-page .import-cost-hero {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.15rem;
+}
+
+.group-buy-manage-page .import-cost-hero-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem 1.1rem;
+    border-radius: var(--radius-sm, 8px);
+    border: 1px solid #e2e8f0;
+    background: #fff;
+}
+
+.group-buy-manage-page .import-cost-hero-suggested {
+    border-color: #bfdbfe;
+    background: #f0f9ff;
+}
+
+.group-buy-manage-page .import-cost-hero-current {
+    border-color: #e2e8f0;
+}
+
+.group-buy-manage-page .import-cost-hero-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+}
+
+.group-buy-manage-page .import-cost-hero-value {
+    font-size: 1.375rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--color-text-primary, #0f172a);
+    font-variant-numeric: tabular-nums;
+}
+
+.group-buy-manage-page .import-cost-hero-meta {
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+}
+
+.group-buy-manage-page .import-cost-margin-note.is-positive {
+    color: #047857;
+}
+
+.group-buy-manage-page .import-cost-margin-note.is-negative {
+    color: #b45309;
+}
+
+.group-buy-manage-page .import-cost-margin-note.is-warning {
+    color: #92400e;
+}
+
+.group-buy-manage-page .import-cost-breakdown-title {
+    margin: 0 0 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+}
+
+.group-buy-manage-page .import-cost-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.group-buy-manage-page .import-cost-table th,
+.group-buy-manage-page .import-cost-table td {
+    padding: 0.55rem 0;
+    border-bottom: 1px solid #eef2f6;
+    vertical-align: middle;
+}
+
+.group-buy-manage-page .import-cost-table th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    padding-right: 1rem;
+}
+
+.group-buy-manage-page .import-cost-table-amount {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    width: 7rem;
+    font-weight: 600;
+}
+
+.group-buy-manage-page .import-cost-table-detail {
+    text-align: right;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    width: 40%;
+}
+
+.group-buy-manage-page .import-cost-table-detail.muted {
+    color: var(--color-text-muted);
+}
+
+.group-buy-manage-page .import-cost-table-subtotal th,
+.group-buy-manage-page .import-cost-table-subtotal td {
+    padding-top: 0.65rem;
+}
+
+.group-buy-manage-page .import-cost-table-highlight th,
+.group-buy-manage-page .import-cost-table-highlight td {
+    border-bottom: none;
+    padding-top: 0.35rem;
+    padding-bottom: 0;
+}
+
+.group-buy-manage-page .import-cost-apply-form {
+    margin: -0.35rem 0 1rem;
+    padding: 0 0.15rem;
+}
+
+@media (max-width: 640px) {
+    .group-buy-manage-page .import-cost-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .group-buy-manage-page .import-cost-table-detail {
+        display: none;
+    }
+}
+
+.group-buy-manage-page .manage-cost-lines.formset-section {
+    margin: 1.25rem 0;
+    padding: 1rem 0 0;
+    border-top: 1px solid #eee;
+}
+
+.group-buy-manage-page .manage-cost-line {
+    position: relative;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: var(--radius-sm, 6px);
+    padding: 0.875rem 1rem 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.group-buy-manage-page .manage-cost-line.has-errors {
+    border-color: #f87171;
+}
+
+.group-buy-manage-page .manage-cost-line-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+    font-size: 0.875rem;
+}
+
+.group-buy-manage-page .manage-cost-remove-btn {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 0.15rem 0.35rem;
+}
+
+.group-buy-manage-page .manage-cost-delete-field {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.group-buy-manage-page .manage-cost-line-fields {
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) minmax(0, 1.4fr) minmax(120px, 0.9fr);
+    gap: 0.75rem 1rem;
+    align-items: end;
+}
+
+.group-buy-manage-page .manage-cost-lines [data-formset-add] {
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .group-buy-manage-page .manage-cost-line-fields {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 1024px) {
+    .group-buy-manage-page .product-detail-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .group-buy-manage-page .product-detail-top {
+        grid-template-columns: 1fr;
+    }
+
+    .group-buy-manage-page .group-buy-manage-grid {
+        grid-template-columns: 1fr;
+    }
+}

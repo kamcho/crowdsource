@@ -205,36 +205,6 @@
     </div>
 </section>
 
-<!-- Categories Section -->
-<section class="categories" id="categories">
-    <div class="container">
-        <div class="section-header">
-            <span class="section-label">Browse by category</span>
-            <h2>Shop Alibaba-style</h2>
-            <p class="categories-section-hint-desktop">Pick a parent on the left — subcategories appear in a grid on the right, Alibaba-style.</p>
-            <p class="categories-section-hint-mobile">Tap a category below or use <strong>All categories</strong> in the header.</p>
-        </div>
-
-        {% if category_nav_tree %}
-        <div class="categories-preview">
-            {% for category in category_nav_tree %}
-            <button type="button" class="category-preview-card" data-category-drawer-open data-category-slug="{{ category.slug }}">
-                <span>{{ category.name }}</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
-            {% endfor %}
-        </div>
-        <div class="categories-open-btn">
-            <button type="button" class="btn btn-primary btn-lg" data-category-drawer-open>Browse all categories</button>
-        </div>
-        {% else %}
-        <p class="empty-state">Categories coming soon.</p>
-        {% endif %}
-    </div>
-</section>
-
 <!-- Stats strip -->
 <section class="stats-strip" aria-label="Platform statistics">
     <div class="container stats-grid">

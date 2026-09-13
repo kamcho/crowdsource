@@ -1,0 +1,559 @@
+{% extends 'dashboard/admin_base.html' %}
+
+{% load static currency_tags %}
+
+
+
+{% block title %}{{ shipment.name }} — Import shipment{% endblock %}
+
+{% block topbar_title %}{{ shipment.name }}{% endblock %}
+
+
+
+{% block extra_css %}
+
+<link rel="stylesheet" href="{% static 'css/import-shipment-manage.css' %}">
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<section class="admin-section shipment-manage-page">
+
+    <nav class="shipment-manage-breadcrumb" aria-label="Breadcrumb">
+
+        <a href="{% url 'core:admin_dashboard' %}">Dashboard</a>
+
+        <span aria-hidden="true">›</span>
+
+        <a href="{% url 'core:import_shipment_list' %}">Import shipments</a>
+
+        <span aria-hidden="true">›</span>
+
+        <span>{{ shipment.name }}</span>
+
+    </nav>
+
+
+
+    <header class="shipment-manage-header">
+
+        <div>
+
+            <h1>{{ shipment.name }}</h1>
+
+            <p class="shipment-manage-subtitle">
+
+                {{ shipment_analytics.product_count }} product{{ shipment_analytics.product_count|pluralize }}
+
+                · {{ shipment_analytics.total_units }} units
+
+                · Created {{ shipment.created_at|date:"M j, Y" }}
+
+            </p>
+
+        </div>
+
+        <div class="admin-header-actions">
+
+            <a href="{% url 'core:import_shipment_list' %}" class="btn btn-outline">All shipments</a>
+
+        </div>
+
+    </header>
+
+    <div class="profile-stat-grid">
+        <article class="profile-stat-card">
+            <div class="profile-stat-top">
+                <div class="profile-stat-icon profile-stat-icon--blue" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+                </div>
+                <div class="profile-stat-value">{% money_kes shipment_analytics.landed_total %}</div>
+            </div>
+            <p class="profile-stat-label">Total landed cost</p>
+            <div class="profile-stat-footer">
+                <span>{% usd_hint shipment_analytics.landed_total %}</span>
+                <span class="profile-stat-footer-note">{{ shipment_analytics.total_units }} units</span>
+            </div>
+        </article>
+        <article class="profile-stat-card">
+            <div class="profile-stat-top">
+                <div class="profile-stat-icon profile-stat-icon--orange" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+                </div>
+                <div class="profile-stat-value">{% money_kes shipment_analytics.goods_total %}</div>
+            </div>
+            <p class="profile-stat-label">Goods (supplier)</p>
+            <div class="profile-stat-footer">
+                <span>{% usd_hint shipment_analytics.goods_total %}</span>
+                <span class="profile-stat-footer-note">Factory cost</span>
+            </div>
+        </article>
+        <article class="profile-stat-card">
+            <div class="profile-stat-top">
+                <div class="profile-stat-icon profile-stat-icon--amber" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                </div>
+                <div class="profile-stat-value">{% money_kes shipment_analytics.additional_total %}</div>
+            </div>
+            <p class="profile-stat-label">Additional charges</p>
+            <div class="profile-stat-footer">
+                <span>{% usd_hint shipment_analytics.additional_total %}</span>
+                <span class="profile-stat-footer-note">Freight &amp; customs</span>
+            </div>
+        </article>
+        <article class="profile-stat-card">
+            <div class="profile-stat-top">
+                <div class="profile-stat-icon profile-stat-icon--emerald" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <div class="profile-stat-value">{% money_kes shipment_analytics.current_revenue %}</div>
+            </div>
+            <p class="profile-stat-label">Projected revenue</p>
+            <div class="profile-stat-footer">
+                <span>Profit {% money_kes shipment_analytics.profit_at_current %}</span>
+                {% if shipment_analytics.margin_on_current_revenue %}
+                <span class="profile-stat-footer-note">{{ shipment_analytics.margin_on_current_revenue|floatformat:1 }}% margin</span>
+                {% endif %}
+            </div>
+        </article>
+    </div>
+
+
+
+    {% if shipment_analytics.landed_total %}
+
+    <div class="shipment-cost-mix">
+
+        <h2 class="shipment-cost-mix-title">Cost mix (shipment total)</h2>
+
+        <div class="shipment-cost-mix-bar" role="img" aria-label="Goods {{ shipment_analytics.goods_share_percent }}%, additional {{ shipment_analytics.additional_share_percent }}%">
+
+            <span class="shipment-cost-mix-goods" style="width: {{ shipment_analytics.goods_share_percent }}%"></span>
+
+            <span class="shipment-cost-mix-additional" style="width: {{ shipment_analytics.additional_share_percent }}%"></span>
+
+        </div>
+
+        <div class="shipment-cost-mix-legend">
+
+            <span class="legend-goods">Goods {{ shipment_analytics.goods_share_percent }}% · {% money_kes shipment_analytics.goods_total %}</span>
+
+            <span class="legend-additional">Charges {{ shipment_analytics.additional_share_percent }}% · {% money_kes shipment_analytics.additional_total %}</span>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+
+
+    {% if shipment_analytics.missing_supplier_count %}
+
+    <div class="manage-alert manage-alert-warning">
+
+        {{ shipment_analytics.missing_supplier_count }} product{{ shipment_analytics.missing_supplier_count|pluralize }} missing supplier unit cost — goods totals may be understated.
+
+    </div>
+
+    {% endif %}
+
+
+
+    <div class="shipment-manage-grid">
+
+        <div class="shipment-panel">
+
+            <h2 class="shipment-panel-title">Shipment details</h2>
+
+            <form method="post" class="admin-form" novalidate>
+
+                {% csrf_token %}
+
+                <input type="hidden" name="action" value="save_shipment">
+
+                <div class="form-group">
+
+                    <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+
+                    {{ form.name }}
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+
+                    {{ form.notes }}
+
+                </div>
+
+                <div class="admin-form-actions">
+
+                    <button type="submit" class="btn btn-primary">Save</button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+
+
+        <div class="shipment-panel">
+
+            <h2 class="shipment-panel-title">Add product to shipment</h2>
+
+            {% if add_product_picker_items %}
+
+            <form method="post" class="admin-form">
+
+                {% csrf_token %}
+
+                <input type="hidden" name="action" value="add_product">
+
+                <div class="shipment-add-product-row">
+
+                    <div class="form-group form-group-grow">
+
+                        <label for="shipment-picker-search">Search products</label>
+
+                        <div
+
+                            class="shipment-product-picker"
+
+                            data-shipment-product-picker
+
+                            data-search-url="{{ add_product_search_url }}"
+
+                            data-initial-script-id="shipment-picker-initial"
+
+                        >
+
+                            <input type="hidden" name="group_buy" value="" data-shipment-picker-value required>
+
+                            <input
+
+                                type="search"
+
+                                id="shipment-picker-search"
+
+                                class="form-input shipment-product-picker-search"
+
+                                data-shipment-picker-search
+
+                                placeholder="Product name, category, group buy #…"
+
+                                autocomplete="off"
+
+                            >
+
+                            <ul class="shipment-product-picker-list" data-shipment-picker-list hidden role="listbox" aria-label="Products"></ul>
+
+                            <div class="shipment-product-picker-selected" data-shipment-picker-selected hidden></div>
+
+                        </div>
+
+                        <p class="field-hint">Creates an import batch on the group buy if needed.</p>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <span class="sr-only">Add</span>
+
+                        <button type="submit" class="btn btn-primary">Add</button>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+            {{ add_product_picker_items|json_script:"shipment-picker-initial" }}
+
+            {% else %}
+
+            <p class="field-hint">No group buys available — <a href="{% url 'core:group_buy_list' %}">open group buys</a> or unlink products from other shipments.</p>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+
+    <div class="shipment-analytics-table-wrap">
+
+        <table class="shipment-analytics-table">
+
+            <thead>
+
+                <tr>
+
+                    <th>Product</th>
+
+                    <th class="col-num">Units</th>
+
+                    <th class="col-num">Supplier / unit</th>
+
+                    <th class="col-num">Extra charges</th>
+
+                    <th class="col-num">Landed / unit</th>
+
+                    <th class="col-num">Sell (current)</th>
+
+                    <th class="col-num">Suggested</th>
+
+                    <th class="col-num">Line profit</th>
+
+                    <th></th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for row in batch_summaries %}
+
+                {% with s=row.summary %}
+
+                <tr>
+
+                    <td>
+
+                        <div class="shipment-product-cell">
+
+                            {% if row.picker.image_url %}
+
+                            <img src="{{ row.picker.image_url }}" alt="" class="shipment-picker-thumb">
+
+                            {% else %}
+
+                            <span class="shipment-picker-thumb shipment-picker-thumb-empty"></span>
+
+                            {% endif %}
+
+                            <div>
+
+                                <span>{{ row.batch.group_buy.product.name }}</span>
+
+                                <span class="shipment-product-meta">Group buy #{{ row.batch.group_buy_id }} · {{ row.batch.get_status_display }}</span>
+
+                            </div>
+
+                        </div>
+
+                    </td>
+
+                    <td class="col-num">{{ s.units|default:"—" }}</td>
+
+                    <td class="col-num">
+
+                        <span class="analytics-kes">{% money_kes s.supplier_unit_cost %}</span>
+
+                        <span class="analytics-usd">{% usd_hint s.supplier_unit_cost %}</span>
+
+                    </td>
+
+                    <td class="col-num">
+
+                        <span class="analytics-kes">{% money_kes s.additional_costs %}</span>
+
+                        <span class="analytics-usd">{% usd_hint s.additional_costs %}</span>
+
+                    </td>
+
+                    <td class="col-num">
+
+                        <span class="analytics-kes">{% money_kes s.landed_per_unit %}</span>
+
+                        <span class="analytics-usd">{% usd_hint s.landed_per_unit %}</span>
+
+                    </td>
+
+                    <td class="col-num">
+
+                        <span class="analytics-kes">{% money_kes s.current_unit_price %}</span>
+
+                        <span class="analytics-usd">{% usd_hint s.current_unit_price %}</span>
+
+                    </td>
+
+                    <td class="col-num">
+
+                        <span class="analytics-kes">{% money_kes s.suggested_unit_price %}</span>
+
+                        <span class="analytics-usd">{% usd_hint s.suggested_unit_price %}</span>
+
+                    </td>
+
+                    <td class="col-num">
+
+                        {% if row.line_profit is not None %}
+
+                        <span class="analytics-kes">{% money_kes row.line_profit %}</span>
+
+                        <span class="analytics-usd">{% usd_hint row.line_profit %}</span>
+
+                        {% if s.margin_at_current_price %}
+
+                        {% if s.margin_at_current_price > 500 %}
+
+                        <span class="shipment-margin-pill is-warn">Check cost</span>
+
+                        {% elif s.margin_at_current_price < 0 %}
+
+                        <span class="shipment-margin-pill is-warn">{{ s.margin_at_current_price|floatformat:0 }}%</span>
+
+                        {% else %}
+
+                        <span class="shipment-margin-pill is-good">{{ s.margin_at_current_price|floatformat:0 }}%</span>
+
+                        {% endif %}
+
+                        {% endif %}
+
+                        {% else %}
+
+                        <span class="shipment-margin-pill is-muted">—</span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        <div class="shipment-row-actions">
+
+                            <a href="{% url 'core:group_buy_manage' row.batch.group_buy_id %}" class="btn btn-outline btn-sm">Edit costs</a>
+
+                            <button
+                                type="button"
+                                class="btn btn-link btn-sm"
+                                data-shipment-remove
+                                data-import-batch-id="{{ row.batch.pk }}"
+                                data-product-name="{{ row.batch.group_buy.product.name }}"
+                            >Remove</button>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endwith %}
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="9" class="manage-section-lead">No products on this shipment yet — search and add above.</td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+            {% if batch_summaries %}
+
+            <tfoot>
+
+                <tr>
+
+                    <th scope="row">Shipment total</th>
+
+                    <td class="col-num"><strong>{{ shipment_analytics.total_units }}</strong></td>
+
+                    <td class="col-num" colspan="2">
+
+                        <span class="analytics-kes">{% money_kes shipment_analytics.landed_total %}</span>
+
+                        <span class="analytics-usd">landed · {% usd_hint shipment_analytics.landed_total %}</span>
+
+                    </td>
+
+                    <td class="col-num" colspan="2"></td>
+
+                    <td class="col-num">
+
+                        <span class="analytics-kes">{% money_kes shipment_analytics.suggested_revenue %}</span>
+
+                        <span class="analytics-usd">at suggested</span>
+
+                    </td>
+
+                    <td class="col-num">
+
+                        <span class="shipment-margin-pill is-good">{% money_kes shipment_analytics.profit_at_current %}</span>
+
+                    </td>
+
+                    <td></td>
+
+                </tr>
+
+            </tfoot>
+
+            {% endif %}
+
+        </table>
+
+    </div>
+
+
+
+    <div class="shipment-manage-footer">
+
+        <form method="post" class="manage-inline-action" onsubmit="return confirm('Delete this shipment? Import batches will be unlinked, not deleted.');">
+
+            {% csrf_token %}
+
+            <input type="hidden" name="action" value="delete_shipment">
+
+            <button type="submit" class="btn btn-outline btn-sm">Delete shipment</button>
+
+        </form>
+
+    </div>
+
+    <div class="shipment-confirm-modal" id="shipment-remove-modal" hidden aria-hidden="true">
+        <div class="shipment-confirm-backdrop" data-shipment-confirm-dismiss tabindex="-1"></div>
+        <div class="shipment-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="shipment-remove-title">
+            <h3 class="shipment-confirm-title" id="shipment-remove-title">Remove product from shipment?</h3>
+            <p class="shipment-confirm-message" id="shipment-remove-message"></p>
+            <p class="shipment-confirm-hint">The import batch stays on the group buy; only the shipment link is removed.</p>
+            <form method="post" id="shipment-remove-form" class="shipment-confirm-actions">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="remove_product">
+                <input type="hidden" name="import_batch_id" value="" id="shipment-remove-batch-id">
+                <button type="button" class="btn btn-outline" data-shipment-confirm-dismiss>Cancel</button>
+                <button
+                    type="button"
+                    class="btn btn-primary shipment-hold-remove-btn"
+                    id="shipment-remove-hold-btn"
+                    aria-describedby="shipment-remove-hold-hint"
+                >
+                    <span class="shipment-hold-remove-fill" id="shipment-remove-progress" aria-hidden="true"></span>
+                    <span class="shipment-hold-remove-label" id="shipment-remove-hold-label">Hold to remove · 5s</span>
+                </button>
+            </form>
+            <p class="shipment-hold-remove-hint" id="shipment-remove-hold-hint">Press and hold the button until the bar completes.</p>
+        </div>
+    </div>
+
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/shipment-product-picker.js' %}"></script>
+<script src="{% static 'js/shipment-remove-confirm.js' %}"></script>
+{% endblock %}
+

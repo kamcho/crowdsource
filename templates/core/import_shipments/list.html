@@ -1,0 +1,55 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Import shipments — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / Import shipments</p>
+                <h1>Import shipments</h1>
+                <p class="order-card-meta">Group many SKUs on one container or air run. Each product’s costs are entered on its own group buy import batch.</p>
+            </div>
+            <div class="admin-header-actions">
+                <a href="{% url 'core:import_shipment_create' %}" class="btn btn-primary">New shipment batch</a>
+            </div>
+        </div>
+
+        <div class="admin-card manage-table-card">
+            {% if shipments %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Products in batch</th>
+                            <th>Created</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for shipment in shipments %}
+                        <tr>
+                            <td><strong>{{ shipment.name }}</strong></td>
+                            <td>{{ shipment.batch_count }}</td>
+                            <td>{{ shipment.created_at|date:"M j, Y" }}</td>
+                            <td><a href="{% url 'core:import_shipment_manage' shipment.pk %}" class="btn btn-outline btn-sm">Manage</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="manage-section-lead">No shipment batches yet. Create one, then link group buy import batches to it when several products travel together.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

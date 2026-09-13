@@ -13,6 +13,8 @@ urlpatterns = [
     path('suppliers/<int:supplier_id>/edit/', views.supplier_edit, name='supplier_edit'),
     path('categories/', views.category_list, name='category_list'),
     path('categories/create/', views.category_create, name='category_create'),
+    path('categories/<int:category_id>/go-together/', views.category_go_together_manage, name='category_go_together_manage'),
+    path('category-links/', views.category_go_together_list, name='category_go_together_list'),
     path('products/', views.product_list, name='product_list'),
     path('products/create/', views.product_create, name='product_create'),
     path('products/import/', product_import_views.product_import_list, name='product_import_list'),
@@ -38,6 +40,14 @@ urlpatterns = [
     path('group-buys/', views.group_buy_list, name='group_buy_list'),
     path('group-buys/create/', views.group_buy_create, name='group_buy_create'),
     path('group-buys/<int:group_buy_id>/', views.group_buy_manage, name='group_buy_manage'),
+    path('import-shipments/', views.import_shipment_list, name='import_shipment_list'),
+    path('import-shipments/new/', views.import_shipment_create, name='import_shipment_create'),
+    path('import-shipments/<int:shipment_id>/', views.import_shipment_manage, name='import_shipment_manage'),
+    path(
+        'import-shipments/<int:shipment_id>/group-buy-search/',
+        views.import_shipment_group_buy_search,
+        name='import_shipment_group_buy_search',
+    ),
     path('refunds/', views.refund_list, name='refund_list'),
     path('complaints/', views.complaint_list, name='complaint_list'),
 ]

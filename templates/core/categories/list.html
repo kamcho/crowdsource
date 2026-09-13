@@ -17,7 +17,10 @@
                 <h1>Categories</h1>
                 <p>Organize products in parent and subcategories, Alibaba-style.</p>
             </div>
-            <a href="{% url 'core:category_create' %}" class="btn btn-primary">Add Top-Level Category</a>
+            <div class="admin-header-actions">
+                <a href="{% url 'core:category_go_together_list' %}" class="btn btn-outline">Go-together categories</a>
+                <a href="{% url 'core:category_create' %}" class="btn btn-primary">Add Top-Level Category</a>
+            </div>
         </div>
 
         <div class="admin-card">
@@ -57,6 +60,9 @@
                             <td>
                                 <a href="{% url 'core:category_create' %}?parent={{ category.pk }}" class="btn btn-outline btn-sm">
                                     Add Subcategory
+                                </a>
+                                <a href="{% url 'core:category_go_together_manage' category_id=category.pk %}" class="btn btn-outline btn-sm">
+                                    Go-together
                                 </a>
                             </td>
                         </tr>

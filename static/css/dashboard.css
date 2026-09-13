@@ -411,6 +411,226 @@
 .dash-stat-trend-up { color: var(--dash-green); }
 .dash-stat-trend-down { color: #ef4444; }
 
+/* SMS-main student profile summary stat cards */
+.profile-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.profile-stat-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: box-shadow 0.2s ease;
+}
+
+.profile-stat-card:hover {
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.profile-stat-top {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.35rem;
+}
+
+.profile-stat-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.profile-stat-icon--blue {
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.profile-stat-icon--orange {
+    background: #fff7ed;
+    color: #f97316;
+}
+
+.profile-stat-icon--amber {
+    background: #fffbeb;
+    color: #f59e0b;
+}
+
+.profile-stat-icon--emerald {
+    background: #ecfdf5;
+    color: #10b981;
+}
+
+.profile-stat-value {
+    font-size: 1.375rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+
+.profile-stat-label {
+    margin: 0 0 1rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.profile-stat-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6366f1;
+}
+
+.profile-stat-footer-note {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+@media (max-width: 1024px) {
+    .profile-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .profile-stat-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* SMS-main payroll style accent stat cards (horizontal icon + value) */
+.stat-cards-accent-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card-accent {
+    border-radius: 1.25rem;
+    padding: 1.35rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card-accent:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.stat-card-accent .stat-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #fff;
+}
+
+.stat-card-accent .stat-body {
+    min-width: 0;
+}
+
+.stat-card-accent .stat-value {
+    margin: 0;
+    font-size: 1.375rem;
+    font-weight: 800;
+    color: #1e293b;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-card-accent .stat-label {
+    margin: 0.3rem 0 0;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+}
+
+.stat-card-accent .stat-sub {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.stat-card-accent--blue {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 70%);
+    border: 1px solid rgba(59, 130, 246, 0.28);
+}
+
+.stat-card-accent--blue .stat-icon {
+    background: #3b82f6;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+}
+
+.stat-card-accent--orange {
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 70%);
+    border: 1px solid rgba(249, 115, 22, 0.28);
+}
+
+.stat-card-accent--orange .stat-icon {
+    background: #f97316;
+    box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+}
+
+.stat-card-accent--amber {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 70%);
+    border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
+.stat-card-accent--amber .stat-icon {
+    background: #f59e0b;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+.stat-card-accent--emerald {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 70%);
+    border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.stat-card-accent--emerald .stat-icon {
+    background: #10b981;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+@media (max-width: 1024px) {
+    .stat-cards-accent-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .stat-cards-accent-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Chart panels */
 .dash-panels-row {
     display: grid;
