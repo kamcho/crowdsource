@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN
 
 from django.conf import settings
+from django.db import transaction
 
 from core.import_batch import ImportBatch
 
@@ -129,3 +130,99 @@ def build_shipment_analytics(batch_summaries: list) -> dict:
                 (analytics['profit_at_current'] / analytics['current_revenue']) * Decimal('100'),
             )
     return analytics
+
+
+def split_amount_by_unit_weights(total_amount: Decimal, unit_counts: list[int]) -> list[Decimal]:
+    """
+    Split a USD total across lines in proportion to unit counts.
+    Returned amounts sum exactly to total_amount (largest-remainder cents).
+    """
+    if total_amount <= 0:
+        return []
+    if not unit_counts:
+        return []
+    total_units = sum(unit_counts)
+    if total_units <= 0:
+        raise ValueError('Cannot split cost without positive unit counts on selected products.')
+
+    total_amount = _quantize_money(total_amount)
+    shares: list[Decimal] = []
+    remainders: list[Decimal] = []
+    running = Decimal('0')
+    for units in unit_counts:
+        exact = total_amount * Decimal(units) / Decimal(total_units)
+        floored = exact.quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+        shares.append(floored)
+        remainders.append(exact - floored)
+        running += floored
+
+    cents_left = int((total_amount - running) / Decimal('0.01'))
+    if cents_left > 0:
+        order = sorted(range(len(unit_counts)), key=lambda i: remainders[i], reverse=True)
+        for i in range(cents_left):
+            shares[order[i % len(order)]] += Decimal('0.01')
+
+    return [_quantize_money(share) for share in shares]
+
+
+@transaction.atomic
+def apply_shipment_shared_cost_split(
+    shipment,
+    import_batch_ids: list[int],
+    *,
+    cost_type: str,
+    total_amount: Decimal,
+    description: str = '',
+) -> dict:
+    """
+    Record one shared shipment charge and allocate it to import batches by unit share.
+    Creates ImportShipmentSharedCost plus ImportBatchAdditionalCost on each batch.
+    """
+    from core.import_cost import ImportBatchAdditionalCost, ImportShipmentSharedCost
+
+    batches = list(
+        ImportBatch.objects.filter(pk__in=import_batch_ids, shipment=shipment)
+        .select_related('group_buy')
+        .order_by('pk'),
+    )
+    if not batches:
+        raise ValueError('Select at least one product on this shipment.')
+
+    unit_counts = [effective_units(batch) for batch in batches]
+    if sum(unit_counts) <= 0:
+        raise ValueError(
+            'Selected products have no units — set units imported or ensure group buys have pledges.',
+        )
+
+    shares = split_amount_by_unit_weights(_quantize_money(total_amount), unit_counts)
+    note = (description or '').strip()
+    shared = ImportShipmentSharedCost.objects.create(
+        shipment=shipment,
+        cost_type=cost_type,
+        description=note,
+        amount=_quantize_money(total_amount),
+    )
+
+    allocations = []
+    for batch, share in zip(batches, shares):
+        line_description = note
+        if not line_description:
+            line_description = f'Split from shipment shared charge (${shared.amount})'
+        ImportBatchAdditionalCost.objects.create(
+            import_batch=batch,
+            cost_type=cost_type,
+            description=line_description[:255],
+            amount=share,
+        )
+        allocations.append({
+            'import_batch_id': batch.pk,
+            'product_name': batch.group_buy.product.name,
+            'units': effective_units(batch),
+            'amount': share,
+        })
+
+    return {
+        'shared_cost_id': shared.pk,
+        'total_amount': shared.amount,
+        'allocations': allocations,
+    }

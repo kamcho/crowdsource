@@ -29,6 +29,7 @@ from .forms import (
     ImportBatchAdditionalCostFormSet,
     ImportShipmentForm,
     ImportShipmentAddProductForm,
+    ShipmentSharedCostSplitForm,
     ProductAttributeForm,
     RefundCreateForm,
     SupplierForm,
@@ -48,7 +49,11 @@ from .fulfillment import Fulfillment
 from .fulfillment_services import create_fulfillment_for_order
 from .import_batch import ImportBatch
 from .import_cost import ImportShipment
-from .import_cost_services import build_batch_cost_summary, build_shipment_analytics
+from .import_cost_services import (
+    apply_shipment_shared_cost_split,
+    build_batch_cost_summary,
+    build_shipment_analytics,
+)
 from .import_services import (
     create_import_batch,
     group_buys_available_for_shipment,
@@ -59,6 +64,13 @@ from .import_shipment_picker import (
     filter_group_buys_for_search,
     group_buy_picker_items,
 )
+from .import_shipment_parse import (
+    apply_parsed_costing_to_batches,
+    match_parsed_lines_to_batches,
+    parse_supplier_order_paste,
+    serialize_supplier_paste_rows,
+)
+from .openai_product_import import is_openai_configured
 from .models import Category, Product
 from .supplier import Supplier
 from .order import Order
@@ -1161,6 +1173,113 @@ def import_shipment_manage(request, shipment_id):
             messages.success(request, f'Removed "{batch.group_buy.product.name}" from this shipment.')
             return redirect('core:import_shipment_manage', shipment_id=shipment.pk)
 
+        if action == 'parse_supplier_paste':
+            raw = request.POST.get('supplier_paste', '')
+            use_ai = request.POST.get('use_ai') == '1'
+            session_key = f'import_shipment_supplier_paste_{shipment.pk}'
+            parsed = None
+            try:
+                parsed = parse_supplier_order_paste(raw, use_ai=use_ai)
+            except RuntimeError as exc:
+                messages.error(request, str(exc))
+            if parsed is not None:
+                if not parsed:
+                    messages.warning(
+                        request,
+                        'No order lines found. Paste blocks with title, USD/piece, quantity, and line total.',
+                    )
+                    request.session[session_key] = {'rows': [], 'raw': raw}
+                else:
+                    batches = list(shipment.import_batches.select_related('group_buy__product'))
+                    matched = match_parsed_lines_to_batches(parsed, batches)
+                    request.session[session_key] = {
+                        'rows': serialize_supplier_paste_rows(matched),
+                        'raw': raw,
+                    }
+                    matched_count = sum(1 for row in matched if row.get('import_batch_id'))
+                    messages.success(
+                        request,
+                        f'Parsed {len(matched)} line(s); {matched_count} matched to products on this shipment.',
+                    )
+            return redirect('core:import_shipment_manage', shipment_id=shipment.pk)
+
+        if action == 'apply_supplier_paste':
+            from decimal import Decimal
+
+            session_key = f'import_shipment_supplier_paste_{shipment.pk}'
+            data = request.session.get(session_key)
+            if not data or not data.get('rows'):
+                messages.error(request, 'Parse supplier order text first.')
+                return redirect('core:import_shipment_manage', shipment_id=shipment.pk)
+            valid_batch_ids = set(
+                shipment.import_batches.values_list('pk', flat=True)
+            )
+            selected = {str(i) for i in request.POST.getlist('paste_row')}
+            rows_to_apply = []
+            for index, row in enumerate(data['rows']):
+                if str(index) not in selected:
+                    continue
+                batch_id = request.POST.get(f'paste_batch_{index}', '').strip()
+                if batch_id:
+                    try:
+                        batch_id = int(batch_id)
+                    except ValueError:
+                        batch_id = None
+                else:
+                    batch_id = row.get('import_batch_id')
+                if not batch_id or batch_id not in valid_batch_ids:
+                    continue
+                rows_to_apply.append({
+                    'import_batch_id': batch_id,
+                    'supplier_unit_cost': Decimal(row['supplier_unit_cost']),
+                    'units': int(row['units']),
+                })
+            updated = apply_parsed_costing_to_batches(rows_to_apply, shipment)
+            if updated:
+                messages.success(
+                    request,
+                    f'Updated supplier cost and units on {updated} product(s). '
+                    'Add freight and customs on each product’s group buy page.',
+                )
+                request.session.pop(session_key, None)
+            else:
+                messages.warning(request, 'No matched rows were applied — check selections and product names.')
+            return redirect('core:import_shipment_manage', shipment_id=shipment.pk)
+
+        if action == 'clear_supplier_paste':
+            request.session.pop(f'import_shipment_supplier_paste_{shipment.pk}', None)
+            return redirect('core:import_shipment_manage', shipment_id=shipment.pk)
+
+        if action == 'apply_shared_cost_split':
+            split_form = ShipmentSharedCostSplitForm(request.POST)
+            batch_ids = request.POST.getlist('shared_cost_batch')
+            if not batch_ids:
+                messages.error(request, 'Select at least one product in the table (checkboxes).')
+                return redirect('core:import_shipment_manage', shipment_id=shipment.pk)
+            if split_form.is_valid():
+                try:
+                    result = apply_shipment_shared_cost_split(
+                        shipment,
+                        [int(pk) for pk in batch_ids],
+                        cost_type=split_form.cleaned_data['cost_type'],
+                        total_amount=split_form.cleaned_data['amount'],
+                        description=split_form.cleaned_data.get('description') or '',
+                    )
+                except (ValueError, TypeError) as exc:
+                    messages.error(request, str(exc))
+                else:
+                    parts = ', '.join(
+                        f'{a["product_name"]} ${a["amount"]} ({a["units"]} u)'
+                        for a in result['allocations']
+                    )
+                    messages.success(
+                        request,
+                        f'Split ${result["total_amount"]} across {len(result["allocations"])} product(s): {parts}',
+                    )
+            else:
+                messages.error(request, 'Fix the shared charge form and try again.')
+            return redirect('core:import_shipment_manage', shipment_id=shipment.pk)
+
         form = ImportShipmentForm(request.POST, instance=shipment)
         if form.is_valid():
             form.save()
@@ -1190,6 +1309,18 @@ def import_shipment_manage(request, shipment_id):
 
     shipment_analytics = build_shipment_analytics(batch_summaries)
 
+    paste_session = request.session.get(f'import_shipment_supplier_paste_{shipment.pk}', {})
+    supplier_paste_preview = paste_session.get('rows') or []
+    supplier_paste_raw = paste_session.get('raw', '')
+
+    shipment_paste_batch_choices = [
+        {
+            'id': item['batch'].pk,
+            'name': item['batch'].group_buy.product.name,
+        }
+        for item in batch_summaries
+    ]
+
     return render(request, 'core/import_shipments/manage.html', {
         'shipment': shipment,
         'form': form,
@@ -1202,6 +1333,11 @@ def import_shipment_manage(request, shipment_id):
         'batch_summaries': batch_summaries,
         'total_units': shipment.total_units,
         'shipment_analytics': shipment_analytics,
+        'openai_configured': is_openai_configured(),
+        'supplier_paste_preview': supplier_paste_preview,
+        'supplier_paste_raw': supplier_paste_raw,
+        'shipment_paste_batch_choices': shipment_paste_batch_choices,
+        'shared_cost_split_form': ShipmentSharedCostSplitForm(),
     })
 
 

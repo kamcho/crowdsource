@@ -32,6 +32,10 @@ Replace placeholders throughout:
 
 ## 2. One-time server setup
 
+**Fast path (recommended):** after cloning the repo on the droplet, run `deploy/bootstrap.sh` — see [deploy/TOMORROW.md](./deploy/TOMORROW.md).
+
+**Manual path:**
+
 ```bash
 apt update && apt upgrade -y
 apt install -y python3 python3-venv python3-dev build-essential \

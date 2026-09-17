@@ -122,12 +122,30 @@
     font-weight: 700;
 }
 
+.shipment-charges-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 0.15rem;
+}
+
+.shipment-charges-legend-swatch {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 3px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    flex-shrink: 0;
+}
+
 .shipment-analytics-table-wrap {
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     overflow: hidden;
     margin-bottom: 1rem;
+    padding: 0.75rem 0.85rem 0.85rem;
 }
 
 .shipment-analytics-table {
@@ -161,6 +179,14 @@
 
 .shipment-analytics-table tbody tr:hover {
     background: #fafbfc;
+}
+
+.shipment-analytics-table tbody tr.shipment-row-missing-charges {
+    background: #fef2f2;
+}
+
+.shipment-analytics-table tbody tr.shipment-row-missing-charges:hover {
+    background: #fee2e2;
 }
 
 .shipment-analytics-table tfoot th,
@@ -361,5 +387,160 @@
 
     .shipment-analytics-table {
         min-width: 720px;
+    }
+}
+
+.shipment-paste-panel {
+    margin-bottom: 1.25rem;
+}
+
+.shipment-paste-intro {
+    margin: 0 0 1rem;
+    max-width: 52rem;
+}
+
+.shipment-paste-textarea {
+    width: 100%;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+}
+
+.shipment-paste-ai-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    margin-bottom: 0.75rem;
+    color: var(--color-text-secondary);
+}
+
+.shipment-paste-preview-title {
+    margin: 1.25rem 0 0.65rem;
+    font-size: 0.9375rem;
+}
+
+.shipment-paste-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.shipment-paste-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.shipment-paste-table th,
+.shipment-paste-table td {
+    padding: 0.55rem 0.65rem;
+    border-bottom: 1px solid #f1f5f9;
+    text-align: left;
+    vertical-align: top;
+}
+
+.shipment-paste-table .col-num {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.shipment-paste-table .col-check {
+    width: 2.5rem;
+    text-align: center;
+}
+
+.shipment-paste-row-unmatched {
+    background: #fffbeb;
+}
+
+.shipment-paste-title-cell {
+    max-width: 14rem;
+}
+
+.shipment-paste-match-cell {
+    min-width: 12rem;
+}
+
+.shipment-paste-batch-select {
+    width: 100%;
+    max-width: 18rem;
+    font-size: 0.8125rem;
+    padding: 0.35rem 0.5rem;
+}
+
+.shipment-paste-auto-hint {
+    margin: 0.35rem 0 0;
+}
+
+.shipment-paste-apply-actions {
+    margin-top: 0.75rem;
+}
+
+.shipment-paste-clear-form {
+    margin-top: 0.5rem;
+}
+
+.shipment-charges-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    margin-bottom: 0.65rem;
+}
+
+.shipment-charges-toolbar .shipment-charges-legend {
+    margin: 0;
+    flex: 1 1 14rem;
+}
+
+.shipment-confirm-dialog--wide {
+    max-width: 34rem;
+}
+
+.shipment-shared-cost-modal-actions {
+    margin-top: 0.25rem;
+}
+
+body.shipment-modal-open {
+    overflow: hidden;
+}
+
+.shipment-row-actions .btn-accent-charges {
+    border-color: #f87171;
+    color: #b91c1c;
+    background: #fef2f2;
+}
+
+.shipment-row-actions .btn-accent-charges:hover {
+    background: #fee2e2;
+}
+
+.shipment-shared-cost-fields {
+    display: grid;
+    grid-template-columns: minmax(10rem, 1fr) minmax(8rem, 12rem) minmax(12rem, 2fr);
+    gap: 0.75rem 1rem;
+    align-items: end;
+    margin-bottom: 0.5rem;
+}
+
+.shipment-shared-cost-preview {
+    margin: 0 0 0.75rem;
+    padding: 0.5rem 0.65rem;
+    background: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+.shipment-analytics-table .col-check {
+    width: 2.5rem;
+    text-align: center;
+    vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+    .shipment-shared-cost-fields {
+        grid-template-columns: 1fr;
     }
 }

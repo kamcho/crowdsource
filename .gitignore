@@ -4,6 +4,8 @@ __pycache__/
 *.pyd
 .Python
 db.sqlite3
+db.sqlite3.backup
+deploy/datadump.json
 .env
 .venv/
 venv/

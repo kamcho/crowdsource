@@ -287,13 +287,219 @@
 
 
 
+    <div class="shipment-panel shipment-paste-panel">
+
+        <h2 class="shipment-panel-title">Paste supplier order</h2>
+
+        <p class="field-hint shipment-paste-intro">
+
+            Paste Alibaba-style lines (product title, <code>USD … /Pieces</code>, quantity, line total).
+
+            We match titles to products on this shipment and fill <strong>supplier unit cost</strong> and <strong>units</strong> — then add freight and customs on each product’s <a href="{% url 'core:group_buy_list' %}">group buy</a> page.
+
+        </p>
+
+        <form method="post" class="admin-form shipment-paste-form">
+
+            {% csrf_token %}
+
+            <input type="hidden" name="action" value="parse_supplier_paste">
+
+            <div class="form-group">
+
+                <label for="supplier-paste-input">Order text</label>
+
+                <textarea id="supplier-paste-input" name="supplier_paste" class="form-input shipment-paste-textarea" rows="10" placeholder="Product title&#10;&#10;-&#10;USD 1.38 /Pieces&#10;4&#10;USD 5.52">{{ supplier_paste_raw }}</textarea>
+
+            </div>
+
+            {% if openai_configured %}
+
+            <label class="shipment-paste-ai-label">
+
+                <input type="checkbox" name="use_ai" value="1">
+
+                Use AI if the format doesn’t match (regex runs first)
+
+            </label>
+
+            {% endif %}
+
+            <div class="admin-form-actions">
+
+                <button type="submit" class="btn btn-outline">Parse &amp; match products</button>
+
+            </div>
+
+        </form>
+
+
+
+        {% if supplier_paste_preview %}
+
+        <form method="post" class="admin-form shipment-paste-apply-form">
+
+            {% csrf_token %}
+
+            <input type="hidden" name="action" value="apply_supplier_paste">
+
+            <h3 class="shipment-paste-preview-title">Preview — apply to shipment</h3>
+
+            <div class="shipment-paste-table-wrap">
+
+                <table class="shipment-paste-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th class="col-check"><span class="sr-only">Apply</span></th>
+
+                            <th>Pasted title</th>
+
+                            <th>Product on shipment</th>
+
+                            <th class="col-num">USD / pc</th>
+
+                            <th class="col-num">Units</th>
+
+                            <th class="col-num">Line USD</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in supplier_paste_preview %}
+
+                        <tr class="shipment-paste-row{% if not row.import_batch_id %} shipment-paste-row-unmatched{% endif %}" data-shipment-paste-row>
+
+                            <td class="col-check">
+
+                                <input type="checkbox" name="paste_row" value="{{ forloop.counter0 }}" data-shipment-paste-check {% if row.import_batch_id %}checked{% endif %}>
+
+                            </td>
+
+                            <td class="shipment-paste-title-cell">{{ row.title|truncatechars:80 }}</td>
+
+                            <td class="shipment-paste-match-cell">
+
+                                {% if shipment_paste_batch_choices %}
+
+                                <select name="paste_batch_{{ forloop.counter0 }}" class="form-input shipment-paste-batch-select" data-shipment-paste-batch aria-label="Match pasted line to product">
+
+                                    <option value="">— Pick product —</option>
+
+                                    {% for choice in shipment_paste_batch_choices %}
+
+                                    <option value="{{ choice.id }}" {% if row.import_batch_id == choice.id %}selected{% endif %}>{{ choice.name }}</option>
+
+                                    {% endfor %}
+
+                                </select>
+
+                                {% if row.matched_product_name %}
+
+                                <p class="field-hint shipment-paste-auto-hint">Auto-matched ({{ row.match_score }}) — change if wrong</p>
+
+                                {% elif not shipment_paste_batch_choices %}
+
+                                <p class="field-hint">Add products to this shipment first.</p>
+
+                                {% else %}
+
+                                <p class="field-hint">No auto match — choose from the list</p>
+
+                                {% endif %}
+
+                                {% else %}
+
+                                <p class="field-hint">Add products to this shipment first.</p>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td class="col-num">${{ row.supplier_unit_cost }}</td>
+
+                            <td class="col-num">{{ row.units }}</td>
+
+                            <td class="col-num">{% if row.line_total %}${{ row.line_total }}{% else %}—{% endif %}</td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <div class="admin-form-actions shipment-paste-apply-actions">
+
+                <button type="submit" class="btn btn-primary">Apply supplier cost &amp; units</button>
+
+            </div>
+
+        </form>
+
+        <form method="post" class="shipment-paste-clear-form">
+
+            {% csrf_token %}
+
+            <input type="hidden" name="action" value="clear_supplier_paste">
+
+            <button type="submit" class="btn btn-outline btn-sm">Clear preview</button>
+
+        </form>
+
+        {% endif %}
+
+    </div>
+
+
+
     <div class="shipment-analytics-table-wrap">
 
-        <table class="shipment-analytics-table">
+        {% if batch_summaries %}
+
+        <div class="shipment-charges-toolbar">
+
+            <p class="field-hint shipment-charges-legend">
+
+                <span class="shipment-charges-legend-swatch" aria-hidden="true"></span>
+
+                Light red = no extra charges yet. Check products (or use <strong>Set charges</strong> on a row), then open the splitter.
+
+            </p>
+
+            <button type="button" class="btn btn-primary" id="open-shared-cost-modal" disabled>
+
+                Split shared charge… (<span id="shared-cost-selected-count">0</span> selected)
+
+            </button>
+
+        </div>
+
+        {% endif %}
+
+        <table class="shipment-analytics-table" id="shipment-products-table">
 
             <thead>
 
                 <tr>
+
+                    {% if batch_summaries %}
+
+                    <th class="col-check">
+
+                        <input type="checkbox" id="shared-cost-select-all" aria-label="Select all products for shared charge" checked>
+
+                    </th>
+
+                    {% endif %}
 
                     <th>Product</th>
 
@@ -323,7 +529,18 @@
 
                 {% with s=row.summary %}
 
-                <tr>
+                <tr
+                    data-shared-cost-row
+                    data-units="{{ s.units|default:0 }}"
+                    data-product-name="{{ row.batch.group_buy.product.name|escape }}"
+                    class="{% if s and not s.additional_costs %}shipment-row-missing-charges{% endif %}"
+                >
+
+                    <td class="col-check">
+
+                        <input type="checkbox" name="shared_cost_batch" value="{{ row.batch.pk }}" form="shared-cost-split-form" class="shared-cost-batch-check" checked aria-label="Include in shared charge split">
+
+                    </td>
 
                     <td>
 
@@ -431,7 +648,14 @@
 
                         <div class="shipment-row-actions">
 
-                            <a href="{% url 'core:group_buy_manage' row.batch.group_buy_id %}" class="btn btn-outline btn-sm">Edit costs</a>
+                            <button
+                                type="button"
+                                class="btn btn-outline btn-sm{% if s and not s.additional_costs %} btn-accent-charges{% endif %}"
+                                data-open-shared-cost
+                                data-select-only="1"
+                            >Set charges</button>
+
+                            <a href="{% url 'core:group_buy_manage' row.batch.group_buy_id %}" class="btn btn-link btn-sm">All cost fields</a>
 
                             <button
                                 type="button"
@@ -453,7 +677,7 @@
 
                 <tr>
 
-                    <td colspan="9" class="manage-section-lead">No products on this shipment yet — search and add above.</td>
+                    <td colspan="{% if batch_summaries %}10{% else %}9{% endif %}" class="manage-section-lead">No products on this shipment yet — search and add above.</td>
 
                 </tr>
 
@@ -467,7 +691,7 @@
 
                 <tr>
 
-                    <th scope="row">Shipment total</th>
+                    <th scope="row" colspan="2">Shipment total</th>
 
                     <td class="col-num"><strong>{{ shipment_analytics.total_units }}</strong></td>
 
@@ -523,6 +747,72 @@
 
     </div>
 
+    <div class="shipment-confirm-modal" id="shared-cost-split-modal" hidden aria-hidden="true">
+
+        <div class="shipment-confirm-backdrop" data-shared-cost-dismiss tabindex="-1"></div>
+
+        <div class="shipment-confirm-dialog shipment-confirm-dialog--wide" role="dialog" aria-modal="true" aria-labelledby="shared-cost-split-title">
+
+            <h3 class="shipment-confirm-title" id="shared-cost-split-title">Split additional charge</h3>
+
+            <p class="shipment-confirm-message" id="shared-cost-split-subtitle">
+
+                Total fee is shared across <strong><span id="shared-cost-modal-count">0</span> selected product(s)</strong> by unit count.
+
+            </p>
+
+            <form id="shared-cost-split-form" method="post" class="admin-form shipment-shared-cost-form">
+
+                {% csrf_token %}
+
+                <input type="hidden" name="action" value="apply_shared_cost_split">
+
+                <div class="shipment-shared-cost-fields">
+
+                    <div class="form-group">
+
+                        <label for="{{ shared_cost_split_form.cost_type.id_for_label }}">{{ shared_cost_split_form.cost_type.label }}</label>
+
+                        {{ shared_cost_split_form.cost_type }}
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="{{ shared_cost_split_form.amount.id_for_label }}">{{ shared_cost_split_form.amount.label }}</label>
+
+                        {{ shared_cost_split_form.amount }}
+
+                    </div>
+
+                    <div class="form-group form-group-grow">
+
+                        <label for="{{ shared_cost_split_form.description.id_for_label }}">{{ shared_cost_split_form.description.label }}</label>
+
+                        {{ shared_cost_split_form.description }}
+
+                    </div>
+
+                </div>
+
+                <p class="shipment-shared-cost-preview field-hint" id="shared-cost-split-preview" hidden aria-live="polite"></p>
+
+                <div class="shipment-confirm-actions shipment-shared-cost-modal-actions">
+
+                    <button type="button" class="btn btn-outline" data-shared-cost-dismiss>Cancel</button>
+
+                    <button type="submit" class="btn btn-primary">Split &amp; apply</button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+
     <div class="shipment-confirm-modal" id="shipment-remove-modal" hidden aria-hidden="true">
         <div class="shipment-confirm-backdrop" data-shipment-confirm-dismiss tabindex="-1"></div>
         <div class="shipment-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="shipment-remove-title">
@@ -555,5 +845,7 @@
 {% block extra_js %}
 <script src="{% static 'js/shipment-product-picker.js' %}"></script>
 <script src="{% static 'js/shipment-remove-confirm.js' %}"></script>
+<script src="{% static 'js/shipment-paste-match.js' %}"></script>
+<script src="{% static 'js/shipment-shared-cost-split.js' %}"></script>
 {% endblock %}
 

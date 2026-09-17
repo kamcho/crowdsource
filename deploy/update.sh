@@ -48,6 +48,9 @@ sudo -u "$APP_USER" "$VENV/pip" install -r requirements.txt
 echo "==> Running migrations"
 sudo -u "$APP_USER" "$VENV/python" manage.py migrate --noinput
 
+echo "==> Django system check"
+sudo -u "$APP_USER" "$VENV/python" manage.py check
+
 echo "==> Collecting static files"
 sudo -u "$APP_USER" "$VENV/python" manage.py collectstatic --noinput
 

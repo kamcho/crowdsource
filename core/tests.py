@@ -1905,3 +1905,149 @@ class ImportCostTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('results', response.json())
 
+    def test_parse_supplier_order_paste_regex(self):
+        from decimal import Decimal
+
+        from core.import_shipment_parse import (
+            match_parsed_lines_to_batches,
+            parse_supplier_order_paste_regex,
+        )
+        from core.import_services import link_group_buy_to_shipment
+
+        raw = """Wholesale Splice Shoulder Bags Fashion PU Leather
+
+-
+USD 1.3800 /Pieces
+4.00
+USD 5.52
+
+Hot Sale Fashion All-match Popular Shoulder Bag
+
+-
+USD 2.4500 /Pieces
+4.00
+USD 9.80"""
+        rows = parse_supplier_order_paste_regex(raw)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]['units'], 4)
+        self.assertEqual(rows[0]['supplier_unit_cost'], Decimal('1.3800'))
+
+        self.product.name = 'Wholesale Splice Shoulder Bags PU Leather'
+        self.product.save()
+        link_group_buy_to_shipment(self.group_buy, self.shipment)
+        matched = match_parsed_lines_to_batches(rows, self.shipment.import_batches.all())
+        self.assertEqual(matched[0]['import_batch_id'], self.batch.pk)
+
+    def test_apply_supplier_paste_via_manage_view(self):
+        from decimal import Decimal
+
+        from core.import_services import link_group_buy_to_shipment
+
+        self.product.name = 'Summer Retro Shoulder Bag Women'
+        self.product.save()
+        link_group_buy_to_shipment(self.group_buy, self.shipment)
+        self.client.force_login(self._staff_user())
+        manage_url = reverse('core:import_shipment_manage', kwargs={'shipment_id': self.shipment.pk})
+        paste = """Summer New Arrival Single Strap Retro Shoulder Bag for Women
+
+-
+USD 2.8500 /Pieces
+3.00
+USD 8.55"""
+        response = self.client.post(manage_url, {
+            'action': 'parse_supplier_paste',
+            'supplier_paste': paste,
+        })
+        self.assertEqual(response.status_code, 302)
+        response = self.client.post(manage_url, {
+            'action': 'apply_supplier_paste',
+            'paste_row': ['0'],
+        })
+        self.assertEqual(response.status_code, 302)
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.units_imported, 3)
+        self.assertEqual(self.batch.supplier_unit_cost, Decimal('2.85'))
+
+    def test_apply_supplier_paste_manual_batch_dropdown(self):
+        from decimal import Decimal
+
+        from core.group_buy import GroupBuy
+        from core.import_services import create_import_batch, link_group_buy_to_shipment
+
+        self.product.name = 'Unrelated catalog name'
+        self.product.save()
+        gb2 = GroupBuy.objects.create(
+            product=Product.objects.create(category=self.category, name='Actual Bag SKU', is_active=True),
+            moq=20,
+            unit_price='3.00',
+            closes_at=timezone.now() + timedelta(days=7),
+        )
+        batch2 = create_import_batch(gb2)
+        link_group_buy_to_shipment(self.group_buy, self.shipment)
+        link_group_buy_to_shipment(gb2, self.shipment)
+
+        self.client.force_login(self._staff_user())
+        manage_url = reverse('core:import_shipment_manage', kwargs={'shipment_id': self.shipment.pk})
+        paste = """Solid Color Medium Square Women Underarm Bag PU
+
+-
+USD 2.9500 /Pieces
+4.00
+USD 11.80"""
+        self.client.post(manage_url, {'action': 'parse_supplier_paste', 'supplier_paste': paste})
+        response = self.client.post(manage_url, {
+            'action': 'apply_supplier_paste',
+            'paste_row': ['0'],
+            f'paste_batch_0': str(batch2.pk),
+        })
+        self.assertEqual(response.status_code, 302)
+        batch2.refresh_from_db()
+        self.assertEqual(batch2.units_imported, 4)
+        self.assertEqual(batch2.supplier_unit_cost, Decimal('2.95'))
+
+    def test_split_shared_cost_by_units(self):
+        from decimal import Decimal
+
+        from core.import_cost import ImportBatchAdditionalCost, ImportCostType
+        from core.import_cost_services import split_amount_by_unit_weights
+        from core.import_services import link_group_buy_to_shipment
+
+        shares = split_amount_by_unit_weights(Decimal('20.00'), [100, 50])
+        self.assertEqual(sum(shares), Decimal('20.00'))
+        self.assertEqual(shares[0], Decimal('13.33'))
+        self.assertEqual(shares[1], Decimal('6.67'))
+
+        self.batch.units_imported = 100
+        self.batch.save()
+        link_group_buy_to_shipment(self.group_buy, self.shipment)
+        from core.group_buy import GroupBuy
+        from core.import_services import create_import_batch
+
+        gb2 = GroupBuy.objects.create(
+            product=Product.objects.create(category=self.category, name='Bag B', is_active=True),
+            moq=20,
+            unit_price='3.00',
+            closes_at=timezone.now() + timedelta(days=7),
+        )
+        batch2 = create_import_batch(gb2)
+        batch2.units_imported = 50
+        batch2.save()
+        link_group_buy_to_shipment(gb2, self.shipment)
+
+        self.client.force_login(self._staff_user())
+        manage_url = reverse('core:import_shipment_manage', kwargs={'shipment_id': self.shipment.pk})
+        response = self.client.post(manage_url, {
+            'action': 'apply_shared_cost_split',
+            'shared_cost_batch': [str(self.batch.pk), str(batch2.pk)],
+            'cost_type': ImportCostType.INTERNATIONAL_FREIGHT,
+            'amount': '20.00',
+            'description': 'Air freight test',
+        })
+        self.assertEqual(response.status_code, 302)
+        costs = list(
+            ImportBatchAdditionalCost.objects.filter(import_batch__shipment=self.shipment)
+            .order_by('import_batch_id')
+            .values_list('amount', flat=True),
+        )
+        self.assertEqual(costs, [Decimal('13.33'), Decimal('6.67')])
+

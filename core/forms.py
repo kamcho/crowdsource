@@ -1062,6 +1062,41 @@ class ImportShipmentForm(forms.ModelForm):
         self.fields['notes'].label = 'Notes'
 
 
+class ShipmentSharedCostSplitForm(forms.Form):
+    cost_type = forms.ChoiceField(
+        choices=[],
+        widget=forms.Select(attrs={'class': 'form-input form-select'}),
+    )
+    amount = forms.DecimalField(
+        min_value=Decimal('0.01'),
+        max_digits=12,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-input',
+            'step': '0.01',
+            'min': '0.01',
+            'placeholder': 'e.g. 20.00',
+        }),
+    )
+    description = forms.CharField(
+        required=False,
+        max_length=255,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Optional note (e.g. Air freight March)',
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from core.import_cost import ImportCostType
+
+        self.fields['cost_type'].choices = ImportCostType.choices
+        self.fields['cost_type'].label = 'Charge type'
+        self.fields['amount'].label = 'Total amount (USD)'
+        self.fields['description'].label = 'Note'
+
+
 class ImportShipmentAddProductForm(forms.Form):
     group_buy = forms.ModelChoiceField(
         queryset=GroupBuy.objects.none(),
