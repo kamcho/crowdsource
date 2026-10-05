@@ -22,7 +22,8 @@ jobs:
 
       - name: Pack release
         run: |
-          tar --exclude .git --exclude .venv --exclude venv --exclude .env --exclude db.sqlite3 --exclude media --exclude staticfiles --exclude excel-tree.txt --exclude __pycache__ -czf crowdsource-release.tgz .
+          tar --exclude .git --exclude .venv --exclude venv --exclude .env --exclude db.sqlite3 --exclude media --exclude staticfiles --exclude excel-tree.txt --exclude __pycache__ -czf /tmp/crowdsource-release.tgz .
+          cp /tmp/crowdsource-release.tgz crowdsource-release.tgz
 
       - name: Upload release
         uses: appleboy/scp-action@v0.1.7
