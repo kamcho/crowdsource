@@ -1,7 +1,7 @@
 {% extends 'dashboard/user_base.html' %}
 {% load static %}
 
-{% block title %}My issues — CrowdSource Import{% endblock %}
+{% block title %}Help & issues — Kenya Imports{% endblock %}
 {% block topbar_title %}Help & issues{% endblock %}
 
 {% block extra_css %}
@@ -10,39 +10,74 @@
 {% endblock %}
 
 {% block content %}
-<section class="page-section">
+<section class="page-section complaints-page">
     <div class="container">
-        <div class="commerce-header">
-            <div>
+        <div class="user-dash-hero">
+            <div class="user-dash-welcome">
                 <h1>Help & issues</h1>
-                <p>Track complaints you have raised with our support team.</p>
+                <p>Track support requests about orders, delivery, or payments. We typically respond within one business day.</p>
             </div>
-            <a href="{% url 'complaint_create' %}" class="btn btn-primary">Report an issue</a>
+            <a href="{% url 'complaint_create' %}" class="btn btn-primary complaints-page-hero-btn">Report an issue</a>
         </div>
 
         {% if complaints %}
-        <div class="pledge-summary-bar commerce-card order-summary-bar">
-            <div class="pledge-summary-stat">
-                <span class="pledge-summary-label">Total</span>
-                <strong>{{ summary.total }}</strong>
-            </div>
-            <div class="pledge-summary-stat">
-                <span class="pledge-summary-label">Open</span>
-                <strong>{{ summary.open_count }}</strong>
-            </div>
-            <div class="pledge-summary-stat">
-                <span class="pledge-summary-label">Resolved</span>
-                <strong>{{ summary.resolved_count }}</strong>
-            </div>
+        <div class="dash-stats-grid dash-stats-grid-3 complaints-stats-grid">
+            <article class="dash-stat-card">
+                <div class="dash-stat-card-header">
+                    <div>
+                        <p class="dash-stat-label">Total issues</p>
+                        <p class="dash-stat-value">{{ summary.total }}</p>
+                    </div>
+                    <div class="dash-stat-icon dash-stat-icon-blue" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </div>
+                </div>
+                <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-blue" style="width: {% if summary.total %}100{% else %}8{% endif %}%"></div></div>
+                <p class="dash-stat-trend">All time</p>
+            </article>
+            <article class="dash-stat-card">
+                <div class="dash-stat-card-header">
+                    <div>
+                        <p class="dash-stat-label">Open / in progress</p>
+                        <p class="dash-stat-value">{{ summary.open_count }}</p>
+                    </div>
+                    <div class="dash-stat-icon dash-stat-icon-orange" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                </div>
+                <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-orange" style="width: {% if summary.open_count %}70{% else %}8{% endif %}%"></div></div>
+                <p class="dash-stat-trend">Awaiting resolution</p>
+            </article>
+            <article class="dash-stat-card">
+                <div class="dash-stat-card-header">
+                    <div>
+                        <p class="dash-stat-label">Resolved</p>
+                        <p class="dash-stat-value">{{ summary.resolved_count }}</p>
+                    </div>
+                    <div class="dash-stat-icon dash-stat-icon-green" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                </div>
+                <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-green" style="width: {% if summary.resolved_count %}85{% else %}8{% endif %}%"></div></div>
+                <p class="dash-stat-trend">Marked resolved</p>
+            </article>
+        </div>
+
+        <div class="orders-list-heading">
+            <h2>Your issues</h2>
+            <span class="orders-list-count">{{ summary.total }} issue{{ summary.total|pluralize }}</span>
         </div>
 
         <div class="complaint-card-list">
             {% for complaint in complaints %}
-            <article class="commerce-card complaint-card">
-                <div class="complaint-card-header">
-                    <div>
+            <article class="commerce-card complaint-card complaint-card-{{ complaint.status }}">
+                <div class="complaint-card-layout">
+                    <div class="complaint-card-icon" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    </div>
+                    <div class="complaint-card-main">
                         <div class="order-card-id-row">
-                            <h2><a href="{% url 'complaint_detail' complaint.pk %}">{{ complaint.subject }}</a></h2>
+                            <h3><a href="{% url 'complaint_detail' complaint.pk %}">{{ complaint.subject }}</a></h3>
                             <span class="status-badge status-badge-complaint-{{ complaint.status }}">{{ complaint.get_status_display }}</span>
                         </div>
                         <p class="order-card-meta">
@@ -52,23 +87,26 @@
                         </p>
                         {% if complaint.order %}
                         <p class="complaint-linked-order">
-                            Linked to <a href="{% url 'order_detail' complaint.order.pk %}">Order #{{ complaint.order.pk }}</a>
+                            <a href="{% url 'order_detail' complaint.order.pk %}">Order #{{ complaint.order.pk }}</a>
                             — {{ complaint.order.product.name }}
                         </p>
                         {% endif %}
+                        <p class="complaint-card-excerpt">{{ complaint.description|truncatewords:32 }}</p>
+                        <div class="complaint-card-actions">
+                            <a href="{% url 'complaint_detail' complaint.pk %}" class="btn btn-outline btn-sm">View details</a>
+                        </div>
                     </div>
-                </div>
-                <p class="complaint-card-excerpt">{{ complaint.description|truncatewords:28 }}</p>
-                <div class="commerce-actions">
-                    <a href="{% url 'complaint_detail' complaint.pk %}" class="btn btn-outline btn-sm">View details</a>
                 </div>
             </article>
             {% endfor %}
         </div>
         {% else %}
-        <div class="commerce-card commerce-empty-state">
+        <div class="commerce-card orders-empty-state complaints-empty-state">
+            <div class="orders-empty-icon" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
             <h2>No issues reported yet</h2>
-            <p>If something went wrong with an order or delivery, let us know and we will help.</p>
+            <p>If something went wrong with an order or delivery, tell us and we will help you resolve it.</p>
             <a href="{% url 'complaint_create' %}" class="btn btn-primary">Report an issue</a>
         </div>
         {% endif %}

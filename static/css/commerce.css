@@ -1301,17 +1301,116 @@
     }
 }
 
-/* Complaints */
+/* Complaints (account dashboard) */
+.complaints-page .user-dash-hero {
+    margin-bottom: 1.5rem;
+}
+
+.complaints-page-hero-btn {
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.complaints-stats-grid {
+    margin-bottom: 1.75rem;
+}
+
+.complaints-breadcrumb {
+    margin: 0 0 0.35rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.complaints-breadcrumb a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.complaints-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.complaints-create-hero {
+    margin-bottom: 1rem;
+}
+
+.complaint-form-card {
+    max-width: 720px;
+    padding: 1.5rem 1.75rem;
+}
+
+.complaint-form {
+    gap: 1.125rem;
+}
+
+.complaint-form-row {
+    grid-template-columns: 1fr 1.4fr;
+}
+
+.complaint-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+}
+
 .complaint-card-list,
 .complaint-manage-list {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
 }
 
 .complaint-card,
 .complaint-manage-card {
-    padding: 1.25rem;
+    padding: 1.25rem 1.375rem;
+    transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.complaint-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-border);
+}
+
+.complaint-card-open,
+.complaint-card-in_progress {
+    border-left: 3px solid #f59e0b;
+}
+
+.complaint-card-resolved {
+    border-left: 3px solid #10b981;
+}
+
+.complaint-card-closed {
+    border-left: 3px solid var(--color-border);
+}
+
+.complaint-card-layout {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.complaint-card-icon {
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--dash-indigo-soft, #eef2ff);
+    color: var(--dash-indigo, #4f46e5);
+}
+
+.complaint-card-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.complaint-card-actions {
+    margin-top: 0.75rem;
 }
 
 .complaint-card-header,
@@ -1320,26 +1419,81 @@
 }
 
 .complaint-card-excerpt {
-    margin: 0 0 1rem;
+    margin: 0.5rem 0 0;
     color: var(--color-text-secondary);
     line-height: 1.6;
+    font-size: 0.9375rem;
 }
 
-.complaint-linked-order,
-.complaint-linked-banner {
-    margin: 0 0 1rem;
+.complaint-linked-order {
+    margin: 0.35rem 0 0;
     font-size: 0.875rem;
     color: var(--color-text-secondary);
 }
 
+.complaint-linked-order a {
+    font-weight: 600;
+}
+
 .complaint-linked-banner {
-    padding: 0.875rem 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+    margin-bottom: 1.25rem;
+    padding: 0.875rem 1.125rem;
+    font-size: 0.9375rem;
+    background: var(--color-primary-soft);
+    border-color: #bfdbfe;
+}
+
+.complaint-linked-banner-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+}
+
+.complaint-linked-banner-sep {
+    color: var(--color-text-muted);
+}
+
+.complaints-empty-state h2 {
+    font-size: 1.25rem;
+    margin: 0 0 0.5rem;
+}
+
+.complaints-empty-state p {
+    max-width: 28rem;
+    margin: 0 auto 1.25rem;
+    color: var(--color-text-secondary);
+}
+
+.complaint-detail-card {
+    padding: 1.5rem 1.75rem;
+}
+
+.complaint-detail-head {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.complaint-detail-icon {
+    width: 3rem;
+    height: 3rem;
+}
+
+.complaint-detail-body {
+    margin-top: 0.5rem;
 }
 
 .complaint-detail-description {
     margin: 0;
     line-height: 1.7;
-    color: var(--color-text-secondary);
+    color: var(--color-text);
+    font-size: 0.9375rem;
 }
 
 .complaint-thread {
@@ -1354,18 +1508,50 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.875rem;
+    gap: 1rem;
 }
 
 .complaint-message {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.complaint-message-avatar {
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.625rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.complaint-message.is-customer .complaint-message-avatar {
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+}
+
+.complaint-message.is-staff .complaint-message-avatar {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.complaint-message-body {
+    flex: 1;
+    min-width: 0;
     padding: 0.875rem 1rem;
     border: 1px solid var(--color-border-light);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     background: #fff;
 }
 
-.complaint-message.is-staff {
-    background: #fff7f0;
+.complaint-message.is-staff .complaint-message-body {
+    background: #fffbf5;
     border-color: #fed7aa;
 }
 
@@ -1378,9 +1564,14 @@
     color: var(--color-text-muted);
 }
 
+.complaint-message-meta strong {
+    color: var(--color-text);
+}
+
 .complaint-message p {
     margin: 0;
     line-height: 1.6;
+    font-size: 0.9375rem;
 }
 
 .complaint-reply-form {
@@ -1389,10 +1580,36 @@
     border-top: 1px solid var(--color-border-light);
 }
 
+.complaint-closed-note {
+    margin: 1.25rem 0 0;
+    padding: 0.875rem 1rem;
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-subtle);
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+.complaint-detail-actions {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-border-light);
+}
+
 .complaint-staff-form {
     margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px dashed var(--color-border-light);
+}
+
+@media (max-width: 640px) {
+    .complaint-form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .complaint-card-layout {
+        flex-direction: column;
+    }
 }
 
 .status-badge-complaint-open,
