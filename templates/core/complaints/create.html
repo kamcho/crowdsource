@@ -10,65 +10,69 @@
 {% endblock %}
 
 {% block content %}
-<section class="page-section complaints-page">
-    <div class="container">
-        <div class="user-dash-hero complaints-create-hero">
-            <div class="user-dash-welcome">
-                <p class="complaints-breadcrumb"><a href="{% url 'complaint_list' %}">Help & issues</a> / Report</p>
-                <h1>Report an issue</h1>
-                <p>Describe what went wrong. Link an order if the problem is about a specific purchase.</p>
+<div class="user-dash-hero">
+    <div class="user-dash-welcome">
+        <h1>Report an issue</h1>
+        <p>Describe what went wrong. Link an order if the problem is about a specific purchase.</p>
+    </div>
+    <a href="{% url 'complaint_list' %}" class="btn btn-outline">Back to issues</a>
+</div>
+
+<section class="account-lower">
+    {% if linked_order %}
+    <div class="account-lower-card account-suggest complaint-linked-suggest">
+        <div>
+            <h2>Linked order</h2>
+            <p>
+                <a href="{% url 'order_detail' linked_order.pk %}">Order #{{ linked_order.pk }}</a>
+                — {{ linked_order.product.name }}
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="account-lower-card">
+        <div class="account-lower-head">
+            <h2>Issue details</h2>
+        </div>
+        <form method="post" class="auth-form complaint-form" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="form-errors">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="{{ form.order.id_for_label }}">{{ form.order.label }}</label>
+                {{ form.order }}
+                {% if form.order.errors %}<span class="field-error">{{ form.order.errors.0 }}</span>{% endif %}
+                <p class="form-help">Choose an order if this issue is about a specific purchase.</p>
             </div>
-        </div>
 
-        {% if linked_order %}
-        <div class="commerce-card complaint-linked-banner">
-            <span class="complaint-linked-banner-label">Linked order</span>
-            <a href="{% url 'order_detail' linked_order.pk %}">Order #{{ linked_order.pk }}</a>
-            <span class="complaint-linked-banner-sep">—</span>
-            <span>{{ linked_order.product.name }}</span>
-        </div>
-        {% endif %}
-
-        <div class="commerce-card complaint-form-card">
-            <form method="post" class="auth-form complaint-form" novalidate>
-                {% csrf_token %}
-
-                {% if form.non_field_errors %}
-                <div class="form-errors">{{ form.non_field_errors }}</div>
-                {% endif %}
-
+            <div class="form-row complaint-form-row">
                 <div class="form-group">
-                    <label for="{{ form.order.id_for_label }}">{{ form.order.label }}</label>
-                    {{ form.order }}
-                    {% if form.order.errors %}<span class="field-error">{{ form.order.errors.0 }}</span>{% endif %}
-                    <p class="form-help">Choose an order if this issue is about a specific purchase.</p>
+                    <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+                    {{ form.category }}
+                    {% if form.category.errors %}<span class="field-error">{{ form.category.errors.0 }}</span>{% endif %}
                 </div>
-
-                <div class="form-row complaint-form-row">
-                    <div class="form-group">
-                        <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
-                        {{ form.category }}
-                        {% if form.category.errors %}<span class="field-error">{{ form.category.errors.0 }}</span>{% endif %}
-                    </div>
-                    <div class="form-group">
-                        <label for="{{ form.subject.id_for_label }}">{{ form.subject.label }}</label>
-                        {{ form.subject }}
-                        {% if form.subject.errors %}<span class="field-error">{{ form.subject.errors.0 }}</span>{% endif %}
-                    </div>
-                </div>
-
                 <div class="form-group">
-                    <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
-                    {{ form.description }}
-                    {% if form.description.errors %}<span class="field-error">{{ form.description.errors.0 }}</span>{% endif %}
+                    <label for="{{ form.subject.id_for_label }}">{{ form.subject.label }}</label>
+                    {{ form.subject }}
+                    {% if form.subject.errors %}<span class="field-error">{{ form.subject.errors.0 }}</span>{% endif %}
                 </div>
+            </div>
 
-                <div class="complaint-form-actions">
-                    <button type="submit" class="btn btn-primary">Submit issue</button>
-                    <a href="{% url 'complaint_list' %}" class="btn btn-outline">Cancel</a>
-                </div>
-            </form>
-        </div>
+            <div class="form-group">
+                <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                {{ form.description }}
+                {% if form.description.errors %}<span class="field-error">{{ form.description.errors.0 }}</span>{% endif %}
+            </div>
+
+            <div class="complaint-form-actions">
+                <button type="submit" class="btn btn-primary">Submit issue</button>
+                <a href="{% url 'complaint_list' %}" class="btn btn-outline">Cancel</a>
+            </div>
+        </form>
     </div>
 </section>
 {% endblock %}

@@ -639,9 +639,30 @@ a.profile-stat-card-link:hover {
 }
 
 @media (max-width: 640px) {
-    .profile-stat-grid {
+    .profile-stat-grid,
+    .profile-stat-grid-3 {
         grid-template-columns: 1fr;
     }
+}
+
+.complaint-activity-item .account-activity-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.complaint-activity-excerpt {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.user-dash-hero > .status-badge {
+    flex-shrink: 0;
+    align-self: center;
 }
 
 /* SMS-main payroll style accent stat cards (horizontal icon + value) */

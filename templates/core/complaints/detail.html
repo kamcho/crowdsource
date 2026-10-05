@@ -10,91 +10,89 @@
 {% endblock %}
 
 {% block content %}
-<section class="page-section complaints-page">
-    <div class="container">
-        <div class="commerce-card order-detail-card complaint-detail-card">
-            <p class="complaints-breadcrumb"><a href="{% url 'complaint_list' %}">Help & issues</a> / {{ complaint.reference }}</p>
+<div class="user-dash-hero">
+    <div class="user-dash-welcome">
+        <h1>{{ complaint.subject }}</h1>
+        <p>{{ complaint.reference }} · {{ complaint.get_category_display }}</p>
+    </div>
+    <span class="status-badge status-badge-complaint-{{ complaint.status }}">{{ complaint.get_status_display }}</span>
+</div>
 
-            <div class="order-card-header order-detail-header">
-                <div class="complaint-detail-head">
-                    <div class="complaint-card-icon complaint-detail-icon" aria-hidden="true">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    </div>
-                    <div>
-                        <div class="order-card-id-row">
-                            <h1>{{ complaint.subject }}</h1>
-                            <span class="status-badge status-badge-complaint-{{ complaint.status }}">{{ complaint.get_status_display }}</span>
-                        </div>
-                        <p class="order-card-meta">
-                            <code>{{ complaint.reference }}</code>
-                            · {{ complaint.get_category_display }}
-                            · Opened {{ complaint.created_at|date:"F j, Y, g:i A" }}
-                        </p>
-                        {% if complaint.order %}
-                        <p class="complaint-linked-order">
-                            Related order:
-                            <a href="{% url 'order_detail' complaint.order.pk %}">Order #{{ complaint.order.pk }}</a>
-                            — {{ complaint.order.product.name }}
-                        </p>
-                        {% endif %}
-                    </div>
+<section class="account-lower">
+    <div class="account-lower-card">
+        <div class="account-lower-head">
+            <h2>Your report</h2>
+            <span class="account-status">Opened {{ complaint.created_at|date:"M j, Y" }}</span>
+        </div>
+        {% if complaint.order %}
+        <p class="complaint-linked-order">
+            Related order:
+            <a href="{% url 'order_detail' complaint.order.pk %}">Order #{{ complaint.order.pk }}</a>
+            — {{ complaint.order.product.name }}
+        </p>
+        {% endif %}
+        <p class="complaint-detail-description">{{ complaint.description|linebreaksbr }}</p>
+    </div>
+
+    {% if complaint.messages.all %}
+    <div class="account-lower-card">
+        <div class="account-lower-head">
+            <h2>Conversation</h2>
+        </div>
+        <ul class="complaint-message-list">
+            {% for message in complaint.messages.all %}
+            <li class="complaint-message{% if message.is_staff_reply %} is-staff{% else %} is-customer{% endif %}">
+                <div class="complaint-message-avatar" aria-hidden="true">
+                    {% if message.is_staff_reply %}CS{% else %}You{% endif %}
                 </div>
-            </div>
-
-            <div class="commerce-card-inner complaint-detail-body">
-                <h2 class="order-detail-section-title">Your report</h2>
-                <p class="complaint-detail-description">{{ complaint.description|linebreaksbr }}</p>
-            </div>
-
-            {% if complaint.messages.all %}
-            <div class="complaint-thread">
-                <h2 class="order-detail-section-title">Conversation</h2>
-                <ul class="complaint-message-list">
-                    {% for message in complaint.messages.all %}
-                    <li class="complaint-message{% if message.is_staff_reply %} is-staff{% else %} is-customer{% endif %}">
-                        <div class="complaint-message-avatar" aria-hidden="true">
-                            {% if message.is_staff_reply %}CS{% else %}You{% endif %}
-                        </div>
-                        <div class="complaint-message-body">
-                            <div class="complaint-message-meta">
-                                <strong>{% if message.is_staff_reply %}Kenya Imports support{% else %}You{% endif %}</strong>
-                                <span>{{ message.created_at|date:"M j, Y, g:i A" }}</span>
-                            </div>
-                            <p>{{ message.body|linebreaksbr }}</p>
-                        </div>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-
-            {% if complaint.is_open %}
-            <div class="complaint-reply-form">
-                <h2 class="order-detail-section-title">Add a follow-up</h2>
-                <form method="post" class="auth-form" novalidate>
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="{{ message_form.body.id_for_label }}" class="sr-only">Message</label>
-                        {{ message_form.body }}
-                        {% if message_form.body.errors %}<span class="field-error">{{ message_form.body.errors.0 }}</span>{% endif %}
+                <div class="complaint-message-body">
+                    <div class="complaint-message-meta">
+                        <strong>{% if message.is_staff_reply %}Kenya Imports support{% else %}You{% endif %}</strong>
+                        <span>{{ message.created_at|date:"M j, Y, g:i A" }}</span>
                     </div>
-                    <button type="submit" class="btn btn-primary">Send message</button>
-                </form>
-            </div>
-            {% else %}
-            <p class="complaint-closed-note">
-                This issue is marked <strong>{{ complaint.get_status_display|lower }}</strong>.
-                {% if complaint.resolved_at %}Updated {{ complaint.resolved_at|date:"F j, Y" }}.{% endif %}
-                Need more help? <a href="{% url 'complaint_create' %}">Open a new issue</a>.
-            </p>
-            {% endif %}
+                    <p>{{ message.body|linebreaksbr }}</p>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 
-            <div class="commerce-actions complaint-detail-actions">
-                <a href="{% url 'complaint_list' %}" class="btn btn-outline">Back to issues</a>
-                {% if complaint.order %}
-                <a href="{% url 'order_detail' complaint.order.pk %}" class="btn btn-primary">View order</a>
-                {% endif %}
+    {% if complaint.is_open %}
+    <div class="account-lower-card">
+        <div class="account-lower-head">
+            <h2>Add a follow-up</h2>
+        </div>
+        <form method="post" class="auth-form" novalidate>
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="{{ message_form.body.id_for_label }}">{{ message_form.body.label }}</label>
+                {{ message_form.body }}
+                {% if message_form.body.errors %}<span class="field-error">{{ message_form.body.errors.0 }}</span>{% endif %}
             </div>
+            <button type="submit" class="btn btn-primary">Send message</button>
+        </form>
+    </div>
+    {% else %}
+    <div class="account-lower-card">
+        <p class="complaint-closed-note">
+            This issue is marked <strong>{{ complaint.get_status_display|lower }}</strong>.
+            {% if complaint.resolved_at %}Updated {{ complaint.resolved_at|date:"F j, Y" }}.{% endif %}
+            Need more help? <a href="{% url 'complaint_create' %}">Open a new issue</a>.
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="account-lower-card account-suggest">
+        <div>
+            <h2>Next steps</h2>
+            <p>Return to your issue list or open the related order.</p>
+        </div>
+        <div class="complaint-detail-actions">
+            <a href="{% url 'complaint_list' %}" class="btn btn-outline">Back to issues</a>
+            {% if complaint.order %}
+            <a href="{% url 'order_detail' complaint.order.pk %}" class="btn btn-primary">View order</a>
+            {% endif %}
         </div>
     </div>
 </section>
