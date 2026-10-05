@@ -99,6 +99,10 @@ chown -R crowdsource:www-data "$APP"
 sudo -u crowdsource "$APP/.venv/bin/python" "$APP/manage.py" migrate --noinput
 sudo -u crowdsource "$APP/.venv/bin/python" "$APP/manage.py" check
 sudo -u crowdsource "$APP/.venv/bin/python" "$APP/manage.py" collectstatic --noinput
+chmod 755 /srv "$APP"
+find "$APP/staticfiles" "$APP/media" -type d -exec chmod 755 {} +
+find "$APP/staticfiles" "$APP/media" -type f -exec chmod 644 {} +
+chmod 640 "$APP/.env"
 
 cp "$APP/deploy/crowdsource.service" /etc/systemd/system/crowdsource.service
 systemctl daemon-reload
