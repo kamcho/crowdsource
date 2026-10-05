@@ -84,7 +84,11 @@ SITE_NAME=Kenya Imports
 SITE_DOMAIN=137.184.137.222:8080
 SITE_PROTOCOL=http
 PAYMENT_PROVIDER=demo
+GUNICORN_WORKERS=1
 EOF
+fi
+if ! grep -q '^GUNICORN_WORKERS=' "$APP/.env"; then
+  echo 'GUNICORN_WORKERS=1' >> "$APP/.env"
 fi
 
 chown crowdsource:www-data "$APP/.env"
@@ -189,6 +193,6 @@ fi
 
 echo "CROWDSOURCE $(systemctl is-active crowdsource)"
 echo "SMS $(systemctl is-active gunicorn)"
-curl -s -o /dev/null -w "crowd_local %{http_code}\n" http://127.0.0.1:8080/
+curl -s -o /dev/null -w "crowd_local %{http_code}\n" -H "Host: 137.184.137.222" http://127.0.0.1:8080/
 curl -s -o /dev/null -w "sms_local %{http_code}\n" -H "Host: excel-schools.com" http://127.0.0.1/
 echo "INSTALL_OK"
