@@ -14,9 +14,35 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .auth_utils import user_needs_phone_link
-from .forms import CategoryPreferencesForm, CompleteProfileForm, SignInForm, SignUpForm
+from .forms import (
+    CategoryPreferencesForm,
+    CompleteProfileForm,
+    SignInForm,
+    SignUpForm,
+    TwoFactorCodeForm,
+)
 from .google_auth import GoogleAuthError, get_or_create_user_from_google, verify_google_credential
-from .ratelimit import throttle_google_auth, throttle_login_attempt
+from .ratelimit import (
+    throttle_google_auth,
+    throttle_login_attempt,
+    throttle_two_factor_verify,
+)
+from .two_factor import (
+    SESSION_PENDING_DISABLE,
+    SESSION_PENDING_ENABLE,
+    activate_totp,
+    begin_totp_setup,
+    clear_pending_login,
+    clear_totp_setup,
+    deactivate_totp,
+    get_pending_login,
+    get_pending_setup_secret,
+    provisioning_uri,
+    qr_code_data_url,
+    set_pending_login,
+    verify_totp_secret,
+    verify_user_totp,
+)
 
 
 def _resolve_post_login_redirect(request, user, next_url=None):
@@ -40,6 +66,24 @@ def _resolve_post_login_redirect(request, user, next_url=None):
         return next_url
 
     return reverse('users:profile')
+
+
+def _user_requires_two_factor(user):
+    return bool(user.two_factor_enabled and user.totp_secret)
+
+
+def _begin_login_with_optional_2fa(request, user, backend, next_url=''):
+    if _user_requires_two_factor(user):
+        set_pending_login(request, user, backend, next_url)
+        messages.info(request, 'Enter the code from your authenticator app.')
+        verify_url = reverse('users:two_factor_verify')
+        if next_url:
+            verify_url = f'{verify_url}?{urlencode({"next": next_url})}'
+        return redirect(verify_url)
+
+    auth_login(request, user, backend=backend)
+    messages.success(request, f'Welcome back, {user.first_name}!')
+    return redirect(_resolve_post_login_redirect(request, user, next_url))
 
 
 def _auth_page_context(**extra):
@@ -101,9 +145,12 @@ def signin_view(request):
             password = form.cleaned_data['password']
             user = authenticate(request, phone=phone, password=password)
             if user is not None:
-                auth_login(request, user)
-                messages.success(request, f'Welcome back, {user.first_name}!')
-                return redirect(_resolve_post_login_redirect(request, user, next_url))
+                return _begin_login_with_optional_2fa(
+                    request,
+                    user,
+                    'users.backends.PhonePasswordBackend',
+                    next_url,
+                )
             messages.error(request, 'Invalid phone number or password.')
         else:
             messages.error(request, 'Please enter your phone number and password.')
@@ -143,6 +190,19 @@ def google_auth_view(request):
     if not user.is_active:
         return JsonResponse({'ok': False, 'error': 'This account is inactive.'}, status=403)
 
+    next_url = payload.get('next') or ''
+    if _user_requires_two_factor(user):
+        set_pending_login(
+            request,
+            user,
+            'django.contrib.auth.backends.ModelBackend',
+            next_url,
+        )
+        verify_url = reverse('users:two_factor_verify')
+        if next_url:
+            verify_url = f'{verify_url}?{urlencode({"next": next_url})}'
+        return JsonResponse({'ok': True, 'redirect': verify_url})
+
     auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
     if created:
         messages.success(request, f'Welcome, {user.first_name}!')
@@ -151,7 +211,7 @@ def google_auth_view(request):
 
     return JsonResponse({
         'ok': True,
-        'redirect': _resolve_post_login_redirect(request, user, payload.get('next')),
+        'redirect': _resolve_post_login_redirect(request, user, next_url),
     })
 
 
@@ -192,9 +252,142 @@ def complete_profile_view(request):
 
 
 def signout_view(request):
+    clear_pending_login(request)
     auth_logout(request)
     messages.success(request, 'You have been signed out.')
     return redirect('home:landing')
+
+
+def two_factor_verify_view(request):
+    if request.user.is_authenticated:
+        return redirect(_resolve_post_login_redirect(request, request.user))
+
+    user, backend, next_url = get_pending_login(request)
+    if user is None:
+        messages.error(request, 'Your sign-in session expired. Please sign in again.')
+        return redirect('users:signin')
+
+    next_url = next_url or request.GET.get('next', '')
+
+    if request.method == 'POST':
+        throttle_msg = throttle_two_factor_verify(request, user.pk)
+        if throttle_msg:
+            messages.error(request, throttle_msg)
+            form = TwoFactorCodeForm(request.POST)
+        else:
+            form = TwoFactorCodeForm(request.POST)
+            if form.is_valid():
+                ok, error = verify_user_totp(user, form.cleaned_data['code'], purpose='login')
+                if ok:
+                    clear_pending_login(request)
+                    auth_login(request, user, backend=backend)
+                    messages.success(request, f'Welcome back, {user.first_name}!')
+                    return redirect(_resolve_post_login_redirect(request, user, next_url))
+                messages.error(request, error)
+    else:
+        form = TwoFactorCodeForm()
+
+    return render(request, 'users/two_factor_verify.html', _auth_page_context(
+        form=form,
+        next=next_url,
+    ))
+
+
+@login_required(login_url='users:signin')
+def two_factor_settings_view(request):
+    user = request.user
+    pending_enable = request.session.get(SESSION_PENDING_ENABLE) == str(user.pk)
+    pending_disable = request.session.get(SESSION_PENDING_DISABLE) == str(user.pk)
+    setup_secret = get_pending_setup_secret(request, user) if pending_enable else ''
+    qr_data_url = ''
+    manual_secret = ''
+    if setup_secret:
+        uri = provisioning_uri(setup_secret, user)
+        qr_data_url = qr_code_data_url(uri)
+        manual_secret = setup_secret
+
+    if request.method == 'POST':
+        action = (request.POST.get('action') or '').strip()
+
+        if action == 'request_enable':
+            if user.two_factor_enabled:
+                messages.info(request, 'Two-factor authentication is already enabled.')
+            else:
+                begin_totp_setup(request, user)
+                messages.info(
+                    request,
+                    'Scan the QR code with Google Authenticator, Authy, or another TOTP app.',
+                )
+            return redirect('users:two_factor_settings')
+
+        elif action == 'confirm_enable':
+            setup_secret = get_pending_setup_secret(request, user)
+            if not setup_secret:
+                messages.error(request, 'Setup expired. Start again.')
+                clear_totp_setup(request)
+                return redirect('users:two_factor_settings')
+            form = TwoFactorCodeForm(request.POST)
+            if form.is_valid():
+                throttle_msg = throttle_two_factor_verify(request, user.pk)
+                if throttle_msg:
+                    messages.error(request, throttle_msg)
+                else:
+                    ok, error = verify_totp_secret(
+                        setup_secret,
+                        form.cleaned_data['code'],
+                        user.pk,
+                        'enable',
+                    )
+                    if ok:
+                        activate_totp(user, setup_secret)
+                        clear_totp_setup(request)
+                        messages.success(request, 'Authenticator app is now linked.')
+                        return redirect('users:two_factor_settings')
+                    messages.error(request, error)
+            pending_enable = True
+            uri = provisioning_uri(setup_secret, user)
+            qr_data_url = qr_code_data_url(uri)
+            manual_secret = setup_secret
+
+        elif action == 'request_disable':
+            if not user.two_factor_enabled:
+                messages.info(request, 'Two-factor authentication is not enabled.')
+            else:
+                request.session[SESSION_PENDING_DISABLE] = str(user.pk)
+                messages.info(request, 'Enter a code from your authenticator app to turn off 2FA.')
+            return redirect('users:two_factor_settings')
+
+        elif action == 'confirm_disable':
+            form = TwoFactorCodeForm(request.POST)
+            if form.is_valid():
+                throttle_msg = throttle_two_factor_verify(request, user.pk)
+                if throttle_msg:
+                    messages.error(request, throttle_msg)
+                else:
+                    ok, error = verify_user_totp(user, form.cleaned_data['code'], purpose='disable')
+                    if ok:
+                        deactivate_totp(user)
+                        request.session.pop(SESSION_PENDING_DISABLE, None)
+                        messages.success(request, 'Two-factor authentication has been turned off.')
+                        return redirect('users:two_factor_settings')
+                    messages.error(request, error)
+            pending_disable = True
+
+        elif action == 'cancel':
+            clear_totp_setup(request)
+            request.session.pop(SESSION_PENDING_DISABLE, None)
+            messages.info(request, 'Cancelled.')
+            return redirect('users:two_factor_settings')
+
+    form = TwoFactorCodeForm()
+    return render(request, 'users/two_factor_settings.html', {
+        'user': user,
+        'form': form,
+        'pending_enable': pending_enable,
+        'pending_disable': pending_disable,
+        'qr_data_url': qr_data_url,
+        'manual_secret': manual_secret,
+    })
 
 
 from .user_dashboard import get_user_dashboard_context

@@ -11,5 +11,7 @@ urlpatterns = [
     path('auth/google/', views.google_auth_view, name='google_auth'),
     path('complete-profile/', views.complete_profile_view, name='complete_profile'),
     path('profile/', views.profile_view, name='profile'),
+    path('security/2fa/', views.two_factor_settings_view, name='two_factor_settings'),
+    path('signin/verify-2fa/', views.two_factor_verify_view, name='two_factor_verify'),
     path('preferences/categories/', views.category_preferences_view, name='category_preferences'),
 ]

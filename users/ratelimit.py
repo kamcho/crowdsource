@@ -43,3 +43,27 @@ def throttle_google_auth(request):
     if check_rate_limits([(f'rl:google:ip:{ip}', 20, 15 * 60)]):
         return 'Too many Google sign-in attempts. Please wait and try again.'
     return None
+
+
+def throttle_two_factor_verify(request, user_id=''):
+    ip = get_client_ip(request)
+    limits = [
+        (f'rl:2fa:ip:{ip}', 25, 15 * 60),
+    ]
+    if user_id:
+        limits.append((f'rl:2fa:user:{user_id}', 12, 15 * 60))
+    if check_rate_limits(limits):
+        return 'Too many verification attempts. Please wait 15 minutes and try again.'
+    return None
+
+
+def throttle_two_factor_resend(request, user_id=''):
+    ip = get_client_ip(request)
+    limits = [
+        (f'rl:2fa:resend:ip:{ip}', 10, 15 * 60),
+    ]
+    if user_id:
+        limits.append((f'rl:2fa:resend:user:{user_id}', 5, 15 * 60))
+    if check_rate_limits(limits):
+        return 'Too many code requests. Please wait before trying again.'
+    return None

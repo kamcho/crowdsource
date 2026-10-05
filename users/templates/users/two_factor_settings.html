@@ -1,0 +1,78 @@
+{% extends 'dashboard/user_base.html' %}
+
+{% block title %}Two-factor authentication — CrowdSource Import{% endblock %}
+{% block topbar_title %}Security{% endblock %}
+
+{% block content %}
+<section class="account-lower">
+    <div class="account-lower-card">
+        <div class="account-lower-head">
+            <h2>Two-factor authentication (2FA)</h2>
+            {% if user.two_factor_enabled %}
+            <span class="account-status">Enabled</span>
+            {% else %}
+            <span class="account-status" style="background: var(--color-bg-subtle); color: var(--color-text-muted);">Off</span>
+            {% endif %}
+        </div>
+        <p style="margin: 0 0 1rem; color: var(--color-text-secondary); font-size: 0.875rem;">
+            Use Google Authenticator, Authy, Microsoft Authenticator, or any TOTP app.
+            After setup, sign-in also asks for a code from that app.
+        </p>
+
+        {% if user.two_factor_enabled and not pending_disable %}
+        <form method="post" class="auth-form" style="max-width: 320px;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="request_disable">
+            <button type="submit" class="btn btn-secondary">Turn off 2FA</button>
+        </form>
+        {% elif not user.two_factor_enabled and not pending_enable %}
+        <form method="post" class="auth-form" style="max-width: 320px;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="request_enable">
+            <button type="submit" class="btn btn-primary">Set up authenticator app</button>
+        </form>
+        {% endif %}
+
+        {% if pending_enable %}
+        <div class="totp-setup">
+            {% if qr_data_url %}
+            <img src="{{ qr_data_url }}" width="200" height="200" alt="QR code for authenticator setup" class="totp-qr">
+            {% endif %}
+            <p class="totp-manual-label">Or enter this key manually:</p>
+            <code class="totp-secret">{{ manual_secret }}</code>
+        </div>
+        <form method="post" class="auth-form" style="max-width: 360px; margin-top: 1rem;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="confirm_enable">
+            <div class="form-group">
+                <label for="{{ form.code.id_for_label }}">Code from your app</label>
+                {{ form.code }}
+            </div>
+            <div class="profile-actions">
+                <button type="submit" class="btn btn-primary">Confirm and enable</button>
+                <button type="submit" name="action" value="cancel" class="btn btn-outline">Cancel</button>
+            </div>
+        </form>
+        {% endif %}
+
+        {% if pending_disable %}
+        <form method="post" class="auth-form" style="max-width: 360px; margin-top: 1rem;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="confirm_disable">
+            <div class="form-group">
+                <label for="{{ form.code.id_for_label }}">Authenticator code</label>
+                {{ form.code }}
+            </div>
+            <div class="profile-actions">
+                <button type="submit" class="btn btn-primary">Confirm disable</button>
+                <button type="submit" name="action" value="cancel" class="btn btn-outline">Cancel</button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+
+    <p class="auth-switch" style="text-align: left; margin-top: 0;">
+        <a href="{% url 'users:profile' %}">Back to dashboard</a>
+    </p>
+</section>
+{% endblock %}

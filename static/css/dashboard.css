@@ -1625,6 +1625,14 @@ a.profile-stat-card-link:hover {
     word-break: break-word;
 }
 
+.account-inline-link {
+    margin-left: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
 .account-activity {
     display: flex;
     flex-direction: column;

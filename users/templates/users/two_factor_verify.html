@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Verify sign-in — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Authenticator code</h1>
+            <p>Open your authenticator app and enter the 6-digit code for this account.</p>
+        </div>
+
+        <form method="post" class="auth-form" novalidate>
+            {% csrf_token %}
+            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+            <div class="form-group">
+                <label for="{{ form.code.id_for_label }}">Verification code</label>
+                {{ form.code }}
+                {% if form.code.errors %}<span class="field-error">{{ form.code.errors.0 }}</span>{% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg">Verify and continue</button>
+        </form>
+
+        <p class="auth-switch">
+            <a href="{% url 'users:signin' %}">Back to sign in</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

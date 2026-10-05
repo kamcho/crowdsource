@@ -196,6 +196,9 @@ GOOGLE_CLIENT_IDS = [
 
 PHONENUMBER_DEFAULT_REGION = 'KE'
 
+# Authenticator-app 2FA (TOTP)
+TWO_FACTOR_ISSUER = os.environ.get('TWO_FACTOR_ISSUER', SITE_NAME).strip() or 'CrowdSource'
+
 # Payments — demo simulates instantly; mpesa uses Daraja STK push.
 PAYMENT_PROVIDER = os.environ.get('PAYMENT_PROVIDER', 'demo')
 USD_TO_KES_RATE = os.environ.get('USD_TO_KES_RATE', '135')

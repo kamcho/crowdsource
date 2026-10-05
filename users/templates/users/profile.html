@@ -105,6 +105,13 @@
                     <dd>Connected</dd>
                 </div>
                 {% endif %}
+                <div>
+                    <dt>Two-factor auth</dt>
+                    <dd>
+                        {% if user.two_factor_enabled %}Authenticator app{% else %}Off{% endif %}
+                        <a href="{% url 'users:two_factor_settings' %}" class="account-inline-link">Manage</a>
+                    </dd>
+                </div>
             </dl>
         </section>
 

@@ -131,6 +131,20 @@ class CompleteProfileForm(forms.Form):
         return cleaned
 
 
+class TwoFactorCodeForm(forms.Form):
+    code = forms.CharField(
+        label='Verification code',
+        max_length=8,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Code from authenticator app',
+            'inputmode': 'numeric',
+            'autocomplete': 'one-time-code',
+            'autofocus': True,
+        }),
+    )
+
+
 class CategoryPreferencesForm(forms.Form):
     categories = forms.ModelMultipleChoiceField(
         queryset=Category.objects.filter(is_active=True).order_by('name'),

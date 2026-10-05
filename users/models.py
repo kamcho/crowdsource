@@ -55,6 +55,16 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    two_factor_enabled = models.BooleanField(
+        default=False,
+        help_text='Require an authenticator-app code when signing in.',
+    )
+    totp_secret = models.CharField(
+        max_length=64,
+        blank=True,
+        default='',
+        help_text='Base32 secret for authenticator-app TOTP (internal).',
+    )
     date_joined = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

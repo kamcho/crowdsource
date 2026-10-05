@@ -1,9 +1,13 @@
 import json
 from unittest.mock import patch
 
+import pyotp
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+
+from users.two_factor import activate_totp, generate_totp_secret, verify_user_totp
 
 User = get_user_model()
 
@@ -126,3 +130,84 @@ class GoogleAuthTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn('Missing Google credential', response.json()['error'])
+
+
+class TwoFactorAuthTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.client = Client(enforce_csrf_checks=True)
+        self.user = User.objects.create_user(
+            phone='0711223344',
+            password='testpass123',
+            first_name='Two',
+            last_name='Factor',
+        )
+        self.secret = generate_totp_secret()
+        activate_totp(self.user, self.secret)
+        self.user.refresh_from_db()
+
+    def _sign_in_start(self):
+        return self.client.post(
+            reverse('users:signin'),
+            {'phone': '0711223344', 'password': 'testpass123'},
+            HTTP_X_CSRFTOKEN=self.client.cookies['csrftoken'].value,
+        )
+
+    def test_sign_in_without_2fa_logs_in_directly(self):
+        deactivate = User.objects.get(pk=self.user.pk)
+        deactivate.two_factor_enabled = False
+        deactivate.totp_secret = ''
+        deactivate.save(update_fields=['two_factor_enabled', 'totp_secret'])
+        self.client.get(reverse('users:signin'))
+        response = self._sign_in_start()
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(int(self.client.session['_auth_user_id']), self.user.pk)
+
+    def test_sign_in_with_2fa_redirects_to_verify(self):
+        self.client.get(reverse('users:signin'))
+        response = self._sign_in_start()
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('users:two_factor_verify'))
+        self.assertNotIn('_auth_user_id', self.client.session)
+        self.assertEqual(self.client.session['pending_2fa_user_id'], str(self.user.pk))
+
+    def test_verify_2fa_completes_login(self):
+        self.client.get(reverse('users:signin'))
+        self._sign_in_start()
+        code = pyotp.TOTP(self.secret).now()
+        response = self.client.post(
+            reverse('users:two_factor_verify'),
+            {'code': code},
+            HTTP_X_CSRFTOKEN=self.client.cookies['csrftoken'].value,
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(int(self.client.session['_auth_user_id']), self.user.pk)
+
+    def test_verify_totp_rejects_wrong_code(self):
+        ok, _ = verify_user_totp(self.user, '000000', purpose='login')
+        self.assertFalse(ok)
+
+    def test_enable_2fa_after_code_confirmation(self):
+        user = User.objects.create_user(
+            phone='0799001122',
+            password='testpass123',
+            first_name='New',
+            last_name='User',
+        )
+        setup_secret = generate_totp_secret()
+        self.client.force_login(user)
+        self.client.get(reverse('users:two_factor_settings'))
+        session = self.client.session
+        session['2fa_setup_secret'] = setup_secret
+        session['2fa_pending_enable'] = str(user.pk)
+        session.save()
+        code = pyotp.TOTP(setup_secret).now()
+        response = self.client.post(
+            reverse('users:two_factor_settings'),
+            {'action': 'confirm_enable', 'code': code},
+            HTTP_X_CSRFTOKEN=self.client.cookies['csrftoken'].value,
+        )
+        self.assertEqual(response.status_code, 302)
+        user.refresh_from_db()
+        self.assertTrue(user.two_factor_enabled)
+        self.assertEqual(user.totp_secret, setup_secret)
