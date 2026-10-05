@@ -1674,8 +1674,8 @@ a.profile-stat-card-link:hover {
 
 .account-action {
     display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
+    align-items: center;
+    gap: 0.75rem;
     padding: 0.85rem 1rem;
     background: var(--color-surface);
     border: 1px solid var(--color-border-light);
@@ -1683,6 +1683,23 @@ a.profile-stat-card-link:hover {
     box-shadow: var(--shadow-sm);
     text-decoration: none;
     color: inherit;
+}
+
+.account-action-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.account-action-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
 }
 
 .account-action:hover {
