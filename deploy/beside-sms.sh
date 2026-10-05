@@ -106,82 +106,9 @@ systemctl enable crowdsource
 systemctl restart crowdsource
 systemctl is-active --quiet crowdsource
 
-cat > /etc/nginx/sites-available/crowdsource << 'EOF'
-upstream crowdsource_app {
-    server unix:/run/crowdsource/crowdsource.sock;
-}
-
-server {
-    listen 8080;
-    listen [::]:8080;
-    server_name 137.184.137.222;
-
-    client_max_body_size 25M;
-
-    location /static/ {
-        alias /srv/crowdsource/staticfiles/;
-        access_log off;
-        expires 30d;
-    }
-
-    location /media/ {
-        alias /srv/crowdsource/media/;
-        access_log off;
-        expires 7d;
-    }
-
-    location / {
-        proxy_pass http://crowdsource_app;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_redirect off;
-        proxy_connect_timeout 120s;
-        proxy_read_timeout 120s;
-        proxy_send_timeout 120s;
-    }
-}
-
-server {
-    listen 80;
-    listen [::]:80;
-    server_name kenyaimports.com www.kenyaimports.com;
-
-    client_max_body_size 25M;
-
-    location /static/ {
-        alias /srv/crowdsource/staticfiles/;
-        access_log off;
-        expires 30d;
-    }
-
-    location /media/ {
-        alias /srv/crowdsource/media/;
-        access_log off;
-        expires 7d;
-    }
-
-    location / {
-        proxy_pass http://crowdsource_app;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_redirect off;
-        proxy_connect_timeout 120s;
-        proxy_read_timeout 120s;
-        proxy_send_timeout 120s;
-    }
-}
-EOF
-
-ln -sfn /etc/nginx/sites-available/crowdsource /etc/nginx/sites-enabled/crowdsource
 ufw allow 8080/tcp
-nginx -t
-systemctl reload nginx
+sed -i 's/\r$//' "$APP/deploy/enable-https.sh"
+bash "$APP/deploy/enable-https.sh"
 
 if [[ -n "$EXCEL_BEFORE" ]]; then
   EXCEL_AFTER="$(sha256sum "$EXCEL_NGINX")"
