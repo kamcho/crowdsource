@@ -1,0 +1,135 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static currency_tags %}
+
+{% block title %}Customers — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / Customers</p>
+                <h1>Customers</h1>
+                <p>Buyer accounts, with orders, refunds, and open complaints.</p>
+            </div>
+            <a href="{% url 'core:admin_order_list' %}" class="btn btn-outline">Orders</a>
+        </div>
+
+        <div class="profile-stat-grid">
+            <a href="?view=all{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="profile-stat-card profile-stat-card-link{% if view == 'all' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--blue" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.all }}</div>
+                </div>
+                <p class="profile-stat-label">Customers</p>
+                <div class="profile-stat-footer"><span>Buyer accounts</span><span class="profile-stat-footer-note">All</span></div>
+            </a>
+            <a href="?view=with_orders{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="profile-stat-card profile-stat-card-link{% if view == 'with_orders' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--emerald" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.with_orders }}</div>
+                </div>
+                <p class="profile-stat-label">With orders</p>
+                <div class="profile-stat-footer"><span>Have purchased</span><span class="profile-stat-footer-note">Orders</span></div>
+            </a>
+            <a href="?view=complaints{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="profile-stat-card profile-stat-card-link{% if view == 'complaints' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--amber" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.complaints }}</div>
+                </div>
+                <p class="profile-stat-label">Open complaints</p>
+                <div class="profile-stat-footer"><span>Need a reply</span><span class="profile-stat-footer-note">Open</span></div>
+            </a>
+            <a href="?view=inactive{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="profile-stat-card profile-stat-card-link{% if view == 'inactive' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--rose" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.inactive }}</div>
+                </div>
+                <p class="profile-stat-label">Inactive</p>
+                <div class="profile-stat-footer"><span>Cannot sign in</span><span class="profile-stat-footer-note">Off</span></div>
+            </a>
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <div class="dashboard-section-header">
+                <h2 class="manage-section-title">All customers</h2>
+            </div>
+            <form method="get" class="product-list-filters product-list-filters-search" role="search">
+                <input type="hidden" name="view" value="{{ view }}">
+                <div class="form-group">
+                    <label for="customer-search">Search</label>
+                    <input type="search" name="q" id="customer-search" class="form-input" value="{{ query }}" placeholder="Name, phone, or email">
+                </div>
+                <div class="product-list-filters-actions">
+                    <button type="submit" class="btn btn-outline">Search</button>
+                    {% if query %}<a href="?view={{ view }}" class="btn btn-outline">Clear</a>{% endif %}
+                </div>
+            </form>
+            <p class="product-list-filters-hint field-hint">Each word must match the name, phone, or email.</p>
+
+            {% if customers %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Phone</th>
+                            <th class="col-num">Orders</th>
+                            <th class="col-num">Paid</th>
+                            <th class="col-num">Refunds</th>
+                            <th class="col-num">Complaints</th>
+                            <th>Joined</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for customer in customers %}
+                        <tr>
+                            <td>
+                                <strong><a href="{% url 'core:customer_manage' customer.pk %}">{{ customer.get_full_name }}</a></strong>
+                                {% if customer.email %}<br><span class="category-desc">{{ customer.email }}</span>{% endif %}
+                            </td>
+                            <td>{{ customer.phone|default:"—" }}</td>
+                            <td class="col-num">{{ customer.order_count }}</td>
+                            <td class="col-num">{% money customer.paid_total %}</td>
+                            <td class="col-num">{{ customer.refund_count }}</td>
+                            <td class="col-num">{{ customer.open_complaint_count }}</td>
+                            <td>{{ customer.date_joined|date:"M j, Y" }}</td>
+                            <td>
+                                {% if customer.is_active %}
+                                <span class="status-badge status-badge-active">Active</span>
+                                {% else %}
+                                <span class="status-badge status-badge-inactive">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="table-actions">
+                                <a href="{% url 'core:customer_manage' customer.pk %}" class="btn btn-outline btn-sm">Manage</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-box">
+                <p>{% if query %}No customers match your search.{% else %}No customers in this view.{% endif %}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

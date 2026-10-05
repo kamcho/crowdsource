@@ -3,12 +3,12 @@
 [Unit]
 Description=CrowdSource Import Django (gunicorn)
 After=network.target postgresql.service
-Requires=postgresql.service
 
 [Service]
-Type=notify
+Type=simple
 User=crowdsource
 Group=www-data
+UMask=0007
 WorkingDirectory=/srv/crowdsource
 EnvironmentFile=/srv/crowdsource/.env
 

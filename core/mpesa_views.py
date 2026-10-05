@@ -10,11 +10,12 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
-from core.mpesa import MpesaAPIError, MpesaConfigError
+from core.mpesa import MpesaAPIError, MpesaConfigError, debug_mpesa
 from core.payment import Payment
 from core.payment_services import (
     default_mpesa_phone_for_user,
     ensure_mpesa_stk_push,
+    payment_status_message,
     poll_mpesa_payment_status,
     process_stk_callback_payload,
     retry_mpesa_stk_push,
@@ -42,7 +43,10 @@ def mpesa_callback(request):
 @login_required(login_url='users:signin')
 def payment_pending(request, payment_id):
     payment = get_object_or_404(
-        Payment.objects.select_related('order__group_buy__product'),
+        Payment.objects.select_related(
+            'order__group_buy__product',
+            'group_buy__product',
+        ),
         pk=payment_id,
         user=request.user,
     )
@@ -82,13 +86,20 @@ def payment_pending(request, payment_id):
         else:
             stk_needs_phone = True
 
+    product = None
+    if payment.order_id:
+        product = payment.order.group_buy.product
+    elif payment.group_buy_id:
+        product = payment.group_buy.product
+
     return render(request, 'core/payments/pending.html', {
         'payment': payment,
         'order': payment.order,
-        'product': payment.order.group_buy.product if payment.order_id else None,
+        'product': product,
         'stk_needs_phone': stk_needs_phone,
         'stk_can_retry': payment.status == Payment.Status.PENDING and payment.stk_push_initiated,
         'default_mpesa_phone': default_mpesa_phone_for_user(request.user),
+        'payment_message': payment_status_message(payment),
     })
 
 
@@ -108,8 +119,9 @@ def payment_status(request, payment_id):
 
     return JsonResponse({
         'status': payment.status,
+        'status_label': payment.get_status_display(),
         'stk_initiated': payment.stk_push_initiated,
-        'result_description': payment.result_description,
+        'result_description': payment_status_message(payment),
         'mpesa_receipt_number': payment.mpesa_receipt_number,
         'redirect_url': redirect_url,
     })

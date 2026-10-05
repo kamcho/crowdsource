@@ -517,6 +517,150 @@ body.shipment-modal-open {
     background: #fee2e2;
 }
 
+.shipment-price-player {
+    margin-top: 1.25rem;
+}
+
+.shipment-price-player-head {
+    margin-bottom: 1rem;
+}
+
+.shipment-price-player-head .field-hint {
+    margin: 0.35rem 0 0;
+    max-width: 52rem;
+}
+
+.price-player-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.price-player-mode {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.price-player-mode-option {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.price-player-uniform-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 1rem;
+}
+
+.price-player-channel {
+    margin: 0;
+    padding: 0.85rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.price-player-channel legend {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    padding: 0 0.35rem;
+}
+
+.price-player-slider-row {
+    display: grid;
+    grid-template-columns: 1fr minmax(5rem, 6rem) auto;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.price-player-slider {
+    width: 100%;
+}
+
+.price-player-number {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.price-player-unit {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+.price-player-per-line-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.price-player-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+}
+
+.price-player-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.price-player-table th,
+.price-player-table td {
+    padding: 0.55rem 0.65rem;
+    border-bottom: 1px solid #f1f5f9;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.price-player-table .col-num {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.price-player-table tfoot th,
+.price-player-table tfoot td {
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    font-weight: 600;
+}
+
+.price-player-primary {
+    display: block;
+    font-weight: 600;
+}
+
+.price-player-sub {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.price-player-override-input {
+    width: 100%;
+    min-width: 5.5rem;
+    font-size: 0.8125rem;
+    padding: 0.3rem 0.45rem;
+}
+
+.price-player-apply-form {
+    margin-top: 0.5rem;
+}
+
+.price-player-apply-form .field-hint {
+    margin: 0 0 0.5rem;
+}
+
 .shipment-shared-cost-fields {
     display: grid;
     grid-template-columns: minmax(10rem, 1fr) minmax(8rem, 12rem) minmax(12rem, 2fr);

@@ -12,61 +12,58 @@
     <div class="user-profile-avatar-lg" aria-hidden="true">{{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}</div>
 </div>
 
-<div class="dash-stats-grid">
-    <a href="{% url 'pledge_list' %}" class="dash-stat-card dash-stat-card-link">
-        <div class="dash-stat-card-header">
-            <div>
-                <p class="dash-stat-label">My bookings</p>
-                <p class="dash-stat-value">{{ user_stats.pledges }}</p>
+<div class="profile-stat-grid">
+    <a href="{% url 'pledge_list' %}" class="profile-stat-card profile-stat-card-link">
+        <div class="profile-stat-top">
+            <div class="profile-stat-icon profile-stat-icon--blue" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             </div>
-            <div class="dash-stat-icon dash-stat-icon-purple" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            </div>
+            <div class="profile-stat-value">{{ user_stats.pledges }}</div>
         </div>
-        <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-purple" style="width: {% if user_stats.pledges %}65{% else %}8{% endif %}%"></div></div>
-        <p class="dash-stat-trend"><span class="dash-view-all">View bookings →</span></p>
+        <p class="profile-stat-label">My bookings</p>
+        <div class="profile-stat-footer">
+            <span>View bookings</span>
+            <span class="profile-stat-footer-note">Group buys</span>
+        </div>
     </a>
-
-    <a href="{% url 'order_list' %}" class="dash-stat-card dash-stat-card-link">
-        <div class="dash-stat-card-header">
-            <div>
-                <p class="dash-stat-label">Paid orders</p>
-                <p class="dash-stat-value">{{ user_stats.orders }}</p>
+    <a href="{% url 'order_list' %}" class="profile-stat-card profile-stat-card-link">
+        <div class="profile-stat-top">
+            <div class="profile-stat-icon profile-stat-icon--orange" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
             </div>
-            <div class="dash-stat-icon dash-stat-icon-teal" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-            </div>
+            <div class="profile-stat-value">{{ user_stats.orders }}</div>
         </div>
-        <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-teal" style="width: {% if user_stats.orders %}55{% else %}8{% endif %}%"></div></div>
-        <p class="dash-stat-trend">{{ user_stats.pending_orders }} awaiting payment</p>
+        <p class="profile-stat-label">Paid orders</p>
+        <div class="profile-stat-footer">
+            <span>View orders</span>
+            <span class="profile-stat-footer-note">{{ user_stats.pending_orders }} awaiting payment</span>
+        </div>
     </a>
-
-    <a href="{% url 'cart_detail' %}" class="dash-stat-card dash-stat-card-link">
-        <div class="dash-stat-card-header">
-            <div>
-                <p class="dash-stat-label">Cart items</p>
-                <p class="dash-stat-value">{{ user_stats.cart_items }}</p>
+    <a href="{% url 'cart_detail' %}" class="profile-stat-card profile-stat-card-link">
+        <div class="profile-stat-top">
+            <div class="profile-stat-icon profile-stat-icon--amber" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
             </div>
-            <div class="dash-stat-icon dash-stat-icon-orange" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
-            </div>
+            <div class="profile-stat-value">{{ user_stats.cart_items }}</div>
         </div>
-        <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-orange" style="width: {% if user_stats.cart_items %}75{% else %}8{% endif %}%"></div></div>
-        <p class="dash-stat-trend"><span class="dash-view-all">Open cart →</span></p>
+        <p class="profile-stat-label">Cart items</p>
+        <div class="profile-stat-footer">
+            <span>Open cart</span>
+            <span class="profile-stat-footer-note">Ready to checkout</span>
+        </div>
     </a>
-
-    <article class="dash-stat-card">
-        <div class="dash-stat-card-header">
-            <div>
-                <p class="dash-stat-label">Member since</p>
-                <p class="dash-stat-value" style="font-size: 1.35rem;">{{ user.date_joined|date:"M Y" }}</p>
+    <article class="profile-stat-card">
+        <div class="profile-stat-top">
+            <div class="profile-stat-icon profile-stat-icon--emerald" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
-            <div class="dash-stat-icon dash-stat-icon-green" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </div>
+            <div class="profile-stat-value">{{ user.date_joined|date:"M Y" }}</div>
         </div>
-        <div class="dash-stat-bar"><div class="dash-stat-bar-fill dash-stat-bar-green" style="width: 100%"></div></div>
-        <p class="dash-stat-trend">CrowdSource member</p>
+        <p class="profile-stat-label">Member since</p>
+        <div class="profile-stat-footer">
+            <span>CrowdSource member</span>
+            <span class="profile-stat-footer-note">Active</span>
+        </div>
     </article>
 </div>
 

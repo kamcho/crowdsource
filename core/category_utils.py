@@ -61,31 +61,37 @@ def build_category_nav_tree(categories):
 def get_category_descendant_ids(category):
     from core.models import Category
 
-    ids = [category.pk]
-    for child in Category.objects.filter(parent=category, is_active=True):
-        ids.extend(get_category_descendant_ids(child))
+    rows = Category.objects.filter(is_active=True).values_list('id', 'parent_id')
+    children_by_parent = {}
+    for pk, parent_id in rows:
+        children_by_parent.setdefault(parent_id, []).append(pk)
+    ids = []
+    stack = [category.pk]
+    while stack:
+        current = stack.pop()
+        ids.append(current)
+        stack.extend(children_by_parent.get(current, []))
     return ids
 
 
 def build_category_image_map(categories):
     """Map category ids to a representative product image URL."""
-    from core.models import Product
+    from core.product_file import ProductFile
 
     by_id = {category.id: category for category in categories}
     image_map = {}
 
-    products = Product.objects.filter(
-        is_active=True,
-        category_id__in=by_id.keys(),
-    ).prefetch_related('files').order_by('category_id', 'id')
+    files = ProductFile.objects.filter(
+        variation__isnull=True,
+        media_type=ProductFile.MediaType.IMAGE,
+        product__is_active=True,
+        product__category_id__in=by_id.keys(),
+    ).select_related('product').order_by('product__category_id', '-is_primary', 'id')
 
-    for product in products:
-        category_id = product.category_id
-        if category_id in image_map:
-            continue
-        primary = product.primary_image
-        if primary:
-            image_map[category_id] = primary.file.url
+    for product_file in files:
+        category_id = product_file.product.category_id
+        if category_id not in image_map:
+            image_map[category_id] = product_file.file.url
 
     def image_for(category_id):
         if category_id in image_map:

@@ -20,23 +20,59 @@
             </div>
         </div>
 
-        <div class="admin-summary-bar">
-            <div class="admin-summary-stat">
-                <span class="admin-summary-label">Open</span>
-                <strong>{{ summary.open }}</strong>
-            </div>
-            <div class="admin-summary-stat">
-                <span class="admin-summary-label">Resolved</span>
-                <strong>{{ summary.resolved }}</strong>
-            </div>
-            <div class="admin-summary-stat">
-                <span class="admin-summary-label">Closed</span>
-                <strong>{{ summary.closed }}</strong>
-            </div>
-            <div class="admin-summary-stat">
-                <span class="admin-summary-label">Total</span>
-                <strong>{{ summary.total }}</strong>
-            </div>
+        <div class="profile-stat-grid">
+            <a href="?status=open" class="profile-stat-card profile-stat-card-link{% if status_filter == 'open' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--amber" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.open }}</div>
+                </div>
+                <p class="profile-stat-label">Open</p>
+                <div class="profile-stat-footer">
+                    <span>Needs a reply</span>
+                    <span class="profile-stat-footer-note">In progress</span>
+                </div>
+            </a>
+            <a href="?status=resolved" class="profile-stat-card profile-stat-card-link{% if status_filter == 'resolved' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--emerald" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.resolved }}</div>
+                </div>
+                <p class="profile-stat-label">Resolved</p>
+                <div class="profile-stat-footer">
+                    <span>Handled</span>
+                    <span class="profile-stat-footer-note">Done</span>
+                </div>
+            </a>
+            <a href="?status=closed" class="profile-stat-card profile-stat-card-link{% if status_filter == 'closed' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--orange" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.closed }}</div>
+                </div>
+                <p class="profile-stat-label">Closed</p>
+                <div class="profile-stat-footer">
+                    <span>No further action</span>
+                    <span class="profile-stat-footer-note">Archived</span>
+                </div>
+            </a>
+            <a href="?status=all" class="profile-stat-card profile-stat-card-link{% if status_filter == 'all' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--blue" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.total }}</div>
+                </div>
+                <p class="profile-stat-label">All complaints</p>
+                <div class="profile-stat-footer">
+                    <span>Every status</span>
+                    <span class="profile-stat-footer-note">Total</span>
+                </div>
+            </a>
         </div>
 
         <div class="admin-card manage-table-card">
@@ -63,11 +99,11 @@
                             <p class="order-card-meta">
                                 <code>{{ complaint.reference }}</code>
                                 · {{ complaint.get_category_display }}
-                                · {{ complaint.user.get_full_name }}
+                                · <a href="{% url 'core:customer_manage' complaint.user_id %}">{{ complaint.user.get_full_name }}</a>
                                 · {{ complaint.created_at|date:"M j, Y" }}
                             </p>
                             {% if complaint.order %}
-                            <p class="complaint-linked-order">Order #{{ complaint.order.pk }} — {{ complaint.order.group_buy.product.name }}</p>
+                            <p class="complaint-linked-order"><a href="{% url 'core:admin_order_manage' complaint.order_id %}">Order #{{ complaint.order.pk }}</a> — {{ complaint.order.group_buy.product.name }}</p>
                             {% endif %}
                         </div>
                     </div>

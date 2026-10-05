@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.db import transaction
-from django.db.models import Count, Prefetch, Q, Sum, Value
+from django.db.models import Case, Count, IntegerField, Prefetch, Q, Sum, Value, When
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -539,13 +539,86 @@ def category_go_together_manage(request, category_id):
     })
 
 
+def _category_descendant_ids(category_id):
+    rows = Category.objects.values_list('id', 'parent_id')
+    children_by_parent = {}
+    for pk, parent_id in rows:
+        children_by_parent.setdefault(parent_id, []).append(pk)
+    ids = []
+    stack = [category_id]
+    while stack:
+        current = stack.pop()
+        ids.append(current)
+        stack.extend(children_by_parent.get(current, []))
+    return ids
+
+
+def _product_search_filter(query):
+    """Every word must match name, description, slug, supplier, or category (including parents)."""
+    combined = Q()
+    for token in query.split():
+        combined &= (
+            Q(name__icontains=token)
+            | Q(description__icontains=token)
+            | Q(slug__icontains=token)
+            | Q(supplier__name__icontains=token)
+            | Q(category__name__icontains=token)
+            | Q(category__parent__name__icontains=token)
+            | Q(category__parent__parent__name__icontains=token)
+        )
+    return combined
+
+
+def _product_search_rank(query):
+    return (
+        Case(When(name__iexact=query, then=Value(80)), default=Value(0), output_field=IntegerField())
+        + Case(When(name__istartswith=query, then=Value(40)), default=Value(0), output_field=IntegerField())
+        + Case(When(name__icontains=query, then=Value(30)), default=Value(0), output_field=IntegerField())
+        + Case(When(category__name__icontains=query, then=Value(15)), default=Value(0), output_field=IntegerField())
+        + Case(When(supplier__name__icontains=query, then=Value(10)), default=Value(0), output_field=IntegerField())
+        + Case(When(description__icontains=query, then=Value(5)), default=Value(0), output_field=IntegerField())
+    )
+
+
 @admin_required
 def product_list(request):
-    products = Product.objects.select_related('category', 'supplier').prefetch_related(
-        'files', 'options', 'variations'
-    ).all()
+    query = request.GET.get('q', '').strip()
+    category_raw = request.GET.get('category', '').strip()
+    category_id = int(category_raw) if category_raw.isdigit() else None
+    selected_category = Category.objects.filter(pk=category_id).first() if category_id else None
+
+    products = Product.objects.select_related(
+        'category',
+        'category__parent',
+        'category__parent__parent',
+        'supplier',
+    ).prefetch_related(
+        'files',
+        'options',
+        'variations',
+    ).annotate(
+        order_count=Count(
+            'group_buys__orders',
+            filter=~Q(group_buys__orders__status=Order.Status.CANCELLED),
+            distinct=True,
+        ),
+    )
+
+    if selected_category:
+        products = products.filter(category_id__in=_category_descendant_ids(selected_category.pk))
+    if query:
+        products = products.annotate(search_rank=_product_search_rank(query)).filter(
+            _product_search_filter(query),
+        ).order_by('-search_rank', '-order_count', 'name')
+    else:
+        products = products.order_by('-created_at')
+
+    categories = list(Category.objects.filter(is_active=True).select_related('parent'))
     return render(request, 'core/products/list.html', {
         'products': products,
+        'query': query,
+        'category_id': selected_category.pk if selected_category else None,
+        'category_tree': build_category_tree(categories),
     })
 
 
@@ -1250,6 +1323,35 @@ def import_shipment_manage(request, shipment_id):
             request.session.pop(f'import_shipment_supplier_paste_{shipment.pk}', None)
             return redirect('core:import_shipment_manage', shipment_id=shipment.pk)
 
+        if action == 'apply_price_player_wholesale':
+            from decimal import Decimal, InvalidOperation
+
+            batch_ids = request.POST.getlist('price_batch_id')
+            unit_prices = request.POST.getlist('price_unit_usd')
+            if not batch_ids:
+                messages.error(request, 'No prices to apply — use the price player first.')
+                return redirect('core:import_shipment_manage', shipment_id=shipment.pk)
+            updated = 0
+            valid_ids = set(shipment.import_batches.values_list('pk', flat=True))
+            for batch_id, price_raw in zip(batch_ids, unit_prices):
+                try:
+                    batch_id = int(batch_id)
+                    price = Decimal(str(price_raw))
+                except (TypeError, ValueError, InvalidOperation):
+                    continue
+                if batch_id not in valid_ids or price <= 0:
+                    continue
+                batch = ImportBatch.objects.select_related('group_buy').get(pk=batch_id)
+                group_buy = batch.group_buy
+                group_buy.unit_price = price.quantize(Decimal('0.01'))
+                group_buy.save(update_fields=['unit_price', 'updated_at'])
+                updated += 1
+            if updated:
+                messages.success(request, f'Applied w.sale price on {updated} group buy(s).')
+            else:
+                messages.warning(request, 'No group buy prices were updated.')
+            return redirect('core:import_shipment_manage', shipment_id=shipment.pk)
+
         if action == 'apply_shared_cost_split':
             split_form = ShipmentSharedCostSplitForm(request.POST)
             batch_ids = request.POST.getlist('shared_cost_batch')
@@ -1304,6 +1406,23 @@ def import_shipment_manage(request, shipment_id):
             'picker': group_buy_picker_items([batch.group_buy], request=request)[0],
         })
 
+    price_player_lines = []
+    for row in batch_summaries:
+        summary = row.get('summary')
+        if not summary:
+            continue
+        batch = row['batch']
+        price_player_lines.append({
+            'import_batch_id': batch.pk,
+            'group_buy_id': batch.group_buy_id,
+            'product_name': batch.group_buy.product.name,
+            'image_url': row['picker'].get('image_url') or '',
+            'units': int(summary.get('units') or 0),
+            'landed_per_unit': summary['landed_per_unit'],
+            'current_unit_price': summary['current_unit_price'],
+            'default_wholesale_margin': batch.target_margin_percent,
+        })
+
     available_group_buys = group_buys_available_for_shipment(shipment)
     add_product_picker_items = group_buy_picker_items(available_group_buys, request=request)
 
@@ -1338,6 +1457,7 @@ def import_shipment_manage(request, shipment_id):
         'supplier_paste_raw': supplier_paste_raw,
         'shipment_paste_batch_choices': shipment_paste_batch_choices,
         'shared_cost_split_form': ShipmentSharedCostSplitForm(),
+        'price_player_lines': price_player_lines,
     })
 
 
@@ -1523,8 +1643,12 @@ def supplier_manage(request, supplier_id):
         pk=supplier_id,
     )
     products = (
-        supplier.products.select_related('category')
-        .prefetch_related('variations')
+        supplier.products.select_related(
+            'category',
+            'category__parent',
+            'category__parent__parent',
+        )
+        .annotate(variation_count=Count('variations', distinct=True))
         .order_by('-created_at')
     )
     import_batches = (

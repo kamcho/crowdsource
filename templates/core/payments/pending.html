@@ -36,16 +36,35 @@
             {% endif %}
         </div>
 
-        <div id="payment-status-panel" class="import-batch-tracker commerce-card-inner">
+        <div id="payment-status-panel" class="payment-status-panel is-{{ payment.status }}" data-status="{{ payment.status }}">
+            <div class="payment-wait" id="payment-wait"{% if payment.status != 'pending' or stk_needs_phone %} hidden{% endif %}>
+                <span class="payment-wait-spinner" aria-hidden="true"></span>
+                <span>Waiting for payment</span>
+            </div>
+            <p class="payment-status-label">
+                <span class="status-badge status-badge-payment-{{ payment.status }}" id="payment-status-badge">{{ payment.get_status_display }}</span>
+            </p>
             <p class="import-batch-message" id="payment-status-message">
-                {% if stk_needs_phone %}
+                {% if payment.status == 'completed' %}
+                Payment confirmed.
+                {% elif payment.status == 'cancelled' or payment.status == 'failed' %}
+                {{ payment_message }}
+                {% elif stk_needs_phone %}
                 Enter your Safaricom number below to receive the M-Pesa payment prompt.
                 {% else %}
                 {{ payment.result_description|default:"Check your phone and enter your M-Pesa PIN to approve the payment." }}
                 {% endif %}
             </p>
             <p class="progress-meta" id="payment-status-meta">
-                {% if stk_needs_phone %}Waiting to send STK push…{% else %}Waiting for Safaricom confirmation…{% endif %}
+                {% if payment.status == 'completed' %}
+                {% if payment.mpesa_receipt_number %}Receipt {{ payment.mpesa_receipt_number }}{% else %}Paid{% endif %}
+                {% elif payment.status == 'cancelled' or payment.status == 'failed' %}
+                Send a new M-Pesa prompt if you still want to pay.
+                {% elif stk_needs_phone %}
+                Waiting to send the M-Pesa prompt.
+                {% else %}
+                This page checks Safaricom every few seconds.
+                {% endif %}
             </p>
         </div>
 
@@ -74,6 +93,15 @@
         {% endif %}
 
         <div class="commerce-actions">
+            {% if payment.status == 'pending' and not stk_needs_phone %}
+            <button type="button" class="btn btn-primary" id="payment-check-btn">Check status</button>
+            {% endif %}
+            {% if payment.group_buy_id and payment.status != 'completed' %}
+            <a href="{% url 'confirm_order_checkout' payment.group_buy_id %}" class="btn btn-primary" id="payment-again-link"{% if payment.status == 'pending' %} hidden{% endif %}>Pay again</a>
+            {% endif %}
+            {% if payment.status == 'completed' and payment.order_id %}
+            <a href="{% url 'order_detail' payment.order_id %}" class="btn btn-primary">View order</a>
+            {% endif %}
             <a href="{% url 'pledge_list' %}" class="btn btn-outline" id="payment-back-link">Back to bookings</a>
         </div>
     </div>
@@ -81,46 +109,72 @@
 
 <script>
 (function () {
+    const panel = document.getElementById('payment-status-panel');
+    if (!panel || panel.dataset.status !== 'pending') return;
+
     const statusUrl = "{% url 'payment_status' payment.pk %}";
     const messageEl = document.getElementById('payment-status-message');
     const metaEl = document.getElementById('payment-status-meta');
-    const panel = document.getElementById('payment-status-panel');
+    const badgeEl = document.getElementById('payment-status-badge');
+    const checkBtn = document.getElementById('payment-check-btn');
+    const waitEl = document.getElementById('payment-wait');
     let stopped = false;
+    let checking = false;
+
+    function applyStatus(data) {
+        panel.dataset.status = data.status;
+        panel.className = 'payment-status-panel is-' + data.status;
+        if (badgeEl && data.status_label) {
+            badgeEl.textContent = data.status_label;
+            badgeEl.className = 'status-badge status-badge-payment-' + data.status;
+        }
+        if (data.result_description && data.status !== 'completed') {
+            messageEl.textContent = data.result_description;
+        }
+        if (data.status === 'pending') {
+            if (waitEl) waitEl.hidden = false;
+            metaEl.textContent = 'Enter your M-Pesa PIN on your phone.';
+            return;
+        }
+        if (waitEl) waitEl.hidden = true;
+        if (data.status === 'completed') {
+            stopped = true;
+            messageEl.textContent = 'Payment confirmed.';
+            metaEl.textContent = data.mpesa_receipt_number
+                ? 'Receipt ' + data.mpesa_receipt_number + '. Opening your order…'
+                : 'Payment confirmed. Opening your order…';
+            if (checkBtn) checkBtn.hidden = true;
+            if (data.redirect_url) window.location.href = data.redirect_url;
+        } else if (data.status === 'failed' || data.status === 'cancelled') {
+            stopped = true;
+            metaEl.textContent = 'Send a new M-Pesa prompt if you still want to pay.';
+            if (checkBtn) checkBtn.hidden = true;
+            var retryForm = document.getElementById('payment-retry-form');
+            if (retryForm) retryForm.hidden = true;
+            var again = document.getElementById('payment-again-link');
+            if (again) again.hidden = false;
+        }
+    }
 
     function poll() {
-        if (stopped) return;
+        if (stopped || checking) return;
+        checking = true;
+        if (checkBtn) checkBtn.disabled = true;
         fetch(statusUrl, { headers: { 'Accept': 'application/json' } })
             .then(function (res) { return res.json(); })
-            .then(function (data) {
-                if (data.result_description) {
-                    messageEl.textContent = data.result_description;
-                }
-                if (data.status === 'completed') {
-                    stopped = true;
-                    panel.classList.add('import-batch-pending');
-                    metaEl.textContent = data.mpesa_receipt_number
-                        ? 'Receipt ' + data.mpesa_receipt_number + '. Redirecting…'
-                        : 'Payment confirmed. Redirecting…';
-                    if (data.redirect_url) {
-                        window.location.href = data.redirect_url;
-                    }
-                } else if (data.status === 'failed' || data.status === 'cancelled') {
-                    stopped = true;
-                    panel.classList.add('import-batch-pending');
-                    metaEl.textContent = 'Payment not completed. You can try again from your bookings page.';
-                    var retryForm = document.getElementById('payment-retry-form');
-                    if (retryForm) {
-                        retryForm.style.display = 'none';
-                    }
-                }
-            })
+            .then(applyStatus)
             .catch(function () {
-                metaEl.textContent = 'Still waiting…';
+                metaEl.textContent = 'Could not reach the status check. Trying again shortly.';
+            })
+            .finally(function () {
+                checking = false;
+                if (checkBtn && !stopped) checkBtn.disabled = false;
             });
     }
 
+    if (checkBtn) checkBtn.addEventListener('click', poll);
     poll();
-    setInterval(poll, 4000);
+    setInterval(poll, 5000);
 })();
 </script>
 {% endblock %}

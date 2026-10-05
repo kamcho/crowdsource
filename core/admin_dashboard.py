@@ -174,15 +174,27 @@ def get_admin_dashboard_context(*, full_admin_access=True):
     ]
 
     campaign_progress = []
-    for group_buy in active_group_buys[:4]:
+    for group_buy in active_group_buys:
         pledged = group_buy.pledged_total or 0
         moq = group_buy.moq or 1
+        percent = min(int((pledged / moq) * 100), 100)
+        remaining = max(moq - pledged, 0)
+        if percent >= 100:
+            tone = 'full'
+        elif percent >= 50:
+            tone = 'mid'
+        else:
+            tone = 'low'
         campaign_progress.append({
+            'pk': group_buy.pk,
             'name': group_buy.product.name,
-            'status': group_buy.get_status_display(),
+            'status': group_buy.status,
+            'status_label': group_buy.get_status_display(),
             'pledged': pledged,
             'moq': moq,
-            'percent': min(int((pledged / moq) * 100), 100),
+            'remaining': remaining,
+            'percent': percent,
+            'tone': tone,
         })
 
     return {

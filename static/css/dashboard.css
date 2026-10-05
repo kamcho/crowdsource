@@ -97,9 +97,65 @@
     transition: background 0.15s, color 0.15s;
 }
 
-.dashboard-nav-link svg {
+.dashboard-nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
     flex-shrink: 0;
-    opacity: 0.7;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.dashboard-nav-icon svg {
+    flex-shrink: 0;
+    opacity: 1;
+}
+
+.dashboard-nav-icon--blue {
+    background: var(--dash-blue-soft);
+    color: var(--dash-blue);
+}
+
+.dashboard-nav-icon--purple {
+    background: var(--dash-purple-soft);
+    color: var(--dash-purple);
+}
+
+.dashboard-nav-icon--teal {
+    background: var(--dash-teal-soft);
+    color: var(--dash-teal);
+}
+
+.dashboard-nav-icon--orange {
+    background: var(--dash-orange-soft);
+    color: var(--dash-orange);
+}
+
+.dashboard-nav-icon--green {
+    background: var(--dash-green-soft);
+    color: var(--dash-green);
+}
+
+.dashboard-nav-icon--rose {
+    background: #fff1f2;
+    color: #e11d48;
+}
+
+.dashboard-nav-icon--amber {
+    background: #fffbeb;
+    color: #d97706;
+}
+
+.dashboard-nav-icon--slate {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.dashboard-nav-icon--indigo {
+    background: #eef2ff;
+    color: #4338ca;
 }
 
 .dashboard-nav-link:hover {
@@ -113,8 +169,54 @@
     font-weight: 600;
 }
 
-.dashboard-nav-link.is-active svg {
-    opacity: 1;
+.dashboard-nav-link.is-active .dashboard-nav-icon--blue {
+    background: var(--dash-blue);
+    color: #fff;
+}
+
+.dashboard-nav-link.is-active .dashboard-nav-icon--purple {
+    background: var(--dash-purple);
+    color: #fff;
+}
+
+.dashboard-nav-link.is-active .dashboard-nav-icon--teal {
+    background: var(--dash-teal);
+    color: #fff;
+}
+
+.dashboard-nav-link.is-active .dashboard-nav-icon--orange {
+    background: var(--dash-orange);
+    color: #fff;
+}
+
+.dashboard-nav-link.is-active .dashboard-nav-icon--green {
+    background: var(--dash-green);
+    color: #fff;
+}
+
+.dashboard-nav-link.is-active .dashboard-nav-icon--rose {
+    background: #e11d48;
+    color: #fff;
+}
+
+.dashboard-nav-link.is-active .dashboard-nav-icon--amber {
+    background: #d97706;
+    color: #fff;
+}
+
+.dashboard-nav-link.is-active .dashboard-nav-icon--slate {
+    background: #475569;
+    color: #fff;
+}
+
+.dashboard-nav-link.is-active .dashboard-nav-icon--indigo {
+    background: #4338ca;
+    color: #fff;
+}
+
+.dashboard-nav-link .dashboard-nav-label {
+    flex: 1;
+    min-width: 0;
 }
 
 .dashboard-nav-badge {
@@ -419,9 +521,13 @@
     margin-bottom: 1.5rem;
 }
 
+.profile-stat-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .profile-stat-card {
     background: #fff;
-    border-radius: 12px;
+    border-radius: 8px;
     padding: 1.5rem;
     border: 1px solid #e2e8f0;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
@@ -442,7 +548,7 @@
 .profile-stat-icon {
     width: 2rem;
     height: 2rem;
-    border-radius: 999px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -467,6 +573,21 @@
 .profile-stat-icon--emerald {
     background: #ecfdf5;
     color: #10b981;
+}
+
+.profile-stat-icon--purple {
+    background: #f5f3ff;
+    color: #8b5cf6;
+}
+
+.profile-stat-icon--rose {
+    background: #fff1f2;
+    color: #e11d48;
+}
+
+a.profile-stat-card.is-active {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 .profile-stat-value {
@@ -501,8 +622,18 @@
     font-weight: 500;
 }
 
+a.profile-stat-card-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+a.profile-stat-card-link:hover {
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
 @media (max-width: 1024px) {
-    .profile-stat-grid {
+    .profile-stat-grid,
+    .profile-stat-grid-3 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
@@ -718,6 +849,94 @@
 
 .dash-sale-stat-row span:first-child {
     color: var(--color-text-secondary);
+}
+
+/* Campaign progress */
+.campaign-progress-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+}
+
+.campaign-progress-item {
+    padding: 0.85rem 0.95rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.campaign-progress-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.55rem;
+}
+
+.campaign-progress-name {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #0f172a;
+    text-decoration: none;
+    line-height: 1.35;
+}
+
+.campaign-progress-name:hover {
+    color: var(--dash-blue);
+}
+
+.campaign-progress-head .status-badge {
+    flex-shrink: 0;
+}
+
+.campaign-progress-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.8125rem;
+    color: #64748b;
+}
+
+.campaign-progress-meta strong {
+    font-size: 0.875rem;
+    font-weight: 800;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+}
+
+.campaign-progress-bar {
+    height: 8px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+}
+
+.campaign-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+}
+
+.campaign-progress-fill.is-low {
+    background: #f59e0b;
+}
+
+.campaign-progress-fill.is-mid {
+    background: #3b82f6;
+}
+
+.campaign-progress-fill.is-full {
+    background: #10b981;
+}
+
+.campaign-progress-note {
+    margin: 0.45rem 0 0;
+    font-size: 0.75rem;
+    color: #94a3b8;
 }
 
 /* Progress list */

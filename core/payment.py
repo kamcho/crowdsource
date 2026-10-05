@@ -68,7 +68,7 @@ class Payment(models.Model):
         self.order = order
         self.status = self.Status.COMPLETED
         self.completed_at = timezone.now()
-        self.save(update_fields=['order', 'status', 'completed_at'])
+        self.save(update_fields=['order', 'status', 'completed_at', 'mpesa_receipt_number'])
 
     @property
     def stk_push_initiated(self):

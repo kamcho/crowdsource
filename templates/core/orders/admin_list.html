@@ -1,0 +1,134 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static currency_tags %}
+
+{% block title %}Orders — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / Orders</p>
+                <h1>Orders</h1>
+                <p>Every buyer order, with payment status, delivery, and refunds.</p>
+            </div>
+            <a href="{% url 'core:customer_list' %}" class="btn btn-outline">Customers</a>
+        </div>
+
+        <div class="profile-stat-grid">
+            <a href="?status=all{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="profile-stat-card profile-stat-card-link{% if status_filter == 'all' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--blue" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.all }}</div>
+                </div>
+                <p class="profile-stat-label">All orders</p>
+                <div class="profile-stat-footer"><span>Full list</span><span class="profile-stat-footer-note">View</span></div>
+            </a>
+            <a href="?status=pending_payment{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="profile-stat-card profile-stat-card-link{% if status_filter == 'pending_payment' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--amber" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.pending_payment }}</div>
+                </div>
+                <p class="profile-stat-label">Pending payment</p>
+                <div class="profile-stat-footer"><span>Not paid yet</span><span class="profile-stat-footer-note">Open</span></div>
+            </a>
+            <a href="?status=paid{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="profile-stat-card profile-stat-card-link{% if status_filter == 'paid' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--emerald" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.paid }}</div>
+                </div>
+                <p class="profile-stat-label">Paid</p>
+                <div class="profile-stat-footer"><span>Ready to fulfil</span><span class="profile-stat-footer-note">Active</span></div>
+            </a>
+            <a href="?status=refunded{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="profile-stat-card profile-stat-card-link{% if status_filter == 'refunded' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--rose" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.refunded }}</div>
+                </div>
+                <p class="profile-stat-label">Refunded</p>
+                <div class="profile-stat-footer"><span>{{ summary.cancelled }} cancelled</span><span class="profile-stat-footer-note">Closed</span></div>
+            </a>
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <div class="dashboard-section-header">
+                <h2 class="manage-section-title">All orders</h2>
+                <div class="admin-filter-tabs">
+                    <a href="?status=all{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="btn btn-outline btn-sm{% if status_filter == 'all' %} is-active{% endif %}">All</a>
+                    <a href="?status=pending_payment{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="btn btn-outline btn-sm{% if status_filter == 'pending_payment' %} is-active{% endif %}">Pending</a>
+                    <a href="?status=paid{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="btn btn-outline btn-sm{% if status_filter == 'paid' %} is-active{% endif %}">Paid</a>
+                    <a href="?status=refunded{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="btn btn-outline btn-sm{% if status_filter == 'refunded' %} is-active{% endif %}">Refunded</a>
+                    <a href="?status=cancelled{% if query %}&amp;q={{ query|urlencode }}{% endif %}" class="btn btn-outline btn-sm{% if status_filter == 'cancelled' %} is-active{% endif %}">Cancelled</a>
+                </div>
+            </div>
+
+            <form method="get" class="product-list-filters product-list-filters-search" role="search">
+                <input type="hidden" name="status" value="{{ status_filter }}">
+                <div class="form-group">
+                    <label for="order-search">Search</label>
+                    <input type="search" name="q" id="order-search" class="form-input" value="{{ query }}" placeholder="Order number, customer, phone, or product">
+                </div>
+                <div class="product-list-filters-actions">
+                    <button type="submit" class="btn btn-outline">Search</button>
+                    {% if query %}<a href="?status={{ status_filter }}" class="btn btn-outline">Clear</a>{% endif %}
+                </div>
+            </form>
+
+            {% if orders %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Customer</th>
+                            <th>Product</th>
+                            <th class="col-num">Units</th>
+                            <th class="col-num">Total</th>
+                            <th>Status</th>
+                            <th>Placed</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td><strong><a href="{% url 'core:admin_order_manage' order.pk %}">#{{ order.pk }}</a></strong></td>
+                            <td>
+                                <a href="{% url 'core:customer_manage' order.user_id %}">{{ order.user.get_full_name }}</a>
+                                <br><span class="category-desc">{{ order.user.phone|default:order.user.email }}</span>
+                            </td>
+                            <td>{{ order.group_buy.product.name }}</td>
+                            <td class="col-num">{{ order.unit_count }}</td>
+                            <td class="col-num">{% money order.total_amount %}</td>
+                            <td><span class="status-badge status-badge-{{ order.status }}">{{ order.get_status_display }}</span></td>
+                            <td>{{ order.created_at|date:"M j, Y" }}</td>
+                            <td class="table-actions">
+                                <a href="{% url 'core:admin_order_manage' order.pk %}" class="btn btn-outline btn-sm">Manage</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-box">
+                <p>{% if query %}No orders match your search.{% else %}No orders in this view.{% endif %}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

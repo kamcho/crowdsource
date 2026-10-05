@@ -127,8 +127,19 @@ class Product(models.Model):
     def product_files(self):
         return self.files.filter(variation__isnull=True)
 
+    def _prefetched_relation(self, name):
+        cache = getattr(self, '_prefetched_objects_cache', None)
+        if cache and name in cache:
+            return cache[name]
+        return None
+
     @property
     def primary_file(self):
+        files = self._prefetched_relation('files')
+        if files is not None:
+            product_files = [item for item in files if item.variation_id is None]
+            primary = next((item for item in product_files if item.is_primary), None)
+            return primary or (product_files[0] if product_files else None)
         primary = self.product_files.filter(is_primary=True).first()
         if primary:
             return primary
@@ -136,6 +147,13 @@ class Product(models.Model):
 
     @property
     def primary_image(self):
+        files = self._prefetched_relation('files')
+        if files is not None:
+            product_files = [item for item in files if item.variation_id is None]
+            primary = next((item for item in product_files if item.is_primary and item.is_image), None)
+            if primary:
+                return primary
+            return next((item for item in product_files if item.is_image), None)
         primary = self.primary_file
         if primary and primary.is_image:
             return primary
@@ -157,8 +175,19 @@ class Product(models.Model):
 
     @property
     def min_price(self):
+        variations = self._prefetched_relation('variations')
+        if variations is not None:
+            prices = [item.price for item in variations if item.is_active]
+            return min(prices) if prices else None
         from django.db.models import Min
         return self.active_variations.aggregate(min_price=Min('price'))['min_price']
+
+    @property
+    def variation_count(self):
+        variations = self._prefetched_relation('variations')
+        if variations is not None:
+            return sum(1 for item in variations if item.is_active)
+        return self.variations.filter(is_active=True).count()
 
     @property
     def active_group_buy(self):

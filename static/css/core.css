@@ -112,6 +112,12 @@
     background: var(--color-bg-subtle);
 }
 
+.data-table .col-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
 .data-table tbody tr:hover {
     background: var(--color-bg-subtle);
 }
@@ -364,10 +370,44 @@
 
 .admin-form-inline {
     display: flex;
+    flex-direction: row;
     flex-wrap: wrap;
     align-items: flex-end;
     gap: 1rem;
     margin-bottom: 1.25rem;
+}
+
+.product-list-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(12rem, 1fr) auto;
+    gap: 0.75rem 1rem;
+    align-items: end;
+    margin-bottom: 0.65rem;
+}
+
+.product-list-filters-search {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.product-list-filters .form-group {
+    margin: 0;
+    min-width: 0;
+}
+
+.product-list-filters-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.product-list-filters-hint {
+    margin: 0 0 1rem;
+}
+
+@media (max-width: 800px) {
+    .product-list-filters {
+        grid-template-columns: 1fr;
+    }
 }
 
 .admin-form-inline .form-group {
@@ -518,6 +558,7 @@
 
 .manage-table-card {
     margin-bottom: 1.25rem;
+    border-radius: 8px;
 }
 
 .manage-inline-action {
@@ -605,6 +646,99 @@
 .status-badge-refund-failed {
     background: var(--color-bg-muted);
     color: var(--color-text-muted);
+}
+
+.status-badge-pending_payment {
+    background: #fffbeb;
+    color: #b45309;
+}
+
+.status-badge-paid {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.status-badge-refunded {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.status-badge-cancelled {
+    background: var(--color-bg-muted);
+    color: var(--color-text-muted);
+}
+
+.record-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.record-title-row h1 {
+    margin-bottom: 0;
+}
+
+.record-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.record-detail-list {
+    margin: 0;
+}
+
+.record-detail-list div {
+    display: grid;
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--color-border-light, #f1f5f9);
+}
+
+.record-detail-list div:last-child {
+    border-bottom: 0;
+}
+
+.record-detail-list dt {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.record-detail-list dd {
+    margin: 0;
+    font-size: 0.9375rem;
+    word-break: break-word;
+}
+
+.record-link-list {
+    margin: 0;
+    padding-left: 1.1rem;
+}
+
+.supplier-notes {
+    margin: 0;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+}
+
+.admin-header-actions form {
+    margin: 0;
+}
+
+@media (max-width: 800px) {
+    .record-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .record-detail-list div {
+        grid-template-columns: 1fr;
+        gap: 0.15rem;
+    }
 }
 
 .admin-filter-tabs {

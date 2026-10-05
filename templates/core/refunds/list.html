@@ -29,23 +29,59 @@
         </div>
         {% endif %}
 
-        <div class="admin-summary-bar">
-            <div class="admin-summary-stat">
-                <span class="admin-summary-label">Pending</span>
-                <strong>{{ summary.pending }}</strong>
-            </div>
-            <div class="admin-summary-stat">
-                <span class="admin-summary-label">Completed</span>
-                <strong>{{ summary.completed }}</strong>
-            </div>
-            <div class="admin-summary-stat">
-                <span class="admin-summary-label">Cancelled</span>
-                <strong>{{ summary.cancelled }}</strong>
-            </div>
-            <div class="admin-summary-stat">
-                <span class="admin-summary-label">Failed</span>
-                <strong>{{ summary.failed }}</strong>
-            </div>
+        <div class="profile-stat-grid">
+            <a href="?status=pending" class="profile-stat-card profile-stat-card-link{% if status_filter == 'pending' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--amber" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.pending }}</div>
+                </div>
+                <p class="profile-stat-label">Pending</p>
+                <div class="profile-stat-footer">
+                    <span>Awaiting action</span>
+                    <span class="profile-stat-footer-note">Open</span>
+                </div>
+            </a>
+            <a href="?status=completed" class="profile-stat-card profile-stat-card-link{% if status_filter == 'completed' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--emerald" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.completed }}</div>
+                </div>
+                <p class="profile-stat-label">Completed</p>
+                <div class="profile-stat-footer">
+                    <span>Marked repaid</span>
+                    <span class="profile-stat-footer-note">Done</span>
+                </div>
+            </a>
+            <a href="?status=cancelled" class="profile-stat-card profile-stat-card-link{% if status_filter == 'cancelled' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--orange" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.cancelled }}</div>
+                </div>
+                <p class="profile-stat-label">Cancelled</p>
+                <div class="profile-stat-footer">
+                    <span>Not processed</span>
+                    <span class="profile-stat-footer-note">Closed</span>
+                </div>
+            </a>
+            <a href="?status=failed" class="profile-stat-card profile-stat-card-link{% if status_filter == 'failed' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--rose" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.failed }}</div>
+                </div>
+                <p class="profile-stat-label">Failed</p>
+                <div class="profile-stat-footer">
+                    <span>Needs review</span>
+                    <span class="profile-stat-footer-note">Error</span>
+                </div>
+            </a>
         </div>
 
         <div class="admin-card manage-table-card">
@@ -78,8 +114,8 @@
                         {% for refund in refunds %}
                         <tr>
                             <td><code>{{ refund.reference }}</code></td>
-                            <td>#{{ refund.order_id }}</td>
-                            <td>{{ refund.order.user.get_full_name }}</td>
+                            <td><a href="{% url 'core:admin_order_manage' refund.order_id %}">#{{ refund.order_id }}</a></td>
+                            <td><a href="{% url 'core:customer_manage' refund.order.user_id %}">{{ refund.order.user.get_full_name }}</a></td>
                             <td>{{ refund.order.group_buy.product.name }}</td>
                             <td>{% money refund.amount %}</td>
                             <td>{{ refund.get_refund_type_display }}</td>

@@ -1,0 +1,244 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static currency_tags %}
+
+{% block title %}Order #{{ order.pk }} — Orders{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb">
+                    <a href="{% url 'core:admin_dashboard' %}">Dashboard</a> /
+                    <a href="{% url 'core:admin_order_list' %}">Orders</a> /
+                    #{{ order.pk }}
+                </p>
+                <div class="record-title-row">
+                    <h1>Order #{{ order.pk }}</h1>
+                    <span class="status-badge status-badge-{{ order.status }}">{{ order.get_status_display }}</span>
+                </div>
+                <p>
+                    <a href="{% url 'core:customer_manage' order.user_id %}">{{ order.user.get_full_name }}</a>
+                    · {{ order.group_buy.product.name }}
+                    · {{ order.created_at|date:"M j, Y" }}
+                </p>
+            </div>
+            <div class="admin-header-actions">
+                <a href="{% url 'core:group_buy_manage' order.group_buy_id %}" class="btn btn-outline">Group buy</a>
+                <a href="{% url 'core:customer_manage' order.user_id %}" class="btn btn-primary">Customer</a>
+            </div>
+        </div>
+
+        <div class="profile-stat-grid">
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--blue" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{% money order.total_amount %}</div>
+                </div>
+                <p class="profile-stat-label">Order total</p>
+                <div class="profile-stat-footer"><span>{{ order.unit_count }} units</span><span class="profile-stat-footer-note">{% usd_hint order.total_amount %}</span></div>
+            </article>
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--emerald" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{% if order.payment %}{{ order.payment.get_status_display }}{% else %}None{% endif %}</div>
+                </div>
+                <p class="profile-stat-label">Payment</p>
+                <div class="profile-stat-footer">
+                    <span>{% if order.payment %}{{ order.payment.reference }}{% else %}No payment{% endif %}</span>
+                    <span class="profile-stat-footer-note">{% if order.payment %}{{ order.payment.provider|default:"—" }}{% endif %}</span>
+                </div>
+            </article>
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--amber" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{% money refundable %}</div>
+                </div>
+                <p class="profile-stat-label">Still refundable</p>
+                <div class="profile-stat-footer"><span>Refunded {% money order.refunded_amount %}</span><span class="profile-stat-footer-note">USD balance</span></div>
+            </article>
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--purple" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{% if fulfillment %}{{ fulfillment.get_status_display }}{% else %}—{% endif %}</div>
+                </div>
+                <p class="profile-stat-label">Delivery</p>
+                <div class="profile-stat-footer">
+                    <span>{% if fulfillment.tracking_reference %}{{ fulfillment.tracking_reference }}{% else %}No tracking yet{% endif %}</span>
+                    <span class="profile-stat-footer-note">{% if fulfillment %}{{ fulfillment.progress_percent }}%{% endif %}</span>
+                </div>
+            </article>
+        </div>
+
+        <div class="record-detail-grid">
+            <div class="admin-card manage-table-card">
+                <h2 class="manage-section-title">Items</h2>
+                {% if order.items.all %}
+                <div class="data-table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Variation</th>
+                                <th class="col-num">Qty</th>
+                                <th class="col-num">Unit price</th>
+                                <th class="col-num">Line</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items.all %}
+                            <tr>
+                                <td>{{ item.variation.display_name|default:"Standard" }}</td>
+                                <td class="col-num">{{ item.quantity }}</td>
+                                <td class="col-num">{% money item.unit_price %}</td>
+                                <td class="col-num">{% money item.line_total %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="manage-section-lead">No line items on this order.</p>
+                {% endif %}
+            </div>
+
+            <div class="admin-card manage-table-card">
+                <h2 class="manage-section-title">Delivery</h2>
+                <dl class="record-detail-list">
+                    <div><dt>Recipient</dt><dd>{{ order.delivery_recipient_name|default:"Not set" }}</dd></div>
+                    <div><dt>Phone</dt><dd>{{ order.delivery_phone|default:"Not set" }}</dd></div>
+                    <div><dt>Address</dt><dd>{{ order.delivery_formatted|default:"Not set" }}</dd></div>
+                    <div><dt>Notes</dt><dd>{{ order.delivery_notes|default:"—" }}</dd></div>
+                </dl>
+            </div>
+        </div>
+
+        {% if fulfillment_form %}
+        <div class="admin-card manage-table-card">
+            <h2 class="manage-section-title">Update delivery</h2>
+            <form method="post" class="admin-form fulfillment-manage-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_fulfillment">
+                {% for field in fulfillment_form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<p class="field-hint">{{ field.errors|striptags }}</p>{% endif %}
+                </div>
+                {% endfor %}
+                <div class="product-list-filters-actions">
+                    <button type="submit" class="btn btn-primary">Save delivery</button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="admin-card manage-table-card">
+            <div class="dashboard-section-header">
+                <h2 class="manage-section-title">Refunds</h2>
+            </div>
+            {% if order.refunds.all %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Reference</th>
+                            <th>Amount</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Reason</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for refund in order.refunds.all %}
+                        <tr>
+                            <td><code>{{ refund.reference }}</code></td>
+                            <td>{% money refund.amount %}</td>
+                            <td>{{ refund.get_refund_type_display }}</td>
+                            <td><span class="status-badge status-badge-refund-{{ refund.status }}">{{ refund.get_status_display }}</span></td>
+                            <td>{{ refund.reason }}</td>
+                            <td>
+                                {% if refund.status == 'pending' %}
+                                <form method="post" class="refund-manage-actions">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="refund_id" value="{{ refund.pk }}">
+                                    <button type="submit" name="action" value="complete_refund" class="btn btn-primary btn-sm">Mark complete</button>
+                                    <button type="submit" name="action" value="cancel_refund" class="btn btn-outline btn-sm">Cancel</button>
+                                </form>
+                                {% else %}
+                                <span class="category-desc">{{ refund.completed_at|date:"M j, Y"|default:"—" }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="manage-section-lead">No refunds on this order.</p>
+            {% endif %}
+
+            {% if refund_form %}
+            <h3 class="manage-section-title">Record a refund</h3>
+            <form method="post" class="admin-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_refund">
+                {% for field in refund_form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<p class="field-hint">{{ field.errors|striptags }}</p>{% endif %}
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary">Record refund</button>
+            </form>
+            {% endif %}
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <h2 class="manage-section-title">Complaints</h2>
+            {% if order.complaints.all %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Reference</th>
+                            <th>Subject</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Opened</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for complaint in order.complaints.all %}
+                        <tr>
+                            <td><code>{{ complaint.reference }}</code></td>
+                            <td>{{ complaint.subject }}</td>
+                            <td>{{ complaint.get_category_display }}</td>
+                            <td><span class="status-badge">{{ complaint.get_status_display }}</span></td>
+                            <td>{{ complaint.created_at|date:"M j, Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="manage-section-lead">No complaints linked to this order.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

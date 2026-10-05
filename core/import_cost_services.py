@@ -132,6 +132,23 @@ def build_shipment_analytics(batch_summaries: list) -> dict:
     return analytics
 
 
+def unit_sell_price_from_margin(landed_per_unit: Decimal, margin_percent: Decimal) -> Decimal:
+    if landed_per_unit is None or landed_per_unit <= 0:
+        return _quantize_money(margin_percent)  # fallback unused when no landed
+    return _quantize_money(landed_per_unit * (Decimal('1') + margin_percent / Decimal('100')))
+
+
+def unit_sell_price_from_profit(landed_per_unit: Decimal, profit_per_unit: Decimal) -> Decimal:
+    landed = landed_per_unit or Decimal('0')
+    return _quantize_money(landed + (profit_per_unit or Decimal('0')))
+
+
+def line_profit_from_sell_price(units: int, landed_per_unit: Decimal, sell_price: Decimal) -> Decimal:
+    if not units:
+        return Decimal('0')
+    return _quantize_money((sell_price - (landed_per_unit or Decimal('0'))) * Decimal(units))
+
+
 def split_amount_by_unit_weights(total_amount: Decimal, unit_counts: list[int]) -> list[Decimal]:
     """
     Split a USD total across lines in proportion to unit counts.

@@ -1,5 +1,6 @@
 from django.urls import path
 
+from . import ops_views
 from . import product_import_views
 from . import views
 
@@ -48,6 +49,10 @@ urlpatterns = [
         views.import_shipment_group_buy_search,
         name='import_shipment_group_buy_search',
     ),
+    path('orders/', ops_views.admin_order_list, name='admin_order_list'),
+    path('orders/<int:order_id>/', ops_views.admin_order_manage, name='admin_order_manage'),
+    path('customers/', ops_views.customer_list, name='customer_list'),
+    path('customers/<int:user_id>/', ops_views.customer_manage, name='customer_manage'),
     path('refunds/', views.refund_list, name='refund_list'),
     path('complaints/', views.complaint_list, name='complaint_list'),
 ]

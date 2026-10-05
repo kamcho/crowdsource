@@ -44,8 +44,19 @@ class GroupBuy(models.Model):
 
     @property
     def pledged_units(self):
-        total = self.entries.aggregate(total=Sum('quantity'))['total']
-        return total or 0
+        annotated = getattr(self, 'pledged_total', None)
+        if annotated is not None:
+            return annotated or 0
+        cached = getattr(self, '_pledged_units_cache', None)
+        if cached is not None:
+            return cached
+        cache = getattr(self, '_prefetched_objects_cache', None)
+        if cache and 'entries' in cache:
+            total = sum(entry.quantity for entry in cache['entries'])
+        else:
+            total = self.entries.aggregate(total=Sum('quantity'))['total'] or 0
+        self._pledged_units_cache = total or 0
+        return self._pledged_units_cache
 
     @property
     def progress_percent(self):

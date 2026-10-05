@@ -1,0 +1,304 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static currency_tags %}
+
+{% block title %}{{ customer.get_full_name }} — Customers{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb">
+                    <a href="{% url 'core:admin_dashboard' %}">Dashboard</a> /
+                    <a href="{% url 'core:customer_list' %}">Customers</a> /
+                    {{ customer.get_full_name }}
+                </p>
+                <div class="record-title-row">
+                    <h1>{{ customer.get_full_name }}</h1>
+                    {% if customer.is_active %}
+                    <span class="status-badge status-badge-active">Active</span>
+                    {% else %}
+                    <span class="status-badge status-badge-inactive">Inactive</span>
+                    {% endif %}
+                </div>
+                <p>{{ customer.phone|default:"No phone" }}{% if customer.email %} · {{ customer.email }}{% endif %} · Joined {{ customer.date_joined|date:"M j, Y" }}</p>
+            </div>
+            <div class="admin-header-actions">
+                {% if customer.role == 'customer' %}
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="set_active">
+                    {% if customer.is_active %}
+                    <input type="hidden" name="is_active" value="0">
+                    <button type="submit" class="btn btn-outline">Deactivate</button>
+                    {% else %}
+                    <input type="hidden" name="is_active" value="1">
+                    <button type="submit" class="btn btn-primary">Reactivate</button>
+                    {% endif %}
+                </form>
+                {% endif %}
+                <a href="{% url 'core:customer_list' %}" class="btn btn-outline">All customers</a>
+            </div>
+        </div>
+
+        <div class="profile-stat-grid">
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--blue" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ customer.order_count }}</div>
+                </div>
+                <p class="profile-stat-label">Orders</p>
+                <div class="profile-stat-footer"><span>{{ customer.paid_order_count }} paid</span><span class="profile-stat-footer-note">All time</span></div>
+            </article>
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--emerald" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{% money customer.paid_total %}</div>
+                </div>
+                <p class="profile-stat-label">Paid total</p>
+                <div class="profile-stat-footer"><span>{% usd_hint customer.paid_total %}</span><span class="profile-stat-footer-note">Completed</span></div>
+            </article>
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--amber" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ customer.refund_count }}</div>
+                </div>
+                <p class="profile-stat-label">Refunds</p>
+                <div class="profile-stat-footer"><span>On their orders</span><span class="profile-stat-footer-note">All</span></div>
+            </article>
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--rose" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ customer.open_complaint_count }}</div>
+                </div>
+                <p class="profile-stat-label">Open complaints</p>
+                <div class="profile-stat-footer"><span>{{ customer.complaint_count }} total</span><span class="profile-stat-footer-note">Open</span></div>
+            </article>
+        </div>
+
+        <div class="record-detail-grid">
+            <div class="admin-card manage-table-card">
+                <h2 class="manage-section-title">Account</h2>
+                <dl class="record-detail-list">
+                    <div><dt>Name</dt><dd>{{ customer.get_full_name }}</dd></div>
+                    <div><dt>Phone</dt><dd>{{ customer.phone|default:"Not set" }}</dd></div>
+                    <div><dt>Email</dt><dd>{{ customer.email|default:"Not set" }}</dd></div>
+                    <div><dt>Role</dt><dd>{{ customer.get_role_display }}</dd></div>
+                    <div><dt>Joined</dt><dd>{{ customer.date_joined|date:"M j, Y" }}</dd></div>
+                    <div><dt>Google sign-in</dt><dd>{% if customer.google_id %}Linked{% else %}Not linked{% endif %}</dd></div>
+                </dl>
+            </div>
+            <div class="admin-card manage-table-card">
+                <h2 class="manage-section-title">Addresses</h2>
+                {% if addresses %}
+                <dl class="record-detail-list">
+                    {% for address in addresses %}
+                    <div>
+                        <dt>{{ address.label|default:"Address" }}{% if address.is_default %} · Default{% endif %}</dt>
+                        <dd>
+                            {{ address.recipient_name }} · {{ address.phone }}<br>
+                            {{ address.formatted_single_line }}
+                            {% if address.delivery_notes %}<br><span class="category-desc">{{ address.delivery_notes }}</span>{% endif %}
+                        </dd>
+                    </div>
+                    {% endfor %}
+                </dl>
+                {% else %}
+                <p class="manage-section-lead">No saved addresses.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <div class="dashboard-section-header">
+                <h2 class="manage-section-title">Orders</h2>
+            </div>
+            {% if orders %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Product</th>
+                            <th class="col-num">Units</th>
+                            <th class="col-num">Total</th>
+                            <th>Status</th>
+                            <th>Placed</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td><strong>#{{ order.pk }}</strong></td>
+                            <td>{{ order.group_buy.product.name }}</td>
+                            <td class="col-num">{{ order.unit_count }}</td>
+                            <td class="col-num">{% money order.total_amount %}</td>
+                            <td><span class="status-badge status-badge-{{ order.status }}">{{ order.get_status_display }}</span></td>
+                            <td>{{ order.created_at|date:"M j, Y" }}</td>
+                            <td class="table-actions">
+                                <a href="{% url 'core:admin_order_manage' order.pk %}" class="btn btn-outline btn-sm">Manage</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="manage-section-lead">No orders yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <h2 class="manage-section-title">Refunds</h2>
+            {% if refunds %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Reference</th>
+                            <th>Order</th>
+                            <th>Product</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for refund in refunds %}
+                        <tr>
+                            <td><code>{{ refund.reference }}</code></td>
+                            <td><a href="{% url 'core:admin_order_manage' refund.order_id %}">#{{ refund.order_id }}</a></td>
+                            <td>{{ refund.order.group_buy.product.name }}</td>
+                            <td>{% money refund.amount %}</td>
+                            <td><span class="status-badge status-badge-refund-{{ refund.status }}">{{ refund.get_status_display }}</span></td>
+                            <td>{{ refund.reason }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="manage-section-lead">No refunds.</p>
+            {% endif %}
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <h2 class="manage-section-title">Complaints</h2>
+            {% if complaints %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Reference</th>
+                            <th>Subject</th>
+                            <th>Order</th>
+                            <th>Status</th>
+                            <th>Opened</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for complaint in complaints %}
+                        <tr>
+                            <td><code>{{ complaint.reference }}</code></td>
+                            <td>{{ complaint.subject }}</td>
+                            <td>{% if complaint.order_id %}<a href="{% url 'core:admin_order_manage' complaint.order_id %}">#{{ complaint.order_id }}</a>{% else %}—{% endif %}</td>
+                            <td><span class="status-badge">{{ complaint.get_status_display }}</span></td>
+                            <td>{{ complaint.created_at|date:"M j, Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="manage-section-lead">No complaints.</p>
+            {% endif %}
+        </div>
+
+        <div class="record-detail-grid">
+            <div class="admin-card manage-table-card">
+                <h2 class="manage-section-title">Bookings</h2>
+                {% if bookings %}
+                <div class="data-table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th class="col-num">Qty</th>
+                                <th>Group buy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in bookings %}
+                            <tr>
+                                <td>{{ booking.group_buy.product.name }}{% if booking.variation %} · {{ booking.variation.display_name }}{% endif %}</td>
+                                <td class="col-num">{{ booking.quantity }}</td>
+                                <td><a href="{% url 'core:group_buy_manage' booking.group_buy_id %}">{{ booking.group_buy.get_status_display }}</a></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="manage-section-lead">No group-buy bookings.</p>
+                {% endif %}
+            </div>
+            <div class="admin-card manage-table-card">
+                <h2 class="manage-section-title">Payments</h2>
+                {% if payments %}
+                <div class="data-table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Reference</th>
+                                <th>Product</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in payments %}
+                            <tr>
+                                <td><code>{{ payment.reference }}</code></td>
+                                <td>{{ payment.group_buy.product.name }}</td>
+                                <td>{% money payment.amount %}</td>
+                                <td>{{ payment.get_status_display }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="manage-section-lead">No payments.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="admin-card manage-table-card">
+            <h2 class="manage-section-title">Wishlist</h2>
+            {% if wishlist %}
+            <ul class="record-link-list">
+                {% for item in wishlist %}
+                <li><a href="{{ item.product.get_absolute_url }}">{{ item.product.name }}</a></li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="manage-section-lead">Nothing saved.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -244,6 +244,111 @@ class EnsureMpesaStkPushTests(TestCase):
         mock_initiate.assert_called_once_with(payment, '0712345678')
 
 
+class PollMpesaStatusTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        from core.group_buy import GroupBuy
+        from core.order import Order
+
+        User = get_user_model()
+        self.user = User.objects.create_user(phone='+254700888999', password='pass')
+        category = Category.objects.create(name='Pay')
+        product = Product.objects.create(category=category, name='Paid Item', is_active=True)
+        self.group_buy = GroupBuy.objects.create(
+            product=product,
+            moq=2,
+            unit_price='3.00',
+            closes_at=timezone.now() + timedelta(days=5),
+        )
+        self.order = Order.objects.create(
+            group_buy=self.group_buy,
+            user=self.user,
+            status=Order.Status.PENDING_PAYMENT,
+            total_amount='3.00',
+        )
+        self.payment = Payment.objects.create(
+            group_buy=self.group_buy,
+            user=self.user,
+            order=self.order,
+            amount='3.00',
+            amount_kes=400,
+            status=Payment.Status.PENDING,
+            provider='mpesa',
+            checkout_request_id='ws_CO_test',
+        )
+
+    @patch('core.payment_services.query_stk_status')
+    def test_string_success_code_completes_payment(self, mock_query):
+        from core.order import Order
+        from core.payment_services import poll_mpesa_payment_status
+
+        mock_query.return_value = {
+            'ResultCode': '0',
+            'ResultDesc': 'The service request is processed successfully.',
+            'CallbackMetadata': {'Item': [{'Name': 'MpesaReceiptNumber', 'Value': 'RCPT1'}]},
+        }
+        poll_mpesa_payment_status(self.payment)
+        self.payment.refresh_from_db()
+        self.order.refresh_from_db()
+        self.assertEqual(self.payment.status, Payment.Status.COMPLETED)
+        self.assertEqual(self.payment.mpesa_receipt_number, 'RCPT1')
+        self.assertEqual(self.order.status, Order.Status.PAID)
+
+    @patch('core.payment_services.query_stk_status')
+    def test_processing_code_stays_pending(self, mock_query):
+        from core.payment_services import poll_mpesa_payment_status
+
+        mock_query.return_value = {
+            'ResultCode': '4999',
+            'ResultDesc': 'The transaction is still under processing',
+        }
+        poll_mpesa_payment_status(self.payment)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status, Payment.Status.PENDING)
+        self.assertIn('still under processing', self.payment.result_description)
+
+    @patch('core.payment_services.query_stk_status')
+    def test_cancel_code_marks_cancelled(self, mock_query):
+        from core.payment_services import poll_mpesa_payment_status
+
+        mock_query.return_value = {
+            'ResultCode': '1032',
+            'ResultDesc': 'Request cancelled by user.',
+        }
+        poll_mpesa_payment_status(self.payment)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status, Payment.Status.CANCELLED)
+        self.assertIsNone(self.payment.order_id)
+
+    def test_failure_message_names_wrong_pin_and_low_balance(self):
+        from core.payment_services import explain_mpesa_result, payment_status_message
+
+        self.assertIn(
+            'Wrong M-Pesa PIN',
+            explain_mpesa_result(2001, 'The initiator information is invalid'),
+        )
+        self.assertIn(
+            'Insufficient M-Pesa balance',
+            explain_mpesa_result(1, 'The balance is insufficient for the transaction'),
+        )
+        self.payment.status = Payment.Status.FAILED
+        self.payment.result_code = 2001
+        self.payment.result_description = 'Could not check M-Pesa payment status.'
+        self.payment.callback_payload = {
+            'Body': {
+                'stkCallback': {
+                    'ResultCode': 2001,
+                    'ResultDesc': 'The initiator information is invalid.',
+                },
+            },
+        }
+        self.payment.save()
+        message = payment_status_message(self.payment)
+        self.assertIn('Wrong M-Pesa PIN', message)
+        self.assertIn('initiator information is invalid', message)
+
+
 class CategoryNavTreeTests(TestCase):
     def test_build_category_nav_tree(self):
         root = Category.objects.create(name='Electronics')
@@ -2050,4 +2155,139 @@ USD 11.80"""
             .values_list('amount', flat=True),
         )
         self.assertEqual(costs, [Decimal('13.33'), Decimal('6.67')])
+
+    def test_price_player_sell_price_helpers(self):
+        from decimal import Decimal
+
+        from core.import_cost_services import (
+            line_profit_from_sell_price,
+            unit_sell_price_from_margin,
+            unit_sell_price_from_profit,
+        )
+
+        landed = Decimal('2.50')
+        self.assertEqual(unit_sell_price_from_margin(landed, Decimal('16')), Decimal('2.90'))
+        self.assertEqual(unit_sell_price_from_profit(landed, Decimal('0.40')), Decimal('2.90'))
+        self.assertEqual(line_profit_from_sell_price(100, landed, Decimal('2.90')), Decimal('40.00'))
+
+
+class ProductListSearchTests(TestCase):
+    def test_search_ranks_name_then_order_count(self):
+        from django.contrib.auth import get_user_model
+
+        from core.group_buy import GroupBuy
+        from core.order import Order
+        from users.models import User
+
+        UserModel = get_user_model()
+        admin = UserModel.objects.create_user(phone='+254700000001', password='pass', role=User.Role.ADMIN)
+        buyer = UserModel.objects.create_user(phone='+254700000002', password='pass')
+        parent = Category.objects.create(name='Bags')
+        child = Category.objects.create(name='Shoulder', parent=parent)
+        exact = Product.objects.create(category=child, name='Leather Shoulder Bag', is_active=True)
+        popular = Product.objects.create(category=child, name='Canvas Shoulder Bag', is_active=True)
+        other = Product.objects.create(category=parent, name='Wallet', is_active=True)
+        for product, orders in ((exact, 1), (popular, 3)):
+            group_buy = GroupBuy.objects.create(
+                product=product,
+                moq=10,
+                unit_price='2.00',
+                closes_at=timezone.now() + timedelta(days=7),
+            )
+            for _ in range(orders):
+                Order.objects.create(
+                    group_buy=group_buy,
+                    user=buyer,
+                    status=Order.Status.PAID,
+                    total_amount='2.00',
+                )
+
+        self.client.force_login(admin)
+        response = self.client.get(reverse('core:product_list'), {'q': 'Shoulder', 'category': parent.pk})
+        self.assertEqual(response.status_code, 200)
+        names = [product.name for product in response.context['products']]
+        self.assertEqual(names, ['Canvas Shoulder Bag', 'Leather Shoulder Bag'])
+        self.assertNotIn(other.name, names)
+        self.assertEqual(response.context['products'][0].order_count, 3)
+
+
+class OpsOrderCustomerTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        from core.group_buy import GroupBuy
+        from core.order import Order
+
+        User = get_user_model()
+        self.staff = User.objects.create_user(
+            phone='+254700111222',
+            password='pass',
+            first_name='Ops',
+            last_name='User',
+            role='staff',
+        )
+        self.buyer = User.objects.create_user(
+            phone='+254711222333',
+            password='pass',
+            first_name='Amina',
+            last_name='Buyer',
+            email='amina@example.com',
+        )
+        category = Category.objects.create(name='Bags')
+        product = Product.objects.create(category=category, name='Travel Bag', is_active=True)
+        group_buy = GroupBuy.objects.create(
+            product=product,
+            moq=5,
+            unit_price='8.00',
+            closes_at=timezone.now() + timedelta(days=10),
+        )
+        self.order = Order.objects.create(
+            group_buy=group_buy,
+            user=self.buyer,
+            status=Order.Status.PAID,
+            total_amount='16.00',
+            delivery_recipient_name='Amina Buyer',
+        )
+        self.client.force_login(self.staff)
+
+    def test_order_list_and_customer_detail(self):
+        orders = self.client.get(reverse('core:admin_order_list'))
+        self.assertEqual(orders.status_code, 200)
+        self.assertContains(orders, 'Travel Bag')
+        self.assertContains(orders, 'Amina Buyer')
+
+        found = self.client.get(reverse('core:admin_order_list'), {'q': 'Amina'})
+        self.assertContains(found, 'Travel Bag')
+        self.assertContains(found, 'Amina Buyer')
+
+        missing = self.client.get(reverse('core:customer_list'), {'q': 'nobody'})
+        self.assertNotContains(missing, 'Amina Buyer')
+
+        customers = self.client.get(reverse('core:customer_list'), {'q': 'Amina'})
+        self.assertContains(customers, 'Amina Buyer')
+        self.assertContains(customers, 'amina@example.com')
+
+        detail = self.client.get(reverse('core:customer_manage', kwargs={'user_id': self.buyer.pk}))
+        self.assertEqual(detail.status_code, 200)
+        self.assertContains(detail, 'Travel Bag')
+        self.assertContains(detail, 'Paid total')
+
+        manage = self.client.get(reverse('core:admin_order_manage', kwargs={'order_id': self.order.pk}))
+        self.assertEqual(manage.status_code, 200)
+        self.assertContains(manage, 'Amina Buyer')
+        self.assertContains(manage, 'Update delivery')
+
+    def test_deactivate_customer(self):
+        response = self.client.post(
+            reverse('core:customer_manage', kwargs={'user_id': self.buyer.pk}),
+            {'action': 'set_active', 'is_active': '0'},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.buyer.refresh_from_db()
+        self.assertFalse(self.buyer.is_active)
+
+    def test_customer_cannot_open_ops_orders(self):
+        self.client.force_login(self.buyer)
+        response = self.client.get(reverse('core:admin_order_list'))
+        self.assertEqual(response.status_code, 302)
 

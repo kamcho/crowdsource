@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
+from django.db.models import Sum
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
@@ -139,7 +140,10 @@ def pledge_list(request):
     entries = GroupBuyEntry.objects.filter(user=request.user).select_related(
         'group_buy__product',
         'variation',
-    ).prefetch_related('group_buy__product__files').order_by('-updated_at')
+    ).prefetch_related(
+        'group_buy__product__files',
+        'group_buy__product__variations',
+    ).order_by('-updated_at')
 
     pledge_groups = []
     grouped = {}
@@ -166,7 +170,18 @@ def pledge_list(request):
     pledge_groups = [grouped[pk] for pk in group_order]
     pledge_groups.sort(key=lambda item: item['latest_activity'], reverse=True)
 
+    group_ids = [group['group_buy'].pk for group in pledge_groups]
+    pledged_map = {}
+    if group_ids:
+        pledged_map = dict(
+            GroupBuyEntry.objects.filter(group_buy_id__in=group_ids)
+            .values('group_buy_id')
+            .annotate(total=Sum('quantity'))
+            .values_list('group_buy_id', 'total')
+        )
+
     for group in pledge_groups:
+        group['group_buy'].pledged_total = pledged_map.get(group['group_buy'].pk, 0)
         group['entries'].sort(key=lambda entry: entry.updated_at, reverse=True)
         group_buy = group['group_buy']
         group['latest_paid_order'] = get_user_latest_paid_order(request.user, group_buy)
@@ -177,6 +192,12 @@ def pledge_list(request):
     summary = {
         'active_group_buys': len(pledge_groups),
         'total_pledges': sum(group['total_units'] for group in pledge_groups),
+        'ready_to_pay': sum(1 for group in pledge_groups if group['can_confirm']),
+        'paid': sum(1 for group in pledge_groups if group['is_paid']),
+        'estimated_total': sum(
+            (group['estimated_total'] for group in pledge_groups),
+            Decimal('0'),
+        ),
     }
 
     return render(request, 'core/pledges/list.html', {

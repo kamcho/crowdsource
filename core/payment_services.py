@@ -277,53 +277,149 @@ def process_stk_callback_payload(payload):
         'mpesa_receipt_number', 'phone_number',
     ])
 
-    result_code = parsed.get('result_code')
+    result_code = _coerce_result_code(parsed.get('result_code'))
+    reason = explain_mpesa_result(result_code, parsed.get('result_description', ''))
     if result_code == 0:
         finalize_paid_order(payment, mpesa_receipt=parsed.get('mpesa_receipt_number', ''))
     elif result_code == 1032:
         cancel_payment(
             payment,
             result_code=1032,
-            result_description=parsed.get('result_description', 'Payment cancelled.'),
+            result_description=reason,
         )
     else:
         fail_payment(
             payment,
             result_code=result_code,
-            result_description=parsed.get('result_description', 'Payment failed.'),
+            result_description=reason,
         )
     return payment
 
 
+def _coerce_result_code(value):
+    if value is None or value == '':
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+_GENERIC_STATUS_NOTES = {
+    'Could not check M-Pesa payment status.',
+    'Payment failed.',
+    'Payment cancelled.',
+}
+
+_MPESA_RESULT_REASONS = {
+    1: 'Insufficient M-Pesa balance. Top up and try again.',
+    1001: 'Another M-Pesa payment is already in progress on this phone. Wait a moment and try again.',
+    1019: 'The M-Pesa prompt expired before it was approved.',
+    1025: 'Safaricom could not send the payment prompt to this phone.',
+    1032: 'You cancelled the M-Pesa prompt on your phone.',
+    1037: 'The prompt timed out. Your phone did not respond, or Safaricom could not reach it.',
+    2001: 'Wrong M-Pesa PIN.',
+    2006: 'The M-Pesa prompt expired.',
+    9999: 'Safaricom could not complete the payment. Try again.',
+}
+
+
+def explain_mpesa_result(result_code, description=''):
+    """Turn a Daraja result into a reason a buyer can act on."""
+    code = _coerce_result_code(result_code)
+    description = (description or '').strip().rstrip('.')
+    if description in _GENERIC_STATUS_NOTES:
+        description = ''
+    plain = _MPESA_RESULT_REASONS.get(code, '')
+    if plain and description and description.lower() not in plain.lower():
+        return f'{plain} Safaricom said: {description}.'
+    if plain:
+        return plain
+    if description:
+        return description
+    return 'Safaricom did not say why this payment failed.'
+
+
+def payment_status_message(payment):
+    if payment.status == Payment.Status.COMPLETED:
+        return 'Payment confirmed.'
+    if payment.status == Payment.Status.PENDING:
+        text = (payment.result_description or '').strip()
+        if text and text not in _GENERIC_STATUS_NOTES:
+            return text
+        return 'Check your phone and enter your M-Pesa PIN to approve the payment.'
+
+    code = _coerce_result_code(payment.result_code)
+    raw = (payment.result_description or '').strip()
+    payload = payment.callback_payload if isinstance(payment.callback_payload, dict) else None
+    if payload:
+        parsed = parse_stk_callback(payload)
+        callback_code = _coerce_result_code(parsed.get('result_code'))
+        callback_desc = (parsed.get('result_description') or '').strip()
+        if callback_code is not None:
+            code = callback_code
+        if callback_desc:
+            raw = callback_desc
+    if raw in _GENERIC_STATUS_NOTES:
+        raw = ''
+    return explain_mpesa_result(code, raw)
+
+
+def _note_pending_status(payment, description):
+    description = (description or '').strip()[:255]
+    payment.refresh_from_db()
+    if payment.status != Payment.Status.PENDING:
+        return payment
+    if not description or description == payment.result_description:
+        return payment
+    if description in _GENERIC_STATUS_NOTES and payment.result_description not in _GENERIC_STATUS_NOTES:
+        if payment.result_description:
+            return payment
+    payment.result_description = description
+    payment.save(update_fields=['result_description'])
+    return payment
+
+
 def poll_mpesa_payment_status(payment):
-    """Poll Daraja STK query API when callback has not arrived yet."""
+    """Ask Safaricom for the STK result when the callback has not arrived."""
     if payment.status != Payment.Status.PENDING or not payment.checkout_request_id:
         return payment
 
     try:
         query_data = query_stk_status(payment.checkout_request_id)
-    except (MpesaConfigError, MpesaAPIError):
+    except MpesaAPIError as exc:
+        message = (exc.response_data or {}).get('errorMessage') or str(exc)
+        return _note_pending_status(payment, message)
+    except MpesaConfigError:
         return payment
 
-    result_code = query_data.get('ResultCode')
+    result_code = _coerce_result_code(query_data.get('ResultCode'))
+    description = query_data.get('ResultDesc') or query_data.get('ResponseDescription') or ''
+    if result_code in (None, 4999):
+        return _note_pending_status(
+            payment,
+            description or 'Safaricom is still processing this payment.',
+        )
+
     if result_code == 0:
         receipt = ''
         metadata = query_data.get('CallbackMetadata', {}).get('Item', [])
-        for item in metadata:
-            if item.get('Name') == 'MpesaReceiptNumber':
-                receipt = str(item.get('Value', ''))
+        if isinstance(metadata, list):
+            for item in metadata:
+                if item.get('Name') == 'MpesaReceiptNumber':
+                    receipt = str(item.get('Value', ''))
         finalize_paid_order(payment, mpesa_receipt=receipt)
-    elif str(result_code) == '1032':
+    elif result_code == 1032:
         cancel_payment(
             payment,
             result_code=1032,
-            result_description=query_data.get('ResultDesc', 'Payment cancelled.'),
+            result_description=explain_mpesa_result(1032, description),
         )
-    elif result_code not in (None,) and str(result_code) != '4999':
+    else:
         fail_payment(
             payment,
-            result_code=int(result_code) if str(result_code).isdigit() else None,
-            result_description=query_data.get('ResultDesc', 'Payment failed.'),
+            result_code=result_code,
+            result_description=explain_mpesa_result(result_code, description),
         )
 
     payment.refresh_from_db()

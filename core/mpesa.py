@@ -7,6 +7,7 @@ Same integration pattern as Excel / Soma Smart projects.
 from __future__ import annotations
 
 import base64
+import json
 import logging
 from datetime import datetime
 
@@ -14,6 +15,17 @@ import requests
 from django.conf import settings
 
 logger = logging.getLogger('crowdsource.mpesa')
+
+
+def debug_mpesa(label, data):
+    """Print Daraja traffic in the runserver console while DEBUG is on."""
+    if not settings.DEBUG:
+        return
+    if isinstance(data, (dict, list)):
+        text = json.dumps(data, default=str, indent=2)
+    else:
+        text = str(data)
+    print(f'\n[mpesa] {label}\n{text}\n', flush=True)
 
 
 class MpesaConfigError(Exception):
@@ -117,6 +129,9 @@ def initiate_stk_push(*, phone_number: str, amount: int, account_reference: str,
     }
 
     url = f'{mpesa_base_url()}/mpesa/stkpush/v1/processrequest'
+    safe_payload = {key: value for key, value in payload.items() if key != 'Password'}
+    safe_payload['Password'] = '***'
+    debug_mpesa('stk request', safe_payload)
     response = requests.post(
         url,
         json=payload,
@@ -124,6 +139,7 @@ def initiate_stk_push(*, phone_number: str, amount: int, account_reference: str,
         timeout=30,
     )
     data = response.json()
+    debug_mpesa('stk response', data)
     if response.status_code != 200 or data.get('ResponseCode') != '0':
         logger.error('STK push failed: %s', data)
         raise MpesaAPIError(
@@ -152,7 +168,17 @@ def query_stk_status(checkout_request_id: str):
         headers={'Authorization': f'Bearer {token}'},
         timeout=30,
     )
-    return response.json()
+    try:
+        data = response.json()
+    except ValueError:
+        data = {}
+    debug_mpesa('stk query response', {'http_status': response.status_code, 'body': data})
+    if response.status_code != 200:
+        raise MpesaAPIError(
+            data.get('errorMessage') or 'Could not check M-Pesa payment status.',
+            data,
+        )
+    return data
 
 
 def parse_stk_callback(payload: dict):

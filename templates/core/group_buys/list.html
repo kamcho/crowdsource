@@ -24,31 +24,85 @@
             </div>
         </div>
 
-        <div class="admin-summary-bar">
-            <div class="admin-summary-stat">
-                <span class="admin-summary-label">Total</span>
-                <strong>{{ summary.total }}</strong>
-            </div>
-            <div class="admin-summary-stat">
-                <span class="admin-summary-label">Open</span>
-                <strong>{{ summary.open }}</strong>
-            </div>
-            <div class="admin-summary-stat">
-                <span class="admin-summary-label">MOQ reached</span>
-                <strong>{{ summary.moq_reached }}</strong>
-            </div>
-            <div class="admin-summary-stat">
-                <span class="admin-summary-label">Importing</span>
-                <strong>{{ summary.importing }}</strong>
-            </div>
-            <div class="admin-summary-stat">
-                <span class="admin-summary-label">Completed</span>
-                <strong>{{ summary.completed }}</strong>
-            </div>
-            <div class="admin-summary-stat">
-                <span class="admin-summary-label">Cancelled</span>
-                <strong>{{ summary.cancelled }}</strong>
-            </div>
+        <div class="profile-stat-grid profile-stat-grid-3">
+            <a href="{% url 'core:group_buy_list' %}" class="profile-stat-card profile-stat-card-link{% if not status_filter %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--blue" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.total }}</div>
+                </div>
+                <p class="profile-stat-label">All campaigns</p>
+                <div class="profile-stat-footer">
+                    <span>View all</span>
+                    <span class="profile-stat-footer-note">Group buys</span>
+                </div>
+            </a>
+            <a href="?status=open" class="profile-stat-card profile-stat-card-link{% if status_filter == 'open' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--orange" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.open }}</div>
+                </div>
+                <p class="profile-stat-label">Open</p>
+                <div class="profile-stat-footer">
+                    <span>Accepting pledges</span>
+                    <span class="profile-stat-footer-note">Active</span>
+                </div>
+            </a>
+            <a href="?status=moq_reached" class="profile-stat-card profile-stat-card-link{% if status_filter == 'moq_reached' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--amber" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.moq_reached }}</div>
+                </div>
+                <p class="profile-stat-label">MOQ reached</p>
+                <div class="profile-stat-footer">
+                    <span>Ready to import</span>
+                    <span class="profile-stat-footer-note">Unlocked</span>
+                </div>
+            </a>
+            <a href="?status=importing" class="profile-stat-card profile-stat-card-link{% if status_filter == 'importing' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--purple" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.importing }}</div>
+                </div>
+                <p class="profile-stat-label">Importing</p>
+                <div class="profile-stat-footer">
+                    <span>In transit</span>
+                    <span class="profile-stat-footer-note">Bulk order</span>
+                </div>
+            </a>
+            <a href="?status=completed" class="profile-stat-card profile-stat-card-link{% if status_filter == 'completed' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--emerald" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.completed }}</div>
+                </div>
+                <p class="profile-stat-label">Completed</p>
+                <div class="profile-stat-footer">
+                    <span>Finished</span>
+                    <span class="profile-stat-footer-note">Delivered</span>
+                </div>
+            </a>
+            <a href="?status=cancelled" class="profile-stat-card profile-stat-card-link{% if status_filter == 'cancelled' %} is-active{% endif %}">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--rose" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.cancelled }}</div>
+                </div>
+                <p class="profile-stat-label">Cancelled</p>
+                <div class="profile-stat-footer">
+                    <span>Closed</span>
+                    <span class="profile-stat-footer-note">Not running</span>
+                </div>
+            </a>
         </div>
 
         <div class="admin-filter-bar">
@@ -60,7 +114,7 @@
             {% endfor %}
         </div>
 
-        <div class="admin-card">
+        <div class="admin-card manage-table-card">
             {% if group_buys %}
             <div class="data-table-wrap">
                 <table class="data-table group-buy-table">

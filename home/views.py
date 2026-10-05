@@ -19,9 +19,9 @@ def _products_page_context(request, *, max_products=None):
     search = (request.GET.get('q') or '').strip()
     category = get_filter_category(category_slug)
     queryset = get_public_products_queryset(category=category, search=search)
-    full_count = queryset.count()
     paginate_queryset = queryset[:max_products] if max_products is not None else queryset
     page_obj = paginate_products(paginate_queryset, request.GET.get('page', 1))
+    full_count = queryset.count() if max_products is not None else page_obj.paginator.count
 
     return {
         'products': page_obj.object_list,

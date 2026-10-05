@@ -317,6 +317,72 @@
     font-family: var(--font);
 }
 
+.pledges-page .pledge-group-card,
+.pledges-page .pledge-empty {
+    border-radius: 8px;
+}
+
+.pledges-page .pledge-empty {
+    text-align: center;
+    padding: 3rem 1.5rem;
+}
+
+.pledges-page .pledge-empty p {
+    margin-bottom: 1.25rem;
+    color: var(--color-text-secondary);
+}
+
+.pledge-group-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.pledge-group-title-row h2 {
+    margin-bottom: 0;
+}
+
+.pledge-lines-label {
+    margin: 0 0 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+.pledges-page .pledge-group-card .commerce-actions {
+    margin-top: 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border-light);
+}
+
+.status-badge-gb-open {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.status-badge-gb-moq_reached {
+    background: #fffbeb;
+    color: #b45309;
+}
+
+.status-badge-gb-importing {
+    background: #f5f3ff;
+    color: #6d28d9;
+}
+
+.status-badge-gb-completed {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.status-badge-gb-cancelled {
+    background: var(--color-bg-muted);
+    color: var(--color-text-muted);
+}
+
 .pledge-summary-bar {
     display: flex;
     gap: 2rem;
@@ -769,6 +835,73 @@
 
 .order-detail-note a {
     color: var(--color-primary);
+}
+
+.payment-wait {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.payment-wait[hidden] {
+    display: none;
+}
+
+.payment-wait-spinner {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid #fde68a;
+    border-top-color: #d97706;
+    border-radius: 50%;
+    animation: payment-wait-spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes payment-wait-spin {
+    to { transform: rotate(360deg); }
+}
+
+.payment-status-panel {
+    margin: 1rem 0 1.25rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px;
+    background: var(--color-bg-subtle);
+}
+
+.payment-status-panel.is-completed {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+}
+
+.payment-status-panel.is-failed,
+.payment-status-panel.is-cancelled {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.payment-status-label {
+    margin: 0 0 0.5rem;
+}
+
+.status-badge-payment-pending {
+    background: #fffbeb;
+    color: #b45309;
+}
+
+.status-badge-payment-completed {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.status-badge-payment-failed,
+.status-badge-payment-cancelled {
+    background: #fef2f2;
+    color: #b91c1c;
 }
 
 .status-badge {

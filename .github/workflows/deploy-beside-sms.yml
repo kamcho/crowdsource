@@ -1,0 +1,55 @@
+name: Deploy beside SMS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-beside-sms
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Install CrowdSource next to SMS
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out CrowdSource
+        uses: actions/checkout@v4
+
+      - name: Pack release
+        run: |
+          tar --exclude .git --exclude .venv --exclude venv --exclude .env --exclude db.sqlite3 --exclude media --exclude staticfiles --exclude excel-tree.txt --exclude __pycache__ -czf crowdsource-release.tgz .
+
+      - name: Upload release
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 137.184.137.222
+          username: ${{ secrets.DROPLET_USER }}
+          password: ${{ secrets.DROPLET_SSH_PASSWORD }}
+          port: 22
+          source: crowdsource-release.tgz
+          target: /tmp
+          overwrite: true
+
+      - name: Install without touching SMS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 137.184.137.222
+          username: ${{ secrets.DROPLET_USER }}
+          password: ${{ secrets.DROPLET_SSH_PASSWORD }}
+          port: 22
+          script_stop: true
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+            sudo rm -rf /tmp/crowdsource-src
+            sudo mkdir -p /tmp/crowdsource-src /srv/crowdsource
+            sudo tar -xzf /tmp/crowdsource-release.tgz -C /tmp/crowdsource-src
+            sudo cp -a /tmp/crowdsource-src/. /srv/crowdsource/
+            sudo sed -i 's/\r$//' /srv/crowdsource/deploy/beside-sms.sh
+            sudo bash /srv/crowdsource/deploy/beside-sms.sh
+            sudo rm -rf /tmp/crowdsource-src /tmp/crowdsource-release.tgz

@@ -11,25 +11,58 @@
 {% endblock %}
 
 {% block content %}
-<section class="page-section">
+<section class="page-section pledges-page">
     <div class="container">
-        <div class="commerce-header">
-            <div>
+        <div class="user-dash-hero">
+            <div class="user-dash-welcome">
                 <h1>My bookings</h1>
-                <p>Active group buy commitments you've joined. Confirm and pay anytime to lock in your order.</p>
+                <p>Group buys you have joined. Confirm and pay when you are ready to lock in an order.</p>
             </div>
+            <a href="{% url 'home:product_browse' %}" class="btn btn-outline">Browse products</a>
         </div>
 
         {% if pledge_groups %}
-        <div class="pledge-summary-bar commerce-card">
-            <div class="pledge-summary-stat">
-                <span class="pledge-summary-label">Group buys</span>
-                <strong>{{ summary.active_group_buys }}</strong>
-            </div>
-            <div class="pledge-summary-stat">
-                <span class="pledge-summary-label">Total units booked</span>
-                <strong>{{ summary.total_pledges }}</strong>
-            </div>
+        <div class="profile-stat-grid">
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--blue" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.active_group_buys }}</div>
+                </div>
+                <p class="profile-stat-label">Group buys</p>
+                <div class="profile-stat-footer"><span>Campaigns you joined</span><span class="profile-stat-footer-note">Open</span></div>
+            </article>
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--orange" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.total_pledges }}</div>
+                </div>
+                <p class="profile-stat-label">Units booked</p>
+                <div class="profile-stat-footer"><span>Across your bookings</span><span class="profile-stat-footer-note">Units</span></div>
+            </article>
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--amber" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ summary.ready_to_pay }}</div>
+                </div>
+                <p class="profile-stat-label">Ready to pay</p>
+                <div class="profile-stat-footer"><span>{{ summary.paid }} already paid</span><span class="profile-stat-footer-note">Checkout</span></div>
+            </article>
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--emerald" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{% money summary.estimated_total %}</div>
+                </div>
+                <p class="profile-stat-label">Estimated total</p>
+                <div class="profile-stat-footer"><span>{% usd_hint summary.estimated_total %}</span><span class="profile-stat-footer-note">Your lines</span></div>
+            </article>
         </div>
 
         <div class="pledge-group-list">
@@ -42,18 +75,20 @@
                         {% if image %}
                         <img src="{{ image.file.url }}" alt="" class="pledge-group-thumb">
                         {% else %}
-                        <span class="pledge-group-thumb pledge-group-thumb-empty">—</span>
+                        <span class="pledge-group-thumb pledge-group-thumb-empty" aria-hidden="true"></span>
                         {% endif %}
                         {% endwith %}
                         <div>
-                            <h2><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h2>
+                            <div class="pledge-group-title-row">
+                                <h2><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h2>
+                                <span class="status-badge status-badge-gb-{{ group_buy.status }}">{{ group_buy.get_status_display }}</span>
+                            </div>
                             <p class="pledge-group-meta">
-                                {% if product.active_variations %}
-                                {% money_from product.min_price %}/unit
+                                {% if product.variation_count %}
+                                From {% money_from product.min_price %}/unit
                                 {% else %}
-                                Group price <strong>{% money group_buy.unit_price %}</strong>/unit
+                                {% money group_buy.unit_price %}/unit
                                 {% endif %}
-                                · {{ group_buy.get_status_display }}
                             </p>
                         </div>
                     </div>
@@ -94,6 +129,7 @@
                     </p>
                 </div>
 
+                <p class="pledge-lines-label">Your lines</p>
                 <ul class="pledge-line-list">
                     {% for entry in group.entries %}
                     <li>
@@ -124,7 +160,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <div class="commerce-card empty-state-box">
+        <div class="commerce-card pledge-empty">
             <p>You haven't booked any group buys yet. Browse products and join an open campaign.</p>
             <a href="{% url 'home:landing' %}#products" class="btn btn-primary">Browse products</a>
         </div>

@@ -733,6 +733,254 @@
 
 
 
+    {% if price_player_lines %}
+
+    <section class="shipment-panel shipment-price-player" id="shipment-price-player" aria-labelledby="price-player-title">
+
+        <header class="shipment-price-player-head">
+
+            <div>
+
+                <h2 class="shipment-panel-title" id="price-player-title">Price player</h2>
+
+                <p class="field-hint">Set profit as <strong>margin %</strong> or <strong>$/unit</strong> — uniform or per line. See <strong>w.sale</strong> (group buy) and <strong>retail</strong> side by side; totals update live. Retail is planning only unless you price elsewhere.</p>
+
+            </div>
+
+        </header>
+
+
+
+        <div class="price-player-controls">
+
+            <div class="price-player-mode" role="radiogroup" aria-label="Profit input mode">
+
+                <label class="price-player-mode-option">
+
+                    <input type="radio" name="price_player_mode" value="margin" checked data-price-player-mode>
+
+                    Margin % on landed
+
+                </label>
+
+                <label class="price-player-mode-option">
+
+                    <input type="radio" name="price_player_mode" value="dollar" data-price-player-mode>
+
+                    Profit $ / unit
+
+                </label>
+
+            </div>
+
+
+
+            <div class="price-player-uniform-grid">
+
+                <fieldset class="price-player-channel">
+
+                    <legend>W.sale (wholesale)</legend>
+
+                    <div class="price-player-slider-row" data-channel="wholesale" data-mode="margin">
+
+                        <input type="range" class="price-player-slider" id="price-player-w-margin-slider" min="0" max="120" step="0.5" value="16">
+
+                        <input type="number" class="form-input price-player-number" id="price-player-w-margin-input" min="0" max="500" step="0.5" value="16">
+
+                        <span class="price-player-unit">%</span>
+
+                    </div>
+
+                    <div class="price-player-slider-row" data-channel="wholesale" data-mode="dollar" hidden>
+
+                        <input type="range" class="price-player-slider" id="price-player-w-dollar-slider" min="0" max="50" step="0.05" value="0.50">
+
+                        <input type="number" class="form-input price-player-number" id="price-player-w-dollar-input" min="0" max="999" step="0.01" value="0.50">
+
+                        <span class="price-player-unit">USD / unit profit</span>
+
+                    </div>
+
+                </fieldset>
+
+
+
+                <fieldset class="price-player-channel">
+
+                    <legend>Retail</legend>
+
+                    <div class="price-player-slider-row" data-channel="retail" data-mode="margin">
+
+                        <input type="range" class="price-player-slider" id="price-player-r-margin-slider" min="0" max="200" step="0.5" value="45">
+
+                        <input type="number" class="form-input price-player-number" id="price-player-r-margin-input" min="0" max="500" step="0.5" value="45">
+
+                        <span class="price-player-unit">%</span>
+
+                    </div>
+
+                    <div class="price-player-slider-row" data-channel="retail" data-mode="dollar" hidden>
+
+                        <input type="range" class="price-player-slider" id="price-player-r-dollar-slider" min="0" max="80" step="0.05" value="1.50">
+
+                        <input type="number" class="form-input price-player-number" id="price-player-r-dollar-input" min="0" max="999" step="0.01" value="1.50">
+
+                        <span class="price-player-unit">USD / unit profit</span>
+
+                    </div>
+
+                </fieldset>
+
+            </div>
+
+
+
+            <label class="price-player-per-line-toggle">
+
+                <input type="checkbox" id="price-player-per-line">
+
+                Customize profit per product line
+
+            </label>
+
+        </div>
+
+
+
+        <div class="price-player-table-wrap">
+
+            <table class="price-player-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Product</th>
+
+                        <th class="col-num">Units</th>
+
+                        <th class="col-num">Landed / u</th>
+
+                        <th class="col-num">W.sale / u</th>
+
+                        <th class="col-num">Retail / u</th>
+
+                        <th class="col-num">W. line profit</th>
+
+                        <th class="col-num">Retail line profit</th>
+
+                        <th class="price-player-override-col" hidden>W.sale override</th>
+
+                        <th class="price-player-override-col" hidden>Retail override</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for line in price_player_lines %}
+
+                    <tr
+                        data-price-player-row
+                        data-batch-id="{{ line.import_batch_id }}"
+                        data-units="{{ line.units }}"
+                        data-landed="{{ line.landed_per_unit }}"
+                        data-default-w-margin="{{ line.default_wholesale_margin }}"
+                    >
+
+                        <td>
+
+                            <div class="shipment-product-cell price-player-product-cell">
+
+                                {% if line.image_url %}
+
+                                <img src="{{ line.image_url }}" alt="" class="shipment-picker-thumb">
+
+                                {% else %}
+
+                                <span class="shipment-picker-thumb shipment-picker-thumb-empty"></span>
+
+                                {% endif %}
+
+                                <span>{{ line.product_name|truncatechars:48 }}</span>
+
+                            </div>
+
+                        </td>
+
+                        <td class="col-num">{{ line.units }}</td>
+
+                        <td class="col-num price-player-landed" data-role="landed"></td>
+
+                        <td class="col-num price-player-w-price" data-role="w-price"></td>
+
+                        <td class="col-num price-player-r-price" data-role="r-price"></td>
+
+                        <td class="col-num price-player-w-line" data-role="w-line"></td>
+
+                        <td class="col-num price-player-r-line" data-role="r-line"></td>
+
+                        <td class="price-player-override-col" hidden>
+
+                            <input type="number" class="form-input price-player-override-input" data-override="wholesale" step="0.01" placeholder="Uniform" aria-label="Wholesale override">
+
+                        </td>
+
+                        <td class="price-player-override-col" hidden>
+
+                            <input type="number" class="form-input price-player-override-input" data-override="retail" step="0.01" placeholder="Uniform" aria-label="Retail override">
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+                <tfoot>
+
+                    <tr class="price-player-totals-row">
+
+                        <th scope="row" colspan="5">Projected shipment profit</th>
+
+                        <td class="col-num" id="price-player-total-w"></td>
+
+                        <td class="col-num" id="price-player-total-r"></td>
+
+                        <td colspan="2" class="price-player-override-col" hidden></td>
+
+                    </tr>
+
+                </tfoot>
+
+            </table>
+
+        </div>
+
+
+
+        <form method="post" class="price-player-apply-form" id="price-player-apply-form">
+
+            {% csrf_token %}
+
+            <input type="hidden" name="action" value="apply_price_player_wholesale">
+
+            <div id="price-player-apply-fields"></div>
+
+            <p class="field-hint">Optional: push computed <strong>w.sale</strong> unit prices to each group buy (retail stays preview-only here).</p>
+
+            <button type="submit" class="btn btn-outline">Apply w.sale prices to group buys</button>
+
+        </form>
+
+    </section>
+
+    {% endif %}
+
+
+
     <div class="shipment-manage-footer">
 
         <form method="post" class="manage-inline-action" onsubmit="return confirm('Delete this shipment? Import batches will be unlinked, not deleted.');">
@@ -847,5 +1095,6 @@
 <script src="{% static 'js/shipment-remove-confirm.js' %}"></script>
 <script src="{% static 'js/shipment-paste-match.js' %}"></script>
 <script src="{% static 'js/shipment-shared-cost-split.js' %}"></script>
+<script src="{% static 'js/shipment-price-player.js' %}"></script>
 {% endblock %}
 

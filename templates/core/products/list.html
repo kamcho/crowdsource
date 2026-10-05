@@ -23,7 +23,30 @@
             </div>
         </div>
 
-        <div class="admin-card">
+        <div class="admin-card manage-table-card">
+            <form method="get" class="product-list-filters" role="search">
+                <div class="form-group">
+                    <label for="product-search">Search</label>
+                    <input type="search" name="q" id="product-search" class="form-input" value="{{ query }}" placeholder="Name, description, category, or supplier">
+                </div>
+                <div class="form-group">
+                    <label for="product-category">Category</label>
+                    <select name="category" id="product-category" class="form-input form-select">
+                        <option value="">All categories</option>
+                        {% for category, depth in category_tree %}
+                        <option value="{{ category.pk }}" {% if category_id == category.pk %}selected{% endif %}>{{ category.get_indented_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="product-list-filters-actions">
+                    <button type="submit" class="btn btn-outline">Search</button>
+                    {% if query or category_id %}
+                    <a href="{% url 'core:product_list' %}" class="btn btn-outline">Clear</a>
+                    {% endif %}
+                </div>
+            </form>
+            <p class="field-hint product-list-filters-hint">Search matches product text and category names. A category includes its subcategories. When you search, closer name matches come first, then products ordered more often.</p>
+
             {% if products %}
             <div class="data-table-wrap">
                 <table class="data-table">
@@ -32,6 +55,7 @@
                             <th>Product</th>
                             <th>Category</th>
                             <th>Supplier</th>
+                            <th class="col-num">Orders</th>
                             <th>Options</th>
                             <th>Variations</th>
                             <th>Status</th>
@@ -62,6 +86,7 @@
                             </td>
                             <td>{{ product.category.get_breadcrumb }}</td>
                             <td>{% if product.supplier %}{{ product.supplier.name }}{% else %}<span class="category-desc">—</span>{% endif %}</td>
+                            <td class="col-num">{{ product.order_count }}</td>
                             <td>{{ product.options.count }}</td>
                             <td>{{ product.variations.count }}</td>
                             <td>
@@ -83,8 +108,13 @@
             </div>
             {% else %}
             <div class="empty-state-box">
+                {% if query or category_id %}
+                <p>No products match this search.</p>
+                <a href="{% url 'core:product_list' %}" class="btn btn-outline">Clear search</a>
+                {% else %}
                 <p>No products yet. Add your first product with images or videos.</p>
                 <a href="{% url 'core:product_create' %}" class="btn btn-primary">Add Product</a>
+                {% endif %}
             </div>
             {% endif %}
         </div>

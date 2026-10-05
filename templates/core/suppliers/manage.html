@@ -18,7 +18,7 @@
                     <a href="{% url 'core:supplier_list' %}">Suppliers</a> /
                     {{ supplier.name }}
                 </p>
-                <div class="order-card-id-row">
+                <div class="record-title-row">
                     <h1>{{ supplier.name }}</h1>
                     {% if supplier.is_active %}
                     <span class="status-badge status-badge-active">Active</span>
@@ -26,47 +26,86 @@
                     <span class="status-badge status-badge-inactive">Inactive</span>
                     {% endif %}
                 </div>
-                <p class="order-card-meta">{{ supplier.country }} · {{ supplier.product_count }} product{{ supplier.product_count|pluralize }} · {{ supplier.batch_count }} import batch{{ supplier.batch_count|pluralize:"es" }}</p>
+                <p>{{ supplier.country }} · Added {{ supplier.created_at|date:"M j, Y" }}</p>
             </div>
             <div class="admin-header-actions">
+                {% if supplier.alibaba_url %}
+                <a href="{{ supplier.alibaba_url }}" class="btn btn-outline" target="_blank" rel="noopener">Alibaba storefront</a>
+                {% endif %}
                 <a href="{% url 'core:supplier_edit' supplier.pk %}" class="btn btn-primary">Edit supplier</a>
-                <a href="{% url 'core:supplier_list' %}" class="btn btn-outline">Back to list</a>
+                <a href="{% url 'core:supplier_list' %}" class="btn btn-outline">All suppliers</a>
             </div>
         </div>
 
-        <div class="import-review-grid">
-            <div class="admin-card">
-                <h2 class="import-section-title">Contact details</h2>
-                <dl class="import-review-list">
-                    <div><dt>Contact person</dt><dd>{{ supplier.contact_name|default:"—" }}</dd></div>
-                    <div><dt>Email</dt><dd>{% if supplier.email %}<a href="mailto:{{ supplier.email }}">{{ supplier.email }}</a>{% else %}—{% endif %}</dd></div>
-                    <div><dt>Phone</dt><dd>{{ supplier.phone|default:"—" }}</dd></div>
-                    <div><dt>WeChat</dt><dd>{{ supplier.wechat_id|default:"—" }}</dd></div>
-                    <div><dt>Alibaba</dt><dd>{% if supplier.alibaba_url %}<a href="{{ supplier.alibaba_url }}" target="_blank" rel="noopener">Open storefront</a>{% else %}—{% endif %}</dd></div>
+        <div class="profile-stat-grid">
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--blue" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ supplier.product_count }}</div>
+                </div>
+                <p class="profile-stat-label">Products</p>
+                <div class="profile-stat-footer"><span>Linked catalog</span><span class="profile-stat-footer-note">Items</span></div>
+            </article>
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--orange" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ supplier.batch_count }}</div>
+                </div>
+                <p class="profile-stat-label">Import batches</p>
+                <div class="profile-stat-footer"><span>Shipments from this factory</span><span class="profile-stat-footer-note">Batches</span></div>
+            </article>
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--emerald" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ supplier.country }}</div>
+                </div>
+                <p class="profile-stat-label">Country</p>
+                <div class="profile-stat-footer"><span>Origin</span><span class="profile-stat-footer-note">Factory</span></div>
+            </article>
+            <article class="profile-stat-card">
+                <div class="profile-stat-top">
+                    <div class="profile-stat-icon profile-stat-icon--purple" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </div>
+                    <div class="profile-stat-value">{{ supplier.created_at|date:"M j, Y" }}</div>
+                </div>
+                <p class="profile-stat-label">Added</p>
+                <div class="profile-stat-footer"><span>Updated {{ supplier.updated_at|date:"M j, Y" }}</span><span class="profile-stat-footer-note">Record</span></div>
+            </article>
+        </div>
+
+        <div class="record-detail-grid">
+            <div class="admin-card manage-table-card">
+                <h2 class="manage-section-title">Contact</h2>
+                <dl class="record-detail-list">
+                    <div><dt>Contact person</dt><dd>{{ supplier.contact_name|default:"Not set" }}</dd></div>
+                    <div>
+                        <dt>Email</dt>
+                        <dd>{% if supplier.email %}<a href="mailto:{{ supplier.email }}">{{ supplier.email }}</a>{% else %}Not set{% endif %}</dd>
+                    </div>
+                    <div><dt>Phone</dt><dd>{{ supplier.phone|default:"Not set" }}</dd></div>
+                    <div><dt>WeChat</dt><dd>{{ supplier.wechat_id|default:"Not set" }}</dd></div>
+                    <div>
+                        <dt>Alibaba</dt>
+                        <dd>{% if supplier.alibaba_url %}<a href="{{ supplier.alibaba_url }}" target="_blank" rel="noopener">Open storefront</a>{% else %}Not set{% endif %}</dd>
+                    </div>
                     <div><dt>Country</dt><dd>{{ supplier.country }}</dd></div>
                 </dl>
-                {% if supplier.notes %}
-                <h3 class="manage-section-title">Notes</h3>
-                <p class="import-review-description">{{ supplier.notes|linebreaksbr }}</p>
-                {% endif %}
             </div>
-
-            <div class="admin-card">
-                <h2 class="import-section-title">Summary</h2>
-                <div class="admin-summary-bar admin-summary-bar-inline">
-                    <div class="admin-summary-stat">
-                        <span class="admin-summary-label">Products</span>
-                        <strong>{{ supplier.product_count }}</strong>
-                    </div>
-                    <div class="admin-summary-stat">
-                        <span class="admin-summary-label">Import batches</span>
-                        <strong>{{ supplier.batch_count }}</strong>
-                    </div>
-                    <div class="admin-summary-stat">
-                        <span class="admin-summary-label">Added</span>
-                        <strong>{{ supplier.created_at|date:"M j, Y" }}</strong>
-                    </div>
-                </div>
+            <div class="admin-card manage-table-card">
+                <h2 class="manage-section-title">Notes</h2>
+                {% if supplier.notes %}
+                <p class="supplier-notes">{{ supplier.notes|linebreaksbr }}</p>
+                {% else %}
+                <p class="manage-section-lead">No notes yet.</p>
+                <a href="{% url 'core:supplier_edit' supplier.pk %}" class="btn btn-outline btn-sm">Add notes</a>
+                {% endif %}
             </div>
         </div>
 
@@ -81,7 +120,7 @@
                         <tr>
                             <th>Product</th>
                             <th>Category</th>
-                            <th>Variations</th>
+                            <th class="col-num">Variations</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -91,7 +130,7 @@
                         <tr>
                             <td><strong>{{ product.name }}</strong></td>
                             <td>{{ product.category.get_breadcrumb }}</td>
-                            <td>{{ product.variations.count }}</td>
+                            <td class="col-num">{{ product.variation_count }}</td>
                             <td>
                                 {% if product.is_active %}
                                 <span class="status-badge status-badge-active">Active</span>
@@ -109,7 +148,9 @@
                 </table>
             </div>
             {% else %}
-            <p class="category-desc">No products linked to this supplier yet.</p>
+            <div class="empty-state-box">
+                <p>No products linked to this supplier yet.</p>
+            </div>
             {% endif %}
         </div>
 
@@ -136,7 +177,7 @@
                                 <strong>{{ batch.group_buy.product.name }}</strong>
                                 <br><span class="category-desc">Batch #{{ batch.pk }}</span>
                             </td>
-                            <td><span class="status-badge">{{ batch.get_status_display }}</span></td>
+                            <td><span class="status-badge status-badge-import-{{ batch.status }}">{{ batch.get_status_display }}</span></td>
                             <td>{% if batch.supplier_reference %}<code>{{ batch.supplier_reference }}</code>{% else %}—{% endif %}</td>
                             <td>{% if batch.estimated_arrival %}{{ batch.estimated_arrival|date:"M j, Y" }}{% else %}—{% endif %}</td>
                             <td class="table-actions">
@@ -148,7 +189,9 @@
                 </table>
             </div>
             {% else %}
-            <p class="category-desc">No import batches linked to this supplier yet.</p>
+            <div class="empty-state-box">
+                <p>No import batches linked to this supplier yet.</p>
+            </div>
             {% endif %}
         </div>
     </div>
