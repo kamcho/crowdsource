@@ -22,6 +22,7 @@ jobs:
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
           password: ${{ secrets.DROPLET_SSH_PASSWORD }}
           port: ${{ secrets.DROPLET_PORT || 22 }}
           script_stop: true

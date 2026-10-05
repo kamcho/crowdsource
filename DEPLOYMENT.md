@@ -222,9 +222,12 @@ On every push to `main`, GitHub Actions SSHs into the droplet and runs `deploy/u
 | Secret | Value |
 |--------|-------|
 | `DROPLET_HOST` | Your droplet IP |
-| `DROPLET_USER` | `root` |
-| `DROPLET_SSH_PASSWORD` | Droplet root password |
+| `DROPLET_USER` | `root` (or a sudo user that can run `deploy/update.sh`) |
+| `DROPLET_SSH_KEY` | **Recommended.** Private SSH key (full PEM contents) that can log into the droplet |
+| `DROPLET_SSH_PASSWORD` | Optional if the server allows password SSH (many droplets disable this) |
 | `DROPLET_PORT` | `22` (optional) |
+
+If deploy fails with `unable to authenticate`, the password in GitHub is wrong or the server only accepts keys — add `DROPLET_SSH_KEY` or update `DROPLET_SSH_PASSWORD`.
 
 4. Push to `main` or run **Actions → Deploy to droplet → Run workflow**.
 
