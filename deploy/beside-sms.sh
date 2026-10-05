@@ -24,12 +24,30 @@ if ! id crowdsource >/dev/null 2>&1; then
 fi
 
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -y
-apt-get install -y python3-venv python3-pip
+free -h
+if [[ -n "$(dpkg --audit)" ]]; then
+  dpkg --configure -a
+fi
+if ! python3 -m venv /tmp/cs-venv-check >/dev/null 2>&1; then
+  rm -rf /tmp/cs-venv-check
+  apt-get update -y
+  apt-get install -y python3-venv
+else
+  rm -rf /tmp/cs-venv-check
+fi
+if ! swapon --show | grep -q .; then
+  if [[ ! -f /swapfile ]]; then
+    fallocate -l 1G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+  fi
+  swapon /swapfile || true
+  grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
 
 python3 -m venv "$APP/.venv"
 "$APP/.venv/bin/pip" install --upgrade pip
-"$APP/.venv/bin/pip" install -r "$APP/requirements.txt"
+"$APP/.venv/bin/pip" install --no-cache-dir -r "$APP/requirements.txt"
 
 if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='crowdsource'" | grep -q 1; then
   DB_PASSWORD="$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')"

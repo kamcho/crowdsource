@@ -1,9 +1,6 @@
 name: Deploy beside SMS
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 concurrency:
