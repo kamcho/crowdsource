@@ -47,6 +47,18 @@ if [[ -f "$ENV_FILE" ]]; then
   elif ! grep -qE '^WHATSAPP_VERIFY_TOKEN=.+' "$ENV_FILE"; then
     set_env_var WHATSAPP_VERIFY_TOKEN "test123"
   fi
+  if [[ -n "${WHATSAPP_ACCESS_TOKEN:-}" ]]; then
+    set_env_var WHATSAPP_ACCESS_TOKEN "$WHATSAPP_ACCESS_TOKEN"
+  fi
+  if [[ -n "${WHATSAPP_PHONE_NUMBER_ID:-}" ]]; then
+    set_env_var WHATSAPP_PHONE_NUMBER_ID "$WHATSAPP_PHONE_NUMBER_ID"
+  fi
+  if [[ -n "${WHATSAPP_WABA_ID:-}" ]]; then
+    set_env_var WHATSAPP_WABA_ID "$WHATSAPP_WABA_ID"
+  fi
+  set_env_var WHATSAPP_ENABLED "true"
+  set_env_var WHATSAPP_BACKEND "cloud"
+  set_env_var WHATSAPP_PUBLIC_BASE_URL "https://kenyaimports.com"
   chown "$APP_USER":www-data "$ENV_FILE"
   chmod 640 "$ENV_FILE"
 fi

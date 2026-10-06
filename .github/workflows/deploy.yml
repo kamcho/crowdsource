@@ -47,4 +47,7 @@ jobs:
 
             export GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}'
             export WHATSAPP_VERIFY_TOKEN='${{ secrets.WHATSAPP_VERIFY_TOKEN }}'
+            export WHATSAPP_ACCESS_TOKEN='${{ secrets.WHATSAPP_ACCESS_TOKEN }}'
+            export WHATSAPP_PHONE_NUMBER_ID='${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}'
+            export WHATSAPP_WABA_ID='${{ secrets.WHATSAPP_WABA_ID }}'
             bash deploy/update.sh
