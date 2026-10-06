@@ -15,6 +15,6 @@ dist/
 build/
 staticfiles/
 media/
-backups/
+/backups/
 .DS_Store
 Thumbs.db

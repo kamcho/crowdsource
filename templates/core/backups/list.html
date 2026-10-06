@@ -1,0 +1,66 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Backups — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / Backups</p>
+                <h1>Backups</h1>
+                <p>
+                    Full site archives (database and media). Automatic backup runs daily at
+                    <strong>{{ schedule_hour }}:00</strong> ({{ retention_days }}-day retention).
+                </p>
+            </div>
+            <div class="admin-header-actions">
+                <form method="post" action="{% url 'core:backup_list' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">Create backup now</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="admin-card manage-table-card">
+            {% if backups %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Created</th>
+                            <th>Label</th>
+                            <th>Database</th>
+                            <th>Media</th>
+                            <th>Size</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for backup in backups %}
+                        <tr>
+                            <td>{{ backup.created_at|slice:":19" }}</td>
+                            <td>{{ backup.label|default:"—" }}</td>
+                            <td>{{ backup.db_engine|default:"—" }}</td>
+                            <td>{% if backup.include_media %}Yes{% else %}No{% endif %}</td>
+                            <td>{{ backup.size_display }}</td>
+                            <td>
+                                <a href="{% url 'core:backup_download' backup.filename %}" class="btn btn-outline btn-sm">Download</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="dashboard-empty-note">No backups yet. Create one above or wait for the nightly automatic run.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
