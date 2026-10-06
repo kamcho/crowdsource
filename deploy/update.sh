@@ -37,6 +37,11 @@ if [[ -f "$ENV_FILE" ]]; then
   set_env_var SITE_NAME "Kenya Imports"
   set_env_var SITE_DOMAIN "kenyaimports.com"
   set_env_var SITE_PROTOCOL "https"
+  if [[ -n "${GOOGLE_CLIENT_ID:-}" ]]; then
+    set_env_var GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
+  elif ! grep -qE '^GOOGLE_CLIENT_ID=.+' "$ENV_FILE"; then
+    set_env_var GOOGLE_CLIENT_ID "579344716988-kgpnat8uchu8kl7m16l45okk1ksfhotv.apps.googleusercontent.com"
+  fi
   chown "$APP_USER":www-data "$ENV_FILE"
   chmod 640 "$ENV_FILE"
 fi
