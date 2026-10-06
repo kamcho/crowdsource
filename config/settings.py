@@ -92,6 +92,7 @@ TEMPLATES = [
                 'core.context_processors.admin_sidebar',
                 'core.context_processors.currency',
                 'core.context_processors.category_nav',
+                'core.context_processors.site_contact',
             ],
         },
     },
@@ -167,6 +168,13 @@ SITE_PROTOCOL = os.environ.get(
     'SITE_PROTOCOL',
     'http' if DEBUG else 'https',
 ).strip().rstrip(':')
+
+# Primary customer contact (WhatsApp / voice)
+SITE_CONTACT_PHONE = os.environ.get('SITE_CONTACT_PHONE', '+254180653706').strip()
+SITE_CONTACT_PHONE_DISPLAY = os.environ.get(
+    'SITE_CONTACT_PHONE_DISPLAY',
+    '+254 180 653706',
+).strip()
 
 LOGIN_URL = 'users:signin'
 LOGIN_REDIRECT_URL = 'users:profile'

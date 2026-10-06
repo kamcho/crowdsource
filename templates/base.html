@@ -175,9 +175,12 @@
             </div>
             <div class="footer-col">
                 <h4>Support</h4>
+                {% if site_contact_phone %}
+                <a href="{{ site_contact_whatsapp_url }}" rel="noopener noreferrer" target="_blank">WhatsApp {{ site_contact_phone }}</a>
+                <a href="{{ site_contact_phone_tel }}">Call {{ site_contact_phone }}</a>
+                {% endif %}
                 <a href="#">Shipping FAQ</a>
                 <a href="#">MOQ Guide</a>
-                <a href="#">Contact Us</a>
             </div>
             <div class="footer-col">
                 <h4>Legal</h4>

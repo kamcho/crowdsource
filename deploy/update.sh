@@ -37,6 +37,8 @@ if [[ -f "$ENV_FILE" ]]; then
   set_env_var SITE_NAME "Kenya Imports"
   set_env_var SITE_DOMAIN "kenyaimports.com"
   set_env_var SITE_PROTOCOL "https"
+  set_env_var SITE_CONTACT_PHONE "+254180653706"
+  set_env_var SITE_CONTACT_PHONE_DISPLAY "+254 180 653706"
   if [[ -n "${GOOGLE_CLIENT_ID:-}" ]]; then
     set_env_var GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
   elif ! grep -qE '^GOOGLE_CLIENT_ID=.+' "$ENV_FILE"; then

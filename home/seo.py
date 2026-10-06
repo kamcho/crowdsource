@@ -41,18 +41,22 @@ def organization_and_website_json_ld():
     site_url = public_site_url('/')
     browse_url = public_site_url(reverse('home:product_browse'))
     site_name = getattr(settings, 'SITE_NAME', 'Kenya Imports')
+    contact_phone = getattr(settings, 'SITE_CONTACT_PHONE', '').strip()
+    organization = {
+        '@type': 'Organization',
+        '@id': f'{site_url}#organization',
+        'name': site_name,
+        'url': site_url,
+        'description': (
+            'Group-buying platform for factory-direct imports from China to Kenya.'
+        ),
+    }
+    if contact_phone:
+        organization['telephone'] = contact_phone
     return {
         '@context': 'https://schema.org',
         '@graph': [
-            {
-                '@type': 'Organization',
-                '@id': f'{site_url}#organization',
-                'name': site_name,
-                'url': site_url,
-                'description': (
-                    'Group-buying platform for factory-direct imports from China to Kenya.'
-                ),
-            },
+            organization,
             {
                 '@type': 'WebSite',
                 '@id': f'{site_url}#website',

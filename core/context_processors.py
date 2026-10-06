@@ -76,3 +76,18 @@ def category_nav(request):
         'category_nav_tree': attach_meta(tree),
         'category_filter_rows': build_category_tree(categories),
     }
+
+
+def site_contact(request):
+    from django.conf import settings
+
+    raw = getattr(settings, 'SITE_CONTACT_PHONE', '').strip()
+    display = getattr(settings, 'SITE_CONTACT_PHONE_DISPLAY', '').strip() or raw
+    digits = ''.join(character for character in raw if character.isdigit())
+    tel_href = f'tel:+{digits}' if digits else ''
+    whatsapp_href = f'https://wa.me/{digits}' if digits else ''
+    return {
+        'site_contact_phone': display,
+        'site_contact_phone_tel': tel_href,
+        'site_contact_whatsapp_url': whatsapp_href,
+    }
