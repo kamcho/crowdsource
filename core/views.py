@@ -434,6 +434,23 @@ def product_detail(request, slug):
 
         record_product_view(request.user, product)
 
+    from home.seo import (
+        json_ld_script,
+        product_breadcrumb_json_ld,
+        product_page_seo,
+        product_structured_data,
+    )
+
+    seo = product_page_seo(product, price_min)
+    seo['seo_og_type'] = 'product'
+    seo['seo_json_ld'] = json_ld_script({
+        '@context': 'https://schema.org',
+        '@graph': [
+            product_structured_data(product, group_buy=group_buy, price_min=price_min),
+            product_breadcrumb_json_ld(product),
+        ],
+    })
+
     return render(request, 'core/products/detail.html', {
         'product': product,
         'group_buy': group_buy,
@@ -452,6 +469,7 @@ def product_detail(request, slug):
         'is_wishlisted': is_wishlisted(request.user, product) if request.user.is_authenticated else False,
         **shipping_calculator,
         **detail_context,
+        **seo,
     })
 
 

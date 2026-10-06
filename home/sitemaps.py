@@ -6,7 +6,9 @@ from core.models import Category, Product
 
 
 class SiteAwareSitemap(Sitemap):
-    protocol = settings.SITE_PROTOCOL
+    @property
+    def protocol(self):
+        return getattr(settings, 'SITE_PROTOCOL', 'https')
 
     def get_domain(self, site=None):
         return settings.SITE_DOMAIN

@@ -12,6 +12,15 @@ from .catalog import (
     get_public_products_queryset,
     paginate_products,
 )
+from .seo import (
+    browse_item_list_json_ld,
+    browse_page_seo,
+    json_ld_script,
+    landing_seo,
+    organization_and_website_json_ld,
+    privacy_page_seo,
+    privacy_webpage_json_ld,
+)
 
 
 def _products_page_context(request, *, max_products=None):
@@ -23,8 +32,13 @@ def _products_page_context(request, *, max_products=None):
     page_obj = paginate_products(paginate_queryset, request.GET.get('page', 1))
     full_count = queryset.count() if max_products is not None else page_obj.paginator.count
 
+    products = list(page_obj.object_list)
+    seo = browse_page_seo(category, search, page_obj.number)
+    item_list = browse_item_list_json_ld(products)
+    seo['seo_json_ld'] = json_ld_script(item_list) if item_list else ''
+
     return {
-        'products': page_obj.object_list,
+        'products': products,
         'page_obj': page_obj,
         'category': category,
         'category_slug': category_slug,
@@ -33,6 +47,7 @@ def _products_page_context(request, *, max_products=None):
         'paginated_count': page_obj.paginator.count,
         'browse_base_url': reverse('home:product_browse'),
         'active_category': category,
+        **seo,
     }
 
 
@@ -44,6 +59,10 @@ def landing(request):
     max_products = None if has_filters else LANDING_PRODUCT_MAX
     context = _products_page_context(request, max_products=max_products)
     page_obj = context['page_obj']
+
+    seo = landing_seo(has_filters, category, search)
+    if not has_filters:
+        seo['seo_json_ld'] = json_ld_script(organization_and_website_json_ld())
 
     return render(request, 'home/landing.html', {
         'products': context['products'],
@@ -57,6 +76,7 @@ def landing(request):
         'active_category': category,
         'hero_carousel_products': get_hero_carousel_products(),
         'suggested_products': _suggested_products_for_request(request, has_filters),
+        **seo,
     })
 
 
@@ -74,7 +94,9 @@ def product_browse(request):
 
 
 def privacy_policy(request):
-    return render(request, 'home/privacy.html')
+    seo = privacy_page_seo()
+    seo['seo_json_ld'] = json_ld_script(privacy_webpage_json_ld())
+    return render(request, 'home/privacy.html', seo)
 
 
 @require_GET

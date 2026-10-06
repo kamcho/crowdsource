@@ -4,16 +4,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="{% block meta_description %}Shop factory-direct imports from China. Join group buys, hit MOQ, and save on wholesale prices delivered to Kenya.{% endblock %}">
-    <title>{% block title %}Kenya Imports — Factory-Direct Group Buys{% endblock %}</title>
-    <link rel="canonical" href="{% block canonical_url %}{{ request.build_absolute_uri }}{% endblock %}">
+    <meta name="robots" content="{% if seo_robots %}{{ seo_robots }}{% else %}index, follow, max-image-preview:large{% endif %}">
+    <meta name="description" content="{% if seo_description %}{{ seo_description }}{% else %}{% block meta_description %}Shop factory-direct imports from China. Join group buys, hit MOQ, and save on wholesale prices delivered to Kenya.{% endblock %}{% endif %}">
+    <title>{% if seo_title %}{{ seo_title }}{% else %}{% block title %}Kenya Imports — Factory-Direct Group Buys{% endblock %}{% endif %}</title>
+    <link rel="canonical" href="{% if seo_canonical_url %}{{ seo_canonical_url }}{% else %}{% block canonical_url %}{{ request.build_absolute_uri }}{% endblock %}{% endif %}">
     <meta property="og:site_name" content="Kenya Imports">
-    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
-    <meta property="og:title" content="{% block og_title %}Kenya Imports — Factory-Direct Group Buys{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}Shop factory-direct imports from China. Join group buys, hit MOQ, and save on wholesale prices delivered to Kenya.{% endblock %}">
-    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:locale" content="en_KE">
+    <meta property="og:type" content="{% if seo_og_type %}{{ seo_og_type }}{% else %}{% block og_type %}website{% endblock %}{% endif %}">
+    <meta property="og:title" content="{% if seo_og_title %}{{ seo_og_title }}{% else %}{% block og_title %}Kenya Imports — Factory-Direct Group Buys{% endblock %}{% endif %}">
+    <meta property="og:description" content="{% if seo_og_description %}{{ seo_og_description }}{% else %}{% block og_description %}Shop factory-direct imports from China. Join group buys, hit MOQ, and save on wholesale prices delivered to Kenya.{% endblock %}{% endif %}">
+    <meta property="og:url" content="{% if seo_canonical_url %}{{ seo_canonical_url }}{% else %}{{ request.build_absolute_uri }}{% endif %}">
+    {% if seo_og_image %}<meta property="og:image" content="{{ seo_og_image }}">{% else %}{% block og_image %}{% endblock %}{% endif %}
+    <meta name="twitter:card" content="{% if seo_og_image %}summary_large_image{% else %}summary{% endif %}">
+    <meta name="twitter:title" content="{% if seo_og_title %}{{ seo_og_title }}{% else %}Kenya Imports — Factory-Direct Group Buys{% endif %}">
+    <meta name="twitter:description" content="{% if seo_og_description %}{{ seo_og_description }}{% else %}Shop factory-direct imports from China. Join group buys, hit MOQ, and save on wholesale prices delivered to Kenya.{% endif %}">
+    {% if seo_og_image %}<meta name="twitter:image" content="{{ seo_og_image }}">{% endif %}
     <meta name="application-name" content="Kenya Imports">
-    {% block og_image %}{% endblock %}
+    {{ seo_json_ld|default:'' }}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">

@@ -54,6 +54,33 @@ class SeoViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Kenya Imports')
 
+    def test_homepage_seo_meta_and_structured_data(self):
+        response = self.client.get(reverse('home:landing'))
+
+        self.assertContains(response, 'rel="canonical"')
+        self.assertContains(response, 'application/ld+json')
+        self.assertContains(response, '"@type": "WebSite"')
+        self.assertContains(response, '<h1 class="hero-title">')
+
+    def test_product_browse_category_seo_title(self):
+        response = self.client.get(
+            reverse('home:product_browse'),
+            {'category': self.category.slug},
+        )
+
+        self.assertContains(response, f'{self.category.name} Group Buys')
+        self.assertContains(response, 'application/ld+json')
+        self.assertContains(response, '"@type": "ItemList"')
+
+    def test_product_detail_seo_and_product_schema(self):
+        response = self.client.get(self.product.get_absolute_url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '"@type": "Product"')
+        self.assertContains(response, '"@type": "BreadcrumbList"')
+        self.assertContains(response, '"@type": "Offer"')
+        self.assertContains(response, self.product.name)
+
     def test_product_browse_query_count_stays_flat(self):
         from datetime import timedelta
         from django.utils import timezone
