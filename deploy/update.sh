@@ -58,6 +58,12 @@ if [[ -f "$ENV_FILE" ]]; then
   if [[ -n "${WHATSAPP_WABA_ID:-}" ]]; then
     set_env_var WHATSAPP_WABA_ID "$WHATSAPP_WABA_ID"
   fi
+  if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+    set_env_var OPENAI_API_KEY "$OPENAI_API_KEY"
+  fi
+  if ! grep -qE '^OPENAI_MODEL=.+' "$ENV_FILE"; then
+    set_env_var OPENAI_MODEL "gpt-4o-mini"
+  fi
   set_env_var WHATSAPP_ENABLED "true"
   set_env_var WHATSAPP_BACKEND "cloud"
   set_env_var WHATSAPP_PUBLIC_BASE_URL "https://kenyaimports.com"
