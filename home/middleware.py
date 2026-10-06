@@ -19,7 +19,11 @@ class FriendlyErrorsMiddleware:
                 return error_response(request, 500, exception=exc)
             raise
 
-        if self._use_friendly_errors() and response.status_code in self.HANDLED_STATUSES:
+        if (
+            self._use_friendly_errors()
+            and response.status_code in self.HANDLED_STATUSES
+            and not request.path.startswith('/webhooks/')
+        ):
             return error_response(request, response.status_code)
         return response
 

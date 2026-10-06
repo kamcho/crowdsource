@@ -42,6 +42,11 @@ if [[ -f "$ENV_FILE" ]]; then
   elif ! grep -qE '^GOOGLE_CLIENT_ID=.+' "$ENV_FILE"; then
     set_env_var GOOGLE_CLIENT_ID "579344716988-kgpnat8uchu8kl7m16l45okk1ksfhotv.apps.googleusercontent.com"
   fi
+  if [[ -n "${WHATSAPP_VERIFY_TOKEN:-}" ]]; then
+    set_env_var WHATSAPP_VERIFY_TOKEN "$WHATSAPP_VERIFY_TOKEN"
+  elif ! grep -qE '^WHATSAPP_VERIFY_TOKEN=.+' "$ENV_FILE"; then
+    set_env_var WHATSAPP_VERIFY_TOKEN "test123"
+  fi
   chown "$APP_USER":www-data "$ENV_FILE"
   chmod 640 "$ENV_FILE"
 fi

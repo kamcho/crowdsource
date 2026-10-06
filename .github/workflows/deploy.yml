@@ -46,4 +46,5 @@ jobs:
             chmod +x deploy/update.sh
 
             export GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}'
+            export WHATSAPP_VERIFY_TOKEN='${{ secrets.WHATSAPP_VERIFY_TOKEN }}'
             bash deploy/update.sh
