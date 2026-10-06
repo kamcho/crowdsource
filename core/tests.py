@@ -2358,3 +2358,59 @@ class OpsOrderCustomerTests(TestCase):
         response = self.client.get(reverse('core:admin_order_list'))
         self.assertEqual(response.status_code, 302)
 
+
+class BackupTests(TestCase):
+    def setUp(self):
+        import shutil
+        import tempfile
+        from pathlib import Path
+
+        from django.contrib.auth import get_user_model
+
+        from users.models import User
+
+        self.backup_root = Path(tempfile.mkdtemp(prefix='crowdsource-backup-test-'))
+        self._settings = self.settings(
+            BACKUP_ROOT=str(self.backup_root),
+            BACKUP_INCLUDE_MEDIA=False,
+        )
+        self._settings.enable()
+
+        User = get_user_model()
+        self.admin = User.objects.create_user(
+            phone='+254700000099',
+            password='pass',
+            role=User.Role.ADMIN,
+        )
+        self.client = Client()
+        self.client.force_login(self.admin)
+
+    def tearDown(self):
+        import shutil
+
+        self._settings.disable()
+        shutil.rmtree(self.backup_root, ignore_errors=True)
+
+    def test_create_backup_command_writes_zip(self):
+        from core.backup_services import list_backups
+        from django.core.management import call_command
+
+        call_command('create_backup', label='test')
+        backups = list_backups()
+        self.assertEqual(len(backups), 1)
+        self.assertIn('test', backups[0].filename)
+        self.assertTrue((self.backup_root / backups[0].filename).is_file())
+
+    def test_admin_can_create_and_download_backup(self):
+        response = self.client.post(reverse('core:backup_list'))
+        self.assertEqual(response.status_code, 302)
+        list_response = self.client.get(reverse('core:backup_list'))
+        self.assertEqual(list_response.status_code, 200)
+        self.assertContains(list_response, 'crowdsource-backup-')
+        filename = list_response.context['backups'][0].filename
+        download = self.client.get(reverse('core:backup_download', kwargs={'filename': filename}))
+        self.assertEqual(download.status_code, 200)
+        self.assertEqual(download['Content-Type'], 'application/zip')
+        b''.join(download.streaming_content)
+        download.close()
+

@@ -1,0 +1,10 @@
+# Daily backup at 06:00 Africa/Nairobi — install to /etc/systemd/system/crowdsource-backup.timer
+[Unit]
+Description=Daily CrowdSource backup at 6:00 AM Nairobi time
+
+[Timer]
+OnCalendar=*-*-* 06:00:00 Africa/Nairobi
+Persistent=true
+
+[Install]
+WantedBy=timers.target

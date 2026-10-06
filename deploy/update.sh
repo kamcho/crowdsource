@@ -97,6 +97,20 @@ if [[ -f "$APP_DIR/deploy/nginx.conf" ]]; then
   grep -E '^\s*server_name' "$NGINX_SITE" || true
 fi
 
+echo "==> Ensuring backup directory and daily timer"
+BACKUP_DIR="$APP_DIR/backups"
+mkdir -p "$BACKUP_DIR"
+chown "$APP_USER":www-data "$BACKUP_DIR"
+chmod 750 "$BACKUP_DIR"
+if [[ -f "$APP_DIR/deploy/crowdsource-backup.service" ]]; then
+  cp "$APP_DIR/deploy/crowdsource-backup.service" /etc/systemd/system/crowdsource-backup.service
+  cp "$APP_DIR/deploy/crowdsource-backup.timer" /etc/systemd/system/crowdsource-backup.timer
+  systemctl daemon-reload
+  systemctl enable crowdsource-backup.timer
+  systemctl start crowdsource-backup.timer
+  systemctl list-timers crowdsource-backup.timer --no-pager | head -n 5 || true
+fi
+
 echo "==> Restarting app (gunicorn)"
 systemctl restart crowdsource
 systemctl is-active --quiet crowdsource

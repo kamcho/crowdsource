@@ -1,5 +1,6 @@
 from django.urls import path
 
+from . import backup_views
 from . import ops_views
 from . import product_import_views
 from . import views
@@ -55,4 +56,6 @@ urlpatterns = [
     path('customers/<int:user_id>/', ops_views.customer_manage, name='customer_manage'),
     path('refunds/', views.refund_list, name='refund_list'),
     path('complaints/', views.complaint_list, name='complaint_list'),
+    path('backups/', backup_views.backup_list, name='backup_list'),
+    path('backups/<str:filename>/download/', backup_views.backup_download, name='backup_download'),
 ]

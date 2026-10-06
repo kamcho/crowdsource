@@ -1,0 +1,12 @@
+# systemd oneshot backup — install to /etc/systemd/system/crowdsource-backup.service
+[Unit]
+Description=CrowdSource site backup (database + media)
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+User=crowdsource
+Group=www-data
+WorkingDirectory=/srv/crowdsource
+EnvironmentFile=/srv/crowdsource/.env
+ExecStart=/srv/crowdsource/.venv/bin/python manage.py create_backup --label=auto

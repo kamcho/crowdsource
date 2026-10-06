@@ -146,6 +146,11 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+BACKUP_ROOT = Path(os.environ.get('BACKUP_ROOT', str(BASE_DIR / 'backups')))
+BACKUP_RETENTION_DAYS = int(os.environ.get('BACKUP_RETENTION_DAYS', '30'))
+BACKUP_INCLUDE_MEDIA = _env_bool('BACKUP_INCLUDE_MEDIA', 'true')
+BACKUP_SCHEDULE_HOUR = int(os.environ.get('BACKUP_SCHEDULE_HOUR', '6'))
+
 STORAGES = {
     'default': {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
