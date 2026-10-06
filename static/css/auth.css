@@ -191,6 +191,26 @@
     display: block;
 }
 
+.auth-google-prompt {
+    margin-bottom: 1.25rem;
+    padding: 0.875rem 1rem;
+    border-radius: var(--radius-sm);
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e3a8a;
+    font-size: 0.875rem;
+    line-height: 1.55;
+}
+
+.auth-google-prompt p {
+    margin: 0;
+}
+
+.auth-header strong {
+    font-weight: 700;
+    color: var(--color-text);
+}
+
 /* Messages */
 .messages-wrap {
     padding-top: 1rem;

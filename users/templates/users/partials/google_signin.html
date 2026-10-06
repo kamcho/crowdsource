@@ -1,5 +1,9 @@
 {% if google_client_id %}
-<div class="auth-divider">{{ google_divider_before|default:"or continue with" }}</div>
+{% if google_divider_before %}
+<div class="auth-divider">{{ google_divider_before }}</div>
+{% elif google_divider_before is not defined %}
+<div class="auth-divider">or continue with</div>
+{% endif %}
 
 <div class="google-signin-wrap">
     <div

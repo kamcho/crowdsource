@@ -10,6 +10,22 @@
 {% block content %}
 <section class="auth-section">
     <div class="auth-card">
+        {% if google_signin_prompt %}
+        <div class="auth-header">
+            <h1>Continue with Google</h1>
+            <p>This account is linked to Google Sign-In{% if google_signin_email %} for <strong>{{ google_signin_email }}</strong>{% endif %}.</p>
+        </div>
+
+        <div class="auth-google-prompt" role="status">
+            <p>Use the Google button below to sign in. Password sign-in is not set up for this account.</p>
+        </div>
+
+        {% include 'users/partials/google_signin.html' with google_button_id='signinGoogleButton' google_divider_before='' google_button_text='continue_with' %}
+
+        <p class="auth-switch">
+            <a href="{% url 'users:signin' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Use a different account</a>
+        </p>
+        {% else %}
         <div class="auth-header">
             <h1>Welcome back</h1>
             <p>Sign in with phone and password, or use Google.</p>
@@ -43,6 +59,7 @@
         <p class="auth-switch">
             Don't have an account? <a href="{% url 'users:signup' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Sign up</a>
         </p>
+        {% endif %}
     </div>
 </section>
 {% endblock %}

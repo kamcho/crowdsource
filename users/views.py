@@ -158,12 +158,19 @@ def signin_view(request):
                 )
 
             if is_google_passwordless_account(lookup_user):
-                messages.error(
+                return render(
                     request,
-                    'This account uses Google Sign-In. Use the Google button below to continue.',
+                    'users/signin.html',
+                    _auth_page_context(
+                        form=form,
+                        next=next_url,
+                        google_signin_prompt=True,
+                        google_signin_email=(
+                            lookup_user.email or login_raw
+                        ),
+                    ),
                 )
-            else:
-                messages.error(request, 'Invalid phone or email, or password.')
+            messages.error(request, 'Invalid phone or email, or password.')
         else:
             messages.error(request, 'Please enter your phone or email and password.')
     else:

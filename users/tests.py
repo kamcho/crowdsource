@@ -131,7 +131,9 @@ class GoogleAuthTests(TestCase):
             HTTP_X_CSRFTOKEN=self.client.cookies['csrftoken'].value,
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Google Sign-In')
+        self.assertContains(response, 'Continue with Google')
+        self.assertContains(response, 'googleonly@gmail.com')
+        self.assertNotContains(response, 'This account uses Google Sign-In. Use the Google button below')
         self.assertNotIn('_auth_user_id', self.client.session)
 
     @override_settings(GOOGLE_CLIENT_ID='')
