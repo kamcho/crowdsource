@@ -1720,6 +1720,73 @@ class WhatsAppServiceTests(TestCase):
         sent_body = mock_text.call_args.kwargs['body']
         self.assertIn(f'Order #{order.pk}', sent_body)
 
+    def test_build_product_caption_includes_remarks(self):
+        from core.product_attribute import ProductAttribute
+        from core.whatsapp_services import build_product_caption
+
+        ProductAttribute.objects.create(
+            product=self.product,
+            title='Material',
+            description='Genuine leather',
+        )
+        caption = build_product_caption(self.product)
+        self.assertIn('Remarks:', caption)
+        self.assertIn('Material: Genuine leather', caption)
+
+    @override_settings(WHATSAPP_ENABLED=True, WHATSAPP_BACKEND='console')
+    def test_status_webhook_records_read_remark(self):
+        from django.core.cache import cache
+
+        from core.whatsapp_services import (
+            ACTIVITY_FEED_KEY,
+            get_whatsapp_activity_feed,
+            process_webhook_payload,
+        )
+
+        cache.delete(ACTIVITY_FEED_KEY)
+        cache.set(
+            'whatsapp:outbound:wamid.read-test',
+            {'phone': '254712345678', 'preview': 'Your order is on the way'},
+            3600,
+        )
+        payload = {
+            'object': 'whatsapp_business_account',
+            'entry': [{
+                'changes': [{
+                    'value': {
+                        'statuses': [{
+                            'id': 'wamid.read-test',
+                            'status': 'read',
+                            'recipient_id': '254712345678',
+                            'timestamp': '1700000000',
+                        }],
+                    },
+                }],
+            }],
+        }
+        self.assertEqual(process_webhook_payload(payload), 1)
+        feed = get_whatsapp_activity_feed()
+        self.assertEqual(feed[0]['read_remark'], 'Read')
+        self.assertEqual(feed[0]['delivery_status'], 'read')
+
+    @override_settings(WHATSAPP_ENABLED=True, WHATSAPP_BACKEND='console', OPENAI_API_KEY='test-key')
+    @patch('core.whatsapp_services.run_whatsapp_agent')
+    @patch('core.whatsapp.mark_message_read')
+    def test_inbound_handler_shows_typing_while_ai_replies(self, mock_mark_read, mock_agent):
+        from core.whatsapp_agent import AgentResult
+        from core.whatsapp_services import handle_inbound_text_message
+
+        mock_agent.return_value = AgentResult(reply_text='Hello!', products=[])
+
+        with patch('core.whatsapp.send_text'):
+            handle_inbound_text_message(
+                from_phone='254712345678',
+                message_text='hello',
+                message_id='wamid.inbound-read',
+            )
+
+        mock_mark_read.assert_called_once_with('wamid.inbound-read', show_typing=True)
+
     def test_get_my_orders_tool(self):
         from core.group_buy import GroupBuyEntry
         from core.order import Order

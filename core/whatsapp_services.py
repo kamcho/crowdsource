@@ -34,6 +34,19 @@ SESSION_TTL = 3600
 MAX_HISTORY = 8
 MAX_SEARCH_RESULTS = 3
 PROCESSED_MESSAGE_TTL = 86400
+ACTIVITY_FEED_KEY = 'whatsapp:activity_feed'
+ACTIVITY_FEED_MAX = 40
+ACTIVITY_FEED_TTL = 86400
+OUTBOUND_META_TTL = 7 * 86400
+MAX_PRODUCT_REMARKS = 4
+MAX_REMARK_LINE_LEN = 96
+
+DELIVERY_STATUS_REMARKS = {
+    'sent': 'Sent',
+    'delivered': 'Delivered',
+    'read': 'Read',
+    'failed': 'Failed',
+}
 
 
 def verify_webhook_signature(body: bytes, signature_header: str) -> bool:
@@ -66,7 +79,90 @@ def refresh_products_for_whatsapp(products):
     if not products:
         return []
     ids = [product.pk for product in products]
-    return list(get_public_products_queryset().filter(pk__in=ids)[:MAX_SEARCH_RESULTS])
+    return list(
+        get_public_products_queryset()
+        .filter(pk__in=ids)
+        .prefetch_related('attributes')[:MAX_SEARCH_RESULTS]
+    )
+
+
+def _outbound_meta_key(message_id: str) -> str:
+    return f'whatsapp:outbound:{message_id}'
+
+
+def _extract_sent_message_id(api_response) -> str:
+    if not isinstance(api_response, dict):
+        return ''
+    messages = api_response.get('messages')
+    if isinstance(messages, list) and messages:
+        return (messages[0].get('id') or '').strip()
+    return ''
+
+
+def record_whatsapp_activity(
+    *,
+    phone: str,
+    direction: str,
+    summary: str,
+    read_remark: str = '',
+    message_id: str = '',
+    delivery_status: str = '',
+):
+    phone = (phone or '').strip()
+    if not phone and not summary:
+        return
+    from django.utils import timezone
+
+    item = {
+        'phone': phone,
+        'direction': direction,
+        'summary': (summary or '').strip()[:160],
+        'read_remark': (read_remark or '').strip(),
+        'message_id': (message_id or '').strip(),
+        'delivery_status': (delivery_status or '').strip(),
+        'at': timezone.now().isoformat(),
+    }
+    feed = cache.get(ACTIVITY_FEED_KEY, [])
+    feed.insert(0, item)
+    cache.set(ACTIVITY_FEED_KEY, feed[:ACTIVITY_FEED_MAX], ACTIVITY_FEED_TTL)
+
+
+def get_whatsapp_activity_feed():
+    return cache.get(ACTIVITY_FEED_KEY, [])
+
+
+def _track_outbound_send(to: str, preview: str, api_response):
+    wamid = _extract_sent_message_id(api_response)
+    if not wamid:
+        return
+    recipient = whatsapp.normalize_whatsapp_recipient(to)
+    cache.set(
+        _outbound_meta_key(wamid),
+        {'phone': recipient, 'preview': (preview or '')[:120]},
+        OUTBOUND_META_TTL,
+    )
+    record_whatsapp_activity(
+        phone=recipient or to,
+        direction='outbound',
+        summary=preview,
+        read_remark=DELIVERY_STATUS_REMARKS.get('sent', 'Sent'),
+        message_id=wamid,
+        delivery_status='sent',
+    )
+
+
+def product_remark_lines(product: Product, limit: int = MAX_PRODUCT_REMARKS) -> list[str]:
+    lines = []
+    for attr in product.product_attributes.order_by('sort_order', 'title')[:limit]:
+        desc = (attr.description or '').strip().replace('\n', ' ')
+        title = (attr.title or '').strip()
+        if not desc and not title:
+            continue
+        text = f'{title}: {desc}' if title and desc else (title or desc)
+        if len(text) > MAX_REMARK_LINE_LEN:
+            text = text[: MAX_REMARK_LINE_LEN - 1] + '…'
+        lines.append(text)
+    return lines
 
 
 def build_product_caption(product: Product) -> str:
@@ -78,6 +174,10 @@ def build_product_caption(product: Product) -> str:
         lines.append(f'Price: {price_text}')
     if group_buy:
         lines.append(f'MOQ: {group_buy.moq} units · {group_buy.progress_percent}% pledged')
+    remarks = product_remark_lines(product)
+    if remarks:
+        lines.append('Remarks:')
+        lines.extend(f'• {line}' for line in remarks)
     lines.append(f'View: {absolute_site_url(product.get_absolute_url())}')
     return '\n'.join(lines)[:1024]
 
@@ -179,6 +279,10 @@ def build_product_text(product: Product) -> str:
     if product.description:
         snippet = product.description.strip().replace('\n', ' ')
         lines.append(snippet[:220] + ('…' if len(snippet) > 220 else ''))
+    remarks = product_remark_lines(product)
+    if remarks:
+        lines.append('Remarks:')
+        lines.extend(f'• {line}' for line in remarks)
     lines.append(f'View: {absolute_site_url(product.get_absolute_url())}')
     return '\n'.join(lines)
 
@@ -265,7 +369,8 @@ def _log_whatsapp_send_failure(exc: Exception):
 
 def _safe_send_text(*, to: str, body: str) -> bool:
     try:
-        whatsapp.send_text(to=to, body=body)
+        data = whatsapp.send_text(to=to, body=body)
+        _track_outbound_send(to, body, data)
         return True
     except (WhatsAppAPIError, WhatsAppConfigError) as exc:
         _log_whatsapp_send_failure(exc)
@@ -274,7 +379,8 @@ def _safe_send_text(*, to: str, body: str) -> bool:
 
 def _safe_send_image(*, to: str, image_url: str, caption: str = '') -> bool:
     try:
-        whatsapp.send_image(to=to, image_url=image_url, caption=caption)
+        data = whatsapp.send_image(to=to, image_url=image_url, caption=caption)
+        _track_outbound_send(to, caption or 'Image', data)
         return True
     except (WhatsAppAPIError, WhatsAppConfigError) as exc:
         _log_whatsapp_send_failure(exc)
@@ -293,7 +399,8 @@ def _safe_send_product_image(*, to: str, product: Product, caption: str = '') ->
             mime_type='image/jpeg',
             filename=f'product-{product.pk}.jpg',
         )
-        whatsapp.send_image_id(to=to, media_id=media_id, caption=caption)
+        data = whatsapp.send_image_id(to=to, media_id=media_id, caption=caption)
+        _track_outbound_send(to, caption or product.name, data)
         return True
     except (WhatsAppAPIError, WhatsAppConfigError) as exc:
         _log_whatsapp_send_failure(exc)
@@ -350,11 +457,12 @@ def handle_inbound_text_message(*, from_phone: str, message_text: str, message_i
     if not from_phone or not message_text:
         return
 
-    if message_id:
-        try:
-            whatsapp.mark_message_read(message_id)
-        except Exception:
-            logger.debug('Could not mark WhatsApp message read', exc_info=True)
+    _acknowledge_inbound_message(
+        message_id,
+        from_phone,
+        message_text,
+        show_typing=True,
+    )
 
     history = get_conversation_history(from_phone)
     user = find_user_by_whatsapp_phone(from_phone)
@@ -399,6 +507,77 @@ def extract_inbound_text_messages(payload: dict):
     return messages
 
 
+def extract_message_status_updates(payload: dict):
+    updates = []
+    if payload.get('object') != 'whatsapp_business_account':
+        return updates
+
+    for entry in payload.get('entry', []):
+        for change in entry.get('changes', []):
+            value = change.get('value', {})
+            for item in value.get('statuses', []):
+                status = (item.get('status') or '').strip()
+                message_id = (item.get('id') or '').strip()
+                if not status or not message_id:
+                    continue
+                updates.append({
+                    'message_id': message_id,
+                    'status': status,
+                    'recipient_id': (item.get('recipient_id') or '').strip(),
+                    'timestamp': item.get('timestamp'),
+                })
+    return updates
+
+
+def handle_message_status_update(update: dict):
+    status = (update.get('status') or '').strip()
+    message_id = (update.get('message_id') or '').strip()
+    if not status or not message_id:
+        return
+
+    meta = cache.get(_outbound_meta_key(message_id)) or {}
+    phone = meta.get('phone') or update.get('recipient_id') or ''
+    preview = meta.get('preview') or ''
+    read_remark = DELIVERY_STATUS_REMARKS.get(status, status.replace('_', ' ').title())
+    record_whatsapp_activity(
+        phone=phone,
+        direction='outbound',
+        summary=preview or 'Outbound message',
+        read_remark=read_remark,
+        message_id=message_id,
+        delivery_status=status,
+    )
+    logger.info(
+        'WhatsApp message %s status=%s recipient=%s',
+        message_id,
+        status,
+        phone,
+    )
+
+
+def _acknowledge_inbound_message(
+    message_id: str,
+    from_phone: str,
+    preview: str,
+    *,
+    show_typing: bool = False,
+):
+    if not message_id:
+        return
+    try:
+        whatsapp.mark_message_read(message_id, show_typing=show_typing)
+        read_remark = 'Typing…' if show_typing else 'Read by business'
+        record_whatsapp_activity(
+            phone=from_phone,
+            direction='inbound',
+            summary=preview,
+            read_remark=read_remark,
+            message_id=message_id,
+        )
+    except Exception:
+        logger.debug('Could not acknowledge WhatsApp message', exc_info=True)
+
+
 def process_webhook_payload(payload: dict):
     if whatsapp.whatsapp_backend() == 'cloud':
         token_error = whatsapp.check_access_token()
@@ -409,6 +588,10 @@ def process_webhook_payload(payload: dict):
             )
 
     handled = 0
+    for update in extract_message_status_updates(payload):
+        handle_message_status_update(update)
+        handled += 1
+
     for message in extract_inbound_text_messages(payload):
         message_id = (message.get('message_id') or '').strip()
         if message_id and not cache.add(_processed_message_key(message_id), 1, PROCESSED_MESSAGE_TTL):

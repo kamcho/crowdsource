@@ -15,6 +15,7 @@ from core.refund import Refund
 from core.supplier import Supplier
 from core.order import Order
 from core.payment import Payment
+from core.whatsapp_services import get_whatsapp_activity_feed
 
 
 def get_admin_dashboard_context(*, full_admin_access=True):
@@ -212,4 +213,5 @@ def get_admin_dashboard_context(*, full_admin_access=True):
         'group_buy_status_chart': group_buy_status_chart,
         'group_buy_status_chart_json': json.dumps(group_buy_status_chart),
         'campaign_progress': campaign_progress,
+        'whatsapp_activity': get_whatsapp_activity_feed() if full_admin_access else [],
     }

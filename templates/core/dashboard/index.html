@@ -197,6 +197,45 @@
 </div>
 {% endif %}
 
+{% if full_admin_access %}
+<div class="admin-card manage-table-card" style="margin-bottom: 1.25rem;">
+    <div class="dashboard-section-header">
+        <h2 class="manage-section-title">WhatsApp chat activity</h2>
+        <p class="dashboard-section-subtitle">Inbound read receipts and outbound delivery status</p>
+    </div>
+    {% if whatsapp_activity %}
+    <div class="data-table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Phone</th>
+                    <th>Direction</th>
+                    <th>Message</th>
+                    <th>Read / delivery</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in whatsapp_activity %}
+                <tr>
+                    <td>+{{ item.phone }}</td>
+                    <td>{{ item.direction|title }}</td>
+                    <td>{{ item.summary|default:"—" }}</td>
+                    <td>
+                        {% if item.read_remark %}
+                        <span class="status-badge{% if item.delivery_status == 'read' %} status-badge-active{% elif item.delivery_status == 'failed' %} status-badge-inactive{% endif %}">{{ item.read_remark }}</span>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="dashboard-empty-note">No WhatsApp activity recorded yet. Messages appear here after customers text your business number.</p>
+    {% endif %}
+</div>
+{% endif %}
+
 <div class="dashboard-panels-grid">
     <div class="admin-card manage-table-card">
         <div class="dashboard-section-header">

@@ -193,11 +193,14 @@ def send_image_id(*, to: str, media_id: str, caption: str = ''):
     return _post_message(payload)
 
 
-def mark_message_read(message_id: str):
+def mark_message_read(message_id: str, *, show_typing: bool = False):
     backend = whatsapp_backend()
     if backend == 'console':
-        logger.debug('WhatsApp console mark read: %s', message_id)
-        return {'mode': 'console'}
+        if show_typing:
+            logger.debug('WhatsApp console mark read + typing: %s', message_id)
+        else:
+            logger.debug('WhatsApp console mark read: %s', message_id)
+        return {'mode': 'console', 'typing': show_typing}
 
     _require_cloud_config()
     payload = {
@@ -205,6 +208,8 @@ def mark_message_read(message_id: str):
         'status': 'read',
         'message_id': message_id,
     }
+    if show_typing:
+        payload['typing_indicator'] = {'type': 'text'}
     headers = {
         'Authorization': f'Bearer {settings.WHATSAPP_ACCESS_TOKEN.strip()}',
         'Content-Type': 'application/json',
