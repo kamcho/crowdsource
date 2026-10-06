@@ -12,7 +12,7 @@
     <div class="auth-card">
         <div class="auth-header">
             <h1>Welcome back</h1>
-            <p>Sign in with your phone number or Google account.</p>
+            <p>Sign in with phone and password, or use Google.</p>
         </div>
 
         <form method="post" class="auth-form" novalidate>
@@ -24,9 +24,9 @@
             {% endif %}
 
             <div class="form-group">
-                <label for="{{ form.phone.id_for_label }}">Phone number</label>
-                {{ form.phone }}
-                {% if form.phone.errors %}<span class="field-error">{{ form.phone.errors.0 }}</span>{% endif %}
+                <label for="{{ form.login.id_for_label }}">Phone or email</label>
+                {{ form.login }}
+                {% if form.login.errors %}<span class="field-error">{{ form.login.errors.0 }}</span>{% endif %}
             </div>
 
             <div class="form-group">

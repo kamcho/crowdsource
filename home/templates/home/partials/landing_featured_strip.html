@@ -1,0 +1,46 @@
+{% load currency_tags %}
+
+{% if hero_carousel_products %}
+<section class="landing-featured" aria-labelledby="landing-featured-title">
+    <div class="landing-featured-head">
+        <h2 id="landing-featured-title">Featured group buys</h2>
+        <a href="{% url 'home:product_browse' %}" class="landing-featured-more">View all products</a>
+    </div>
+    <div class="landing-featured-scroll" tabindex="0">
+        {% for product in hero_carousel_products %}
+        {% with group_buy=product.active_group_buy image=product.primary_image %}
+        <a href="{{ product.get_absolute_url }}" class="landing-featured-card">
+            <div class="landing-featured-media">
+                {% if image %}
+                <img src="{{ image.file.url }}" alt="{{ product.name }}" loading="lazy" width="160" height="160">
+                {% else %}
+                <div class="product-placeholder product-placeholder-{% cycle '1' '2' '3' '4' %}" aria-hidden="true">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </div>
+                {% endif %}
+                {% if group_buy and group_buy.moq_reached %}
+                <span class="landing-featured-badge">MOQ met</span>
+                {% elif group_buy %}
+                <span class="landing-featured-badge">Group buy</span>
+                {% endif %}
+            </div>
+            <div class="landing-featured-body">
+                <p class="landing-featured-name">{{ product.name|truncatechars:52 }}</p>
+                {% if group_buy %}
+                <p class="landing-featured-price">{% money group_buy.unit_price %}<span>/ unit</span></p>
+                <div class="landing-featured-progress" aria-hidden="true">
+                    <span style="width: {{ group_buy.progress_percent }}%"></span>
+                </div>
+                <p class="landing-featured-meta">{{ group_buy.progress_percent }}% · {{ group_buy.pledged_units }}/{{ group_buy.moq }} units</p>
+                {% elif product.min_price %}
+                <p class="landing-featured-price">{% money_from product.min_price %}<span>/ unit</span></p>
+                {% endif %}
+            </div>
+        </a>
+        {% endwith %}
+        {% endfor %}
+    </div>
+</section>
+{% endif %}

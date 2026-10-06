@@ -11,10 +11,10 @@
 <section class="auth-section">
     <div class="auth-card">
         <div class="auth-header">
-            <h1>Link your phone number</h1>
+            <h1>Add your phone number</h1>
             <p>
-                Hi {{ user.first_name }}, add a phone number and password so you can sign in
-                without Google anytime.
+                Hi {{ user.first_name }}, add a Kenyan mobile number for M-Pesa checkout and order updates.
+                You can keep signing in with Google.
             </p>
         </div>
 
@@ -26,18 +26,6 @@
                 <label for="{{ form.phone.id_for_label }}">Phone number</label>
                 {{ form.phone }}
                 {% if form.phone.errors %}<span class="field-error">{{ form.phone.errors.0 }}</span>{% endif %}
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.password1.id_for_label }}">Password</label>
-                {{ form.password1 }}
-                {% if form.password1.errors %}<span class="field-error">{{ form.password1.errors.0 }}</span>{% endif %}
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.password2.id_for_label }}">Confirm password</label>
-                {{ form.password2 }}
-                {% if form.password2.errors %}<span class="field-error">{{ form.password2.errors.0 }}</span>{% endif %}
             </div>
 
             <button type="submit" class="btn btn-primary btn-block btn-lg">Save & Continue</button>

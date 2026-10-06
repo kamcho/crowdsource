@@ -6,14 +6,13 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import update_session_auth_hash
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from .auth_utils import user_needs_phone_link
+from .auth_utils import is_google_passwordless_account, user_needs_phone_link
 from .forms import (
     CategoryPreferencesForm,
     CompleteProfileForm,
@@ -132,8 +131,8 @@ def signin_view(request):
     next_url = request.GET.get('next', '')
 
     if request.method == 'POST':
-        phone_raw = (request.POST.get('phone') or '').strip()
-        throttle_msg = throttle_login_attempt(request, phone_raw)
+        login_raw = (request.POST.get('login') or request.POST.get('phone') or '').strip()
+        throttle_msg = throttle_login_attempt(request, login_raw)
         if throttle_msg:
             messages.error(request, throttle_msg)
             form = SignInForm(request.POST)
@@ -141,9 +140,15 @@ def signin_view(request):
 
         form = SignInForm(request.POST)
         if form.is_valid():
-            phone = form.cleaned_data['phone']
             password = form.cleaned_data['password']
-            user = authenticate(request, phone=phone, password=password)
+            lookup_user = getattr(form, 'lookup_user', None)
+            phone = form.cleaned_data.get('login_phone')
+            user = None
+            if phone:
+                user = authenticate(request, phone=phone, password=password)
+            elif lookup_user and lookup_user.phone:
+                user = authenticate(request, phone=lookup_user.phone, password=password)
+
             if user is not None:
                 return _begin_login_with_optional_2fa(
                     request,
@@ -151,9 +156,16 @@ def signin_view(request):
                     'users.backends.PhonePasswordBackend',
                     next_url,
                 )
-            messages.error(request, 'Invalid phone number or password.')
+
+            if is_google_passwordless_account(lookup_user):
+                messages.error(
+                    request,
+                    'This account uses Google Sign-In. Use the Google button below to continue.',
+                )
+            else:
+                messages.error(request, 'Invalid phone or email, or password.')
         else:
-            messages.error(request, 'Please enter your phone number and password.')
+            messages.error(request, 'Please enter your phone or email and password.')
     else:
         form = SignInForm()
 
@@ -227,12 +239,10 @@ def complete_profile_view(request):
         if form.is_valid():
             user = request.user
             user.phone = form.cleaned_data['phone']
-            user.set_password(form.cleaned_data['password1'])
-            user.save(update_fields=['phone', 'password'])
-            update_session_auth_hash(request, user)
+            user.save(update_fields=['phone', 'updated_at'])
             messages.success(
                 request,
-                'Your phone number is linked. You can sign in with Google or your password anytime.',
+                'Your phone number is saved. You can still sign in with Google anytime.',
             )
             return redirect(
                 _resolve_post_login_redirect(

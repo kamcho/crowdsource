@@ -6,283 +6,126 @@
 {% endblock %}
 
 {% block content %}
-
-<!-- Hero Section -->
-<section class="hero" id="hero">
-    <div class="hero-bg" aria-hidden="true">
-        <div class="hero-blob hero-blob-1"></div>
-        <div class="hero-blob hero-blob-2"></div>
-        <div class="hero-grid-pattern"></div>
-    </div>
-    <div class="container hero-inner">
-        <div class="hero-content">
-            <div class="hero-badge">
-                <span class="badge-dot"></span>
-                Kenya Imports · Factory-direct group buys
-            </div>
-            <h1 class="hero-title">
-                Import from China at
-                <span class="text-gradient">wholesale prices</span>
-                — together.
-            </h1>
-            <p class="hero-lead">
-                Can't meet the factory MOQ alone? Join others buying the same product.
-                Once the group hits minimum order quantity, everyone unlocks bulk pricing
-                and we handle sourcing, customs, and delivery.
-            </p>
-            <div class="hero-actions">
-                <a href="#products" class="btn btn-primary btn-lg">
-                    Explore Group Buys
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </a>
-                <a href="#how-it-works" class="btn btn-secondary btn-lg">How it works</a>
-            </div>
-            <ul class="hero-trust" aria-label="Platform benefits">
-                <li>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                    Verified suppliers
-                </li>
-                <li>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                    Up to 40% savings
-                </li>
-                <li>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <rect x="1" y="3" width="15" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                        <path d="M16 8h4l3 5v3h-7V8z" stroke="currentColor" stroke-width="2"/>
-                        <circle cx="5.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="2"/>
-                        <circle cx="18.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                    Door-to-door delivery
-                </li>
-            </ul>
-        </div>
-
-        <div class="hero-visual">
-            {% include 'home/partials/hero_carousel.html' %}
-
-            <div class="hero-card hero-card-float hero-card-secondary">
-                <div class="mini-stat">
-                    <span class="mini-stat-icon success">✓</span>
-                    <div>
-                        <strong>MOQ Reached!</strong>
-                        <span>Stainless Steel Bottles</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="hero-card hero-card-float hero-card-tertiary">
-                <div class="mini-stat">
-                    <span class="mini-stat-icon savings">%</span>
-                    <div>
-                        <strong>Save 58%</strong>
-                        <span>vs. local retail</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-{% if suggested_products %}
-<section class="products products-suggested" id="suggested-for-you">
+<section class="landing-home" id="products">
     <div class="container container-wide">
-        <div class="section-header products-section-header">
-            <div>
-                <span class="section-label">Personalized</span>
-                <h2>Suggested for you</h2>
-                <p class="products-section-hint">Based on your category preferences.</p>
-            </div>
-            <div class="products-section-header-actions">
-                <a href="{% url 'users:category_preferences' %}" class="btn btn-outline">Edit preferences</a>
-            </div>
-        </div>
-        <div class="product-grid product-grid-4col">
-            {% include 'home/partials/product_cards.html' with products=suggested_products %}
-        </div>
-    </div>
-</section>
-{% elif user.is_authenticated and not search and not category %}
-<section class="products products-suggested products-suggested-empty">
-    <div class="container container-wide">
-        <div class="section-header">
-            <span class="section-label">Personalized</span>
-            <h2>Get product suggestions</h2>
-            <p class="products-section-hint">Tell us which categories you like and we will suggest matching group buys.</p>
-            <a href="{% url 'users:category_preferences' %}" class="btn btn-primary">Choose categories</a>
-        </div>
-    </div>
-</section>
-{% endif %}
-
-<!-- Products Section -->
-<section class="products products-browse" id="products">
-    <div class="container container-wide">
-        <div class="section-header products-section-header">
-            <div>
+        <header class="landing-market-top">
+            <div class="landing-market-intro" id="application-purpose">
                 {% if search %}
-                <span class="section-label">Search results</span>
-                <h2>Results for “{{ search }}”</h2>
+                <span class="section-label">Search</span>
+                <h1>Results for “{{ search }}”</h1>
                 {% elif category %}
                 <span class="section-label">Category</span>
-                <h2>{{ category.name }}</h2>
+                <h1>{{ category.name }}</h1>
                 {% else %}
-                <span class="section-label">Catalog</span>
-                <h2>Trending products</h2>
+                <h1>Factory-direct group buys</h1>
+                <p class="landing-market-tagline">Browse products, join others to hit MOQ, and import from China at wholesale pricing.</p>
                 {% endif %}
-                <p class="products-section-hint products-section-hint-desktop">Refine results with categories on the left.</p>
-                <p class="products-section-hint products-section-hint-mobile">Use <strong>All categories</strong> above to filter by category.</p>
             </div>
-            <div class="products-section-header-actions">
-            <button type="button" class="btn btn-outline products-categories-mobile-btn" data-category-drawer-open>Browse categories</button>
-            <form class="products-search-form products-search-form-wide" method="get" role="search">
+            <form class="products-search-form products-search-form-wide landing-market-search" method="get" role="search">
                 {% if category_slug %}<input type="hidden" name="category" value="{{ category_slug }}">{% endif %}
-                <input type="search" name="q" value="{{ search }}" placeholder="Search products..." aria-label="Search products">
+                <input type="search" name="q" value="{{ search }}" placeholder="Search products, categories, keywords…" aria-label="Search products">
                 <button type="submit" class="btn btn-primary">Search</button>
             </form>
+        </header>
+
+        {% if not search and not category %}
+        {% include 'home/partials/landing_featured_strip.html' %}
+        {% endif %}
+
+        {% if suggested_products %}
+        <section class="landing-suggested" aria-labelledby="suggested-for-you-title">
+            <div class="landing-suggested-head">
+                <div>
+                    <span class="section-label">For you</span>
+                    <h2 id="suggested-for-you-title">Suggested products</h2>
+                </div>
+                <a href="{% url 'users:category_preferences' %}" class="btn btn-outline btn-sm">Edit preferences</a>
+            </div>
+            <div class="product-grid product-grid-4col landing-suggested-grid">
+                {% include 'home/partials/product_cards.html' with products=suggested_products %}
+            </div>
+        </section>
+        {% elif user.is_authenticated and not search and not category %}
+        <section class="landing-suggested landing-suggested-empty">
+            <p>Choose category preferences to see personalized product suggestions.</p>
+            <a href="{% url 'users:category_preferences' %}" class="btn btn-outline btn-sm">Choose categories</a>
+        </section>
+        {% endif %}
+
+        <div class="landing-catalog">
+            <div class="landing-catalog-toolbar">
+                <h2 class="landing-catalog-title">
+                    {% if search or category %}All matching products{% else %}All products{% endif %}
+                </h2>
+                <button type="button" class="btn btn-outline products-categories-mobile-btn" data-category-drawer-open>Browse categories</button>
+            </div>
+
+            <div class="products-browse-layout">
+                {% include 'partials/category_browse_sidebar.html' %}
+
+                <div class="products-browse-main">
+                    <p class="products-browse-summary">
+                        Showing {{ total_product_count }} product{{ total_product_count|pluralize }}
+                        {% if search %}matching “{{ search }}”{% endif %}
+                        {% if category %}in {{ category.name }}{% endif %}
+                    </p>
+
+                    <div
+                        id="productGrid"
+                        class="product-grid product-grid-4col"
+                        data-load-url="{% url 'home:product_browse_load' %}"
+                        data-next-page="{% if page_obj.has_next %}{{ page_obj.next_page_number }}{% endif %}"
+                        data-has-next="{% if page_obj.has_next %}true{% else %}false{% endif %}"
+                        data-category="{{ category_slug }}"
+                        data-search="{{ search }}"
+                        data-landing="true"
+                    >
+                        {% include 'home/partials/product_cards.html' %}
+                    </div>
+
+                    <div id="productScrollSentinel" class="products-scroll-sentinel" aria-hidden="true"></div>
+
+                    <div id="productScrollLoader" class="products-scroll-loader" hidden>
+                        <span class="products-scroll-spinner" aria-hidden="true"></span>
+                        <span>Loading more products…</span>
+                    </div>
+
+                    <div id="productScrollEnd" class="products-scroll-end"{% if page_obj.has_next %} hidden{% endif %}>
+                        {% if total_product_count %}
+                        <p>You've seen all {{ total_product_count }} product{{ total_product_count|pluralize }}.</p>
+                        {% endif %}
+                    </div>
+
+                    {% if not products %}
+                    <div class="products-empty-state">
+                        <p>No products match your search. Try a different category or search term.</p>
+                        <a href="{% url 'home:landing' %}" class="btn btn-primary">View all products</a>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
-
-        <div class="products-browse-layout">
-            {% include 'partials/category_browse_sidebar.html' %}
-
-            <div class="products-browse-main">
-                <p class="products-browse-summary">
-                    {% if landing_max_products %}
-                    Showing up to {{ landing_max_products }} of {{ total_product_count }} product{{ total_product_count|pluralize }}
-                    {% else %}
-                    Showing {{ total_product_count }} product{{ total_product_count|pluralize }}
-                    {% endif %}
-                    {% if search %}matching “{{ search }}”{% endif %}
-                    {% if category %}in {{ category.name }}{% endif %}
-                </p>
-
-                <div
-                    id="productGrid"
-                    class="product-grid product-grid-4col"
-                    data-load-url="{% url 'home:product_browse_load' %}"
-                    data-next-page="{% if page_obj.has_next %}{{ page_obj.next_page_number }}{% endif %}"
-                    data-has-next="{% if page_obj.has_next %}true{% else %}false{% endif %}"
-                    data-category="{{ category_slug }}"
-                    data-search="{{ search }}"
-                    data-landing="true"
-                >
-                    {% include 'home/partials/product_cards.html' %}
-                </div>
-
-                <div id="productScrollSentinel" class="products-scroll-sentinel" aria-hidden="true"></div>
-
-                <div id="productScrollLoader" class="products-scroll-loader" hidden>
-                    <span class="products-scroll-spinner" aria-hidden="true"></span>
-                    <span>Loading more products…</span>
-                </div>
-
-                <div id="productScrollEnd" class="products-scroll-end"{% if page_obj.has_next %} hidden{% endif %}>
-                    {% if landing_max_products and total_product_count > landing_max_products %}
-                    <p>Showing the first {{ landing_max_products }} products.</p>
-                    <a href="{% url 'home:product_browse' %}" class="btn btn-outline">View all {{ total_product_count }} products</a>
-                    {% elif total_product_count %}
-                    <p>You've seen all {{ total_product_count }} product{{ total_product_count|pluralize }}.</p>
-                    {% endif %}
-                </div>
-
-                {% if not products %}
-                <p class="empty-state">No products match your search. Try a different term or category.</p>
-                {% endif %}
-            </div>
-        </div>
     </div>
 </section>
 
-<!-- Stats strip -->
-<section class="stats-strip" aria-label="Platform statistics">
-    <div class="container stats-grid">
-        <div class="stat-card">
-            <strong>2,400+</strong>
-            <span>Active buyers</span>
+<section class="landing-how-strip" id="how-it-works" aria-label="How Kenya Imports works">
+    <div class="container container-wide landing-how-strip-inner">
+        <div class="landing-how-item">
+            <strong>1. Browse</strong>
+            <span>Pick a product and quantity</span>
         </div>
-        <div class="stat-card">
-            <strong>180+</strong>
-            <span>Products sourced</span>
+        <div class="landing-how-item">
+            <strong>2. Group</strong>
+            <span>Buyers pool orders until MOQ</span>
         </div>
-        <div class="stat-card">
-            <strong>40%</strong>
-            <span>Avg. savings vs retail</span>
-        </div>
-        <div class="stat-card">
-            <strong>98%</strong>
-            <span>Orders delivered on time</span>
+        <div class="landing-how-item">
+            <strong>3. Import</strong>
+            <span>We source, clear customs, and deliver</span>
         </div>
     </div>
 </section>
-
-<!-- How It Works -->
-<section class="how-it-works" id="how-it-works">
-    <div class="container">
-        <div class="section-header">
-            <span class="section-label">Simple process</span>
-            <h2>How Kenya Imports works</h2>
-            <p>From browsing to doorstep — we make bulk importing effortless.</p>
-        </div>
-        <div class="steps">
-            <article class="step-card">
-                <div class="step-icon">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
-                        <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </div>
-                <span class="step-num">Step 1</span>
-                <h3>Browse & order</h3>
-                <p>Pick products from our catalog and choose how many units you want.</p>
-            </article>
-            <article class="step-card">
-                <div class="step-icon">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2"/>
-                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </div>
-                <span class="step-num">Step 2</span>
-                <h3>We group buyers</h3>
-                <p>Your order joins others who want the same product until MOQ is met.</p>
-            </article>
-            <article class="step-card">
-                <div class="step-icon">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" stroke="currentColor" stroke-width="2"/>
-                        <path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                </div>
-                <span class="step-num">Step 3</span>
-                <h3>Import & deliver</h3>
-                <p>We source from the factory, handle customs, and ship directly to you.</p>
-            </article>
-        </div>
-    </div>
-</section>
-
-<!-- CTA Banner -->
-<section class="cta-banner">
-    <div class="container cta-inner">
-        <div class="cta-content">
-            <h2>Ready to start saving?</h2>
-            <p>Join thousands of buyers importing smarter. No MOQ headaches — we handle the rest.</p>
-        </div>
-        <a href="#products" class="btn btn-white btn-lg">Browse Products</a>
-    </div>
-</section>
-
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/hero-carousel.js' %}"></script>
 <script src="{% static 'js/products.js' %}"></script>
 {% endblock %}

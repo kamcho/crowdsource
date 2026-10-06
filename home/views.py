@@ -56,8 +56,7 @@ def landing(request):
     category_slug = (request.GET.get('category') or '').strip()
     category = get_filter_category(category_slug)
     has_filters = bool(search or category)
-    max_products = None if has_filters else LANDING_PRODUCT_MAX
-    context = _products_page_context(request, max_products=max_products)
+    context = _products_page_context(request, max_products=None)
     page_obj = context['page_obj']
 
     seo = landing_seo(has_filters, category, search)
@@ -68,7 +67,7 @@ def landing(request):
         'products': context['products'],
         'page_obj': page_obj,
         'total_product_count': context['total_count'],
-        'landing_max_products': max_products,
+        'landing_max_products': None,
         'search': search,
         'category': category,
         'category_slug': category_slug,

@@ -60,13 +60,12 @@ class SignUpForm(UserCreationForm):
 
 
 class SignInForm(forms.Form):
-    phone = PhoneNumberField(
-        region='KE',
+    login = forms.CharField(
+        label='Phone or email',
         widget=forms.TextInput(attrs={
             'class': 'form-input',
-            'placeholder': 'e.g. 0712345678',
-            'type': 'tel',
-            'autocomplete': 'tel',
+            'placeholder': 'Phone or email',
+            'autocomplete': 'username',
         }),
     )
     password = forms.CharField(
@@ -78,9 +77,28 @@ class SignInForm(forms.Form):
         }),
     )
 
+    def clean(self):
+        cleaned = super().clean()
+        login_raw = (cleaned.get('login') or '').strip()
+        if not login_raw:
+            return cleaned
+
+        if '@' in login_raw:
+            cleaned['login_email'] = login_raw
+            self.lookup_user = User.objects.filter(email__iexact=login_raw).first()
+            return cleaned
+
+        phone_field = PhoneNumberField(region='KE')
+        try:
+            cleaned['login_phone'] = phone_field.clean(login_raw)
+        except ValidationError as exc:
+            raise ValidationError({'login': exc.messages[0] if exc.messages else str(exc)})
+        self.lookup_user = User.objects.filter(phone=cleaned['login_phone']).first()
+        return cleaned
+
 
 class CompleteProfileForm(forms.Form):
-    """Link phone and password after Google sign-in."""
+    """Link a phone number after Google sign-in."""
 
     phone = PhoneNumberField(
         region='KE',
@@ -88,22 +106,7 @@ class CompleteProfileForm(forms.Form):
             'class': 'form-input',
             'placeholder': 'e.g. 0712345678',
             'type': 'tel',
-        }),
-    )
-    password1 = forms.CharField(
-        label='Password',
-        widget=forms.PasswordInput(attrs={
-            'class': 'form-input',
-            'placeholder': 'Create a password',
-            'autocomplete': 'new-password',
-        }),
-    )
-    password2 = forms.CharField(
-        label='Confirm password',
-        widget=forms.PasswordInput(attrs={
-            'class': 'form-input',
-            'placeholder': 'Confirm password',
-            'autocomplete': 'new-password',
+            'autocomplete': 'tel',
         }),
     )
 
@@ -121,14 +124,6 @@ class CompleteProfileForm(forms.Form):
         if qs.exists():
             raise ValidationError('This phone number is already registered.')
         return phone
-
-    def clean(self):
-        cleaned = super().clean()
-        password1 = cleaned.get('password1')
-        password2 = cleaned.get('password2')
-        if password1 and password2 and password1 != password2:
-            self.add_error('password2', 'Passwords do not match.')
-        return cleaned
 
 
 class TwoFactorCodeForm(forms.Form):

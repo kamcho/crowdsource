@@ -60,7 +60,7 @@ class SeoViewsTests(TestCase):
         self.assertContains(response, 'rel="canonical"')
         self.assertContains(response, 'application/ld+json')
         self.assertContains(response, '"@type": "WebSite"')
-        self.assertContains(response, '<h1 class="hero-title">')
+        self.assertContains(response, '<h1>Factory-direct group buys</h1>')
 
     def test_product_browse_category_seo_title(self):
         response = self.client.get(

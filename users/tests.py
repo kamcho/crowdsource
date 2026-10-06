@@ -102,8 +102,6 @@ class GoogleAuthTests(TestCase):
             reverse('users:complete_profile'),
             {
                 'phone': '0711223344',
-                'password1': '5678abcd',
-                'password2': '5678abcd',
             },
             HTTP_X_CSRFTOKEN=self.client.cookies['csrftoken'].value,
         )
@@ -111,7 +109,30 @@ class GoogleAuthTests(TestCase):
         self.assertTrue(self.client.session.get('_auth_user_id'))
         user = User.objects.get(google_id='google-sub-new')
         self.assertEqual(str(user.phone), '+254711223344')
-        self.assertTrue(user.check_password('5678abcd'))
+        self.assertFalse(user.has_usable_password())
+
+    @override_settings(**GOOGLE_SETTINGS)
+    def test_sign_in_google_only_account_prompts_google(self):
+        user = User(
+            google_id='google-only',
+            email='googleonly@gmail.com',
+            first_name='G',
+            last_name='User',
+        )
+        user.set_unusable_password()
+        user.save()
+        self.client.get(reverse('users:signin'))
+        response = self.client.post(
+            reverse('users:signin'),
+            {
+                'login': 'googleonly@gmail.com',
+                'password': 'wrong-password',
+            },
+            HTTP_X_CSRFTOKEN=self.client.cookies['csrftoken'].value,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Google Sign-In')
+        self.assertNotIn('_auth_user_id', self.client.session)
 
     @override_settings(GOOGLE_CLIENT_ID='')
     def test_google_sign_in_not_configured(self):
