@@ -1,8 +1,9 @@
 from datetime import timedelta
 
 from django.contrib import messages
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.db import transaction
 from django.db.models import Case, Count, IntegerField, Prefetch, Q, Sum, Value, When
 from django.db.models.functions import Coalesce
@@ -357,9 +358,14 @@ def _build_display_attributes(product, group_buy=None):
     return rows
 
 
-def product_detail(request, slug):
-    product = get_object_or_404(
-        Product.objects.select_related('category__parent')
+PRODUCT_DETAIL_CACHE_SECONDS = 30 * 60
+
+
+def _get_product_detail_product(product_id):
+    cache_key = f'product_detail:{product_id}'
+    return cache.get_or_set(
+        cache_key,
+        lambda: Product.objects.select_related('category__parent')
         .prefetch_related(
             'files',
             'attributes',
@@ -367,12 +373,26 @@ def product_detail(request, slug):
             'variations__option_values__option',
             'variations__files',
             'variations__attributes',
-            'group_buys__entries__user',
-        ),
-        slug=slug,
-        is_active=True,
-        category__is_active=True,
+        )
+        .get(pk=product_id),
+        PRODUCT_DETAIL_CACHE_SECONDS,
     )
+
+
+def product_detail(request, slug):
+    product_id = (
+        Product.objects.filter(
+            slug=slug,
+            is_active=True,
+            category__is_active=True,
+        )
+        .values_list('pk', flat=True)
+        .first()
+    )
+    if product_id is None:
+        raise Http404('Product not found')
+
+    product = _get_product_detail_product(product_id)
     group_buy = product.active_group_buy
     if not group_buy:
         group_buy = ensure_default_group_buy_for_product(product)

@@ -598,6 +598,51 @@ class ProductDetailGroupBuyTests(TestCase):
         self.assertEqual(self.product.group_buys.count(), 1)
         self.assertEqual(self.product.group_buys.first().pk, existing.pk)
 
+    def test_cached_product_details_render_fresh_group_buy_progress(self):
+        from django.core.cache import cache
+        from django.template.defaultfilters import date as format_date
+
+        from core.group_buy import GroupBuy, GroupBuyEntry
+        from django.contrib.auth import get_user_model
+
+        cache.delete(f'product_detail:{self.product.pk}')
+        group_buy = GroupBuy.objects.create(
+            product=self.product,
+            moq=10,
+            unit_price=Decimal('4.50'),
+            closes_at=timezone.now() + timedelta(days=14),
+            status=GroupBuy.Status.OPEN,
+        )
+        user = get_user_model().objects.create_user(
+            phone='+254700000019',
+            password='pass',
+        )
+        entry = GroupBuyEntry.objects.create(
+            group_buy=group_buy,
+            user=user,
+            quantity=2,
+        )
+
+        url = reverse('product_detail', kwargs={'slug': self.product.slug})
+        first_response = self.client.get(url)
+        self.assertContains(first_response, '8 more units needed')
+        self.assertIsNotNone(cache.get(f'product_detail:{self.product.pk}'))
+
+        updated_closes_at = group_buy.closes_at + timedelta(days=30)
+        group_buy.closes_at = updated_closes_at
+        group_buy.save(update_fields=['closes_at', 'updated_at'])
+        entry.quantity = 7
+        entry.save(update_fields=['quantity', 'updated_at'])
+
+        refreshed_response = self.client.get(url)
+
+        self.assertContains(refreshed_response, '3 more units needed')
+        self.assertNotContains(refreshed_response, '8 more units needed')
+        self.assertContains(
+            refreshed_response,
+            format_date(timezone.localtime(updated_closes_at), 'M j, Y'),
+        )
+
 
 class ComplaintTests(TestCase):
     def setUp(self):
