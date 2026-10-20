@@ -18,7 +18,7 @@
                 <h1>{{ category.name }}</h1>
                 {% else %}
                 <h1>Factory-direct group buys</h1>
-                <p class="landing-market-tagline">Browse products, join others to hit MOQ, and import from China at wholesale pricing.</p>
+                <p class="landing-market-tagline">Source wholesale products from Chinese suppliers. Join other Kenyan buyers to meet MOQ and import stock for your business.</p>
                 {% endif %}
             </div>
             <form class="products-search-form products-search-form-wide landing-market-search" method="get" role="search">
@@ -123,6 +123,28 @@
             <span>We source, clear customs, and deliver</span>
         </div>
     </div>
+</section>
+
+<section class="container container-wide" aria-labelledby="wholesale-imports-title">
+    <h2 id="wholesale-imports-title">Wholesale imports from China to Kenya</h2>
+    <p>
+        Kenya Imports helps retailers and online sellers source products from Chinese suppliers
+        through group buys. Buyers pool their quantities to work toward a supplier's minimum
+        order quantity (MOQ), then follow the order through import and delivery. Browse available
+        products to see current group-buy details and pricing.
+    </p>
+    <p>
+        Whether your business is in Nairobi, Nakuru, or elsewhere in Kenya, you can explore the
+        same listed group buys and decide whether a product fits your stock needs.
+        <a href="{% url 'home:product_browse' %}">Browse wholesale products</a>.
+    </p>
+    <h3>Looking for dropshipping suppliers in Kenya?</h3>
+    <p>
+        Dropshipping usually means a supplier ships individual customer orders on a retailer's
+        behalf. Kenya Imports currently focuses on pooled wholesale imports, not order-by-order
+        dropshipping fulfilment. If you are sourcing stock for your shop or online business,
+        explore our group buys and check each product's terms before joining.
+    </p>
 </section>
 {% endblock %}
 

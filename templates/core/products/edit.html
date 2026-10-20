@@ -1,0 +1,192 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static currency_tags %}
+
+{% block title %}Edit {{ product.name }} — CrowdSource Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:product_list' %}">Products</a> / Edit</p>
+                <h1>Edit product</h1>
+                <p>Update catalog details, media, and variations for <strong>{{ product.name }}</strong>.</p>
+            </div>
+            <div class="admin-header-actions">
+                <a href="{% url 'product_detail' product.slug %}" class="btn btn-outline" target="_blank" rel="noopener">View on site</a>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            <form method="post" enctype="multipart/form-data" class="admin-form" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="form-errors">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+                    {{ form.category }}
+                    {% if form.category.errors %}<span class="field-error">{{ form.category.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.supplier.id_for_label }}">{{ form.supplier.label }}</label>
+                    {{ form.supplier }}
+                    <span class="field-hint">Link this product to the factory or trader you source from.</span>
+                    {% if form.supplier.errors %}<span class="field-error">{{ form.supplier.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<span class="field-error">{{ form.name.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<span class="field-error">{{ form.description.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <div class="form-checkbox-row">
+                        {{ form.is_special_class }}
+                        <label for="{{ form.is_special_class.id_for_label }}">{{ form.is_special_class.label }}</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="form-checkbox-row">
+                        {{ form.is_active }}
+                        <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+                    </div>
+                </div>
+
+                <div class="formset-section">
+                    <div class="formset-header">
+                        <h2>Images &amp; videos</h2>
+                        <p class="field-hint">Upload product photos or demo videos. Mark one as primary for listings.</p>
+                    </div>
+
+                    {{ formset.management_form }}
+                    {% if formset.non_form_errors %}
+                    <div class="form-errors">{{ formset.non_form_errors }}</div>
+                    {% endif %}
+
+                    {% for file_form in formset %}
+                    <div class="formset-row">
+                        <div class="formset-row-header">
+                            <strong>Media {{ forloop.counter }}</strong>
+                            {% if file_form.instance.pk %}
+                            <label class="form-checkbox-row formset-delete">
+                                {{ file_form.DELETE }} Remove
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        {{ file_form.id }}
+
+                        <div class="form-row form-row-2">
+                            <div class="form-group">
+                                <label for="{{ file_form.file.id_for_label }}">{{ file_form.file.label }}</label>
+                                {{ file_form.file }}
+                                {% if file_form.file.errors %}<span class="field-error">{{ file_form.file.errors.0 }}</span>{% endif %}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ file_form.media_type.id_for_label }}">{{ file_form.media_type.label }}</label>
+                                {{ file_form.media_type }}
+                            </div>
+                        </div>
+
+                        <div class="form-row form-row-2">
+                            <div class="form-group">
+                                <label for="{{ file_form.caption.id_for_label }}">{{ file_form.caption.label }}</label>
+                                {{ file_form.caption }}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ file_form.sort_order.id_for_label }}">{{ file_form.sort_order.label }}</label>
+                                {{ file_form.sort_order }}
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-checkbox-row">
+                                {{ file_form.is_primary }}
+                                <label for="{{ file_form.is_primary.id_for_label }}">{{ file_form.is_primary.label }}</label>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Save product</button>
+                    <a href="{% url 'core:product_list' %}" class="btn btn-outline">Back to list</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="admin-card manage-table-card" style="margin-top: 1.5rem;">
+            <div class="dashboard-section-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                <div>
+                    <h2 class="manage-section-title">Variations</h2>
+                    <p class="field-hint">SKUs, prices, and option combinations for this product.</p>
+                </div>
+                <div class="admin-header-actions">
+                    <a href="{% url 'core:product_variation_create' product.pk %}" class="btn btn-primary btn-sm">Add variation</a>
+                    <a href="{% url 'core:product_option_list' product.pk %}" class="btn btn-outline btn-sm">Options</a>
+                    <a href="{% url 'core:product_attribute_list' product.pk %}" class="btn btn-outline btn-sm">Attributes</a>
+                </div>
+            </div>
+
+            {% if variations %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>Combination</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for variation in variations %}
+                        <tr>
+                            <td><code class="category-path">{{ variation.sku }}</code></td>
+                            <td>{{ variation.display_name }}</td>
+                            <td>{% money variation.price %}</td>
+                            <td>
+                                {% if variation.is_active %}
+                                <span class="status-badge status-badge-active">Active</span>
+                                {% else %}
+                                <span class="status-badge status-badge-inactive">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="table-actions">
+                                <a href="{% url 'core:product_variation_edit' product.pk variation.pk %}" class="btn btn-outline btn-sm">Edit</a>
+                                <a href="{% url 'core:product_variation_files' product.pk variation.pk %}" class="btn btn-outline btn-sm">Images</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-box">
+                <p>No variations yet. Add product options, then create SKUs for each combination.</p>
+                <a href="{% url 'core:product_option_list' product.pk %}" class="btn btn-outline">Manage options</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

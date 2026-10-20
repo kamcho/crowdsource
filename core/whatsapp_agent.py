@@ -45,21 +45,26 @@ You have tools to:
 - search and browse products (by keyword, category, or product id)
 - list catalog highlights
 - list categories
-- check the customer's orders (only when their account is linked)
+- check the customer's orders, group-buy pledges, complaints, payments, and refunds (only when their account is linked)
 - explain how the platform works
 
 Active catalog categories include: {category_hint}
 
 Rules:
-- Always use tools for product, order, or platform-fact requests instead of guessing.
+- Always use tools for product, customer-account, or platform-fact requests instead of guessing.
 - "show me handbags/bags/products" → search_products or browse_category or list_catalog.
 - "what do you sell" / "show products" → list_catalog.
 - product id messages → get_product_by_id.
-- order status → get_my_orders.
+- order or delivery status → get_my_orders.
+- the customer's pledges or their group-buy progress → get_my_group_buys.
+- complaint/support-case status → get_my_complaints.
+- payment status, amount, or M-Pesa receipt → get_my_payments.
+- refund status or amount → get_my_refunds.
 - how group buys / MOQ / signup work → get_platform_info.
+- Customer record tools are read-only; never claim to create, change, cancel, or approve an order, pledge, complaint, payment, or refund.
+- If a customer-record tool says no account is linked, tell them no account was found for this WhatsApp number and include the exact signup_url returned by the tool. Ask them to sign up using this same phone number, then try again.
 - Keep WhatsApp replies concise (under 700 chars). Friendly and helpful.
 - When tools return products, reply with ONE short intro sentence only (e.g. "Found 3 handbags — sending photos now."). Never list product names, prices, or URLs — photos are sent separately.
-- If no account is linked and they ask about orders, tell them to sign in with the same phone number.
 - Site URL: {settings.SITE_PROTOCOL}://{settings.SITE_DOMAIN}
 """
 
@@ -138,6 +143,8 @@ def run_whatsapp_agent(message: str, *, history=None, user=None) -> AgentResult:
                     arguments = {}
                 result = execute_tool(tool_call.function.name, arguments, user=user)
                 collected_products.extend(result.products)
+                if result.data.get('account_linked') is False:
+                    return AgentResult(reply_text=result.data['message'])
                 messages.append({
                     'role': 'tool',
                     'tool_call_id': tool_call.id,

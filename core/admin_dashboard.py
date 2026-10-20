@@ -174,29 +174,31 @@ def get_admin_dashboard_context(*, full_admin_access=True):
         for status, label in GroupBuy.Status.choices[:3]
     ]
 
-    campaign_progress = []
-    for group_buy in active_group_buys:
-        pledged = group_buy.pledged_total or 0
-        moq = group_buy.moq or 1
-        percent = min(int((pledged / moq) * 100), 100)
-        remaining = max(moq - pledged, 0)
-        if percent >= 100:
-            tone = 'full'
-        elif percent >= 50:
-            tone = 'mid'
-        else:
-            tone = 'low'
-        campaign_progress.append({
-            'pk': group_buy.pk,
-            'name': group_buy.product.name,
-            'status': group_buy.status,
-            'status_label': group_buy.get_status_display(),
-            'pledged': pledged,
-            'moq': moq,
-            'remaining': remaining,
-            'percent': percent,
-            'tone': tone,
-        })
+    campaign_rows = (
+        GroupBuy.objects.filter(
+            status__in=[
+                GroupBuy.Status.OPEN,
+                GroupBuy.Status.MOQ_REACHED,
+                GroupBuy.Status.IMPORTING,
+            ],
+        )
+        .annotate(pledged_total=Sum('entries__quantity'))
+        .values_list('product_id', 'moq', 'pledged_total')
+    )
+    products_at_milestone = {milestone: set() for milestone in (25, 50, 75, 100)}
+    for product_id, moq, pledged_total in campaign_rows:
+        pledged = pledged_total or 0
+        for milestone in products_at_milestone:
+            if moq == 0 or pledged * 100 >= moq * milestone:
+                products_at_milestone[milestone].add(product_id)
+
+    campaign_progress = [
+        {
+            'percent': milestone,
+            'count': len(product_ids),
+        }
+        for milestone, product_ids in products_at_milestone.items()
+    ]
 
     return {
         'stats': stats,

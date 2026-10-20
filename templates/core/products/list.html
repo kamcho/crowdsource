@@ -77,7 +77,7 @@
                                     {% endif %}
                                     {% endwith %}
                                     <div>
-                                        <strong>{{ product.name }}</strong>
+                                        <strong><a href="{% url 'core:product_edit' product.pk %}">{{ product.name }}</a></strong>
                                         {% if product.description %}
                                         <br><span class="category-desc">{{ product.description|truncatechars:60 }}</span>
                                         {% endif %}
@@ -97,6 +97,7 @@
                                 {% endif %}
                             </td>
                             <td class="table-actions">
+                                <a href="{% url 'core:product_edit' product.pk %}" class="btn btn-primary btn-sm">Edit</a>
                                 <a href="{% url 'core:product_option_list' product.pk %}" class="btn btn-outline btn-sm">Options</a>
                                 <a href="{% url 'core:product_variation_list' product.pk %}" class="btn btn-outline btn-sm">Variations</a>
                                 <a href="{% url 'core:product_attribute_list' product.pk %}" class="btn btn-outline btn-sm">Attributes</a>

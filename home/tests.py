@@ -61,6 +61,11 @@ class SeoViewsTests(TestCase):
         self.assertContains(response, 'application/ld+json')
         self.assertContains(response, '"@type": "WebSite"')
         self.assertContains(response, '<h1>Factory-direct group buys</h1>')
+        self.assertContains(response, 'China Imports &amp; Wholesale Group Buys in Kenya')
+        self.assertContains(response, 'Nairobi, Nakuru and nationwide')
+        self.assertContains(response, 'Dropshipping usually means')
+        self.assertContains(response, '"name": "Kenya"')
+        self.assertContains(response, '"inLanguage": "en-KE"')
 
     def test_product_browse_category_seo_title(self):
         response = self.client.get(

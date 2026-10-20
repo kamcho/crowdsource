@@ -1,0 +1,77 @@
+{% extends 'dashboard/admin_base.html' %}
+{% load static %}
+
+{% block title %}Edit Variation — {{ product.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb">
+                    <a href="{% url 'core:product_list' %}">Products</a> /
+                    <a href="{% url 'core:product_edit' product.pk %}">{{ product.name }}</a> /
+                    Edit variation
+                </p>
+                <h1>Edit variation</h1>
+                <p>Update SKU <strong>{{ variation.sku }}</strong> for <strong>{{ product.name }}</strong>.</p>
+            </div>
+        </div>
+
+        <div class="admin-card admin-card-narrow">
+            <form method="post" class="admin-form" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="form-errors">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="formset-section">
+                    <div class="formset-header">
+                        <h2>Option combination</h2>
+                        <p class="field-hint">Pick one value for each option to define this SKU.</p>
+                    </div>
+
+                    {% for option, field in option_fields %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ option.name }}</label>
+                        {{ field }}
+                        {% if field.errors %}<span class="field-error">{{ field.errors.0 }}</span>{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.sku.id_for_label }}">{{ form.sku.label }}</label>
+                    {{ form.sku }}
+                    {% if form.sku.errors %}<span class="field-error">{{ form.sku.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.price.id_for_label }}">{{ form.price.label }}</label>
+                    {{ form.price }}
+                    {% if form.price.errors %}<span class="field-error">{{ form.price.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <div class="form-checkbox-row">
+                        {{ form.is_active }}
+                        <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+                    </div>
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Save variation</button>
+                    <a href="{% url 'core:product_variation_files' product.pk variation.pk %}" class="btn btn-outline">Variation images</a>
+                    <a href="{% url 'core:product_edit' product.pk %}" class="btn btn-outline">Back to product</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

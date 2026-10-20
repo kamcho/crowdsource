@@ -125,37 +125,21 @@
         <div class="dash-panel-header">
             <div>
                 <h2 class="dash-panel-title">Campaign progress</h2>
-                <p class="dash-panel-subtitle">Units pledged toward MOQ</p>
+                <p class="dash-panel-subtitle">Distinct products at or above each MOQ milestone</p>
             </div>
             <a href="{% url 'core:group_buy_list' %}" class="dash-view-all">View all</a>
         </div>
         {% if campaign_progress %}
-        <ul class="campaign-progress-list">
+        <div class="dash-sale-stats">
             {% for item in campaign_progress %}
-            <li class="campaign-progress-item">
-                <div class="campaign-progress-head">
-                    <a href="{% url 'core:group_buy_manage' item.pk %}" class="campaign-progress-name">{{ item.name }}</a>
-                    <span class="status-badge status-badge-gb-{{ item.status }}">{{ item.status_label }}</span>
-                </div>
-                <div class="campaign-progress-meta">
-                    <span>{{ item.pledged }} of {{ item.moq }} units</span>
-                    <strong>{{ item.percent }}%</strong>
-                </div>
-                <div class="campaign-progress-bar" role="progressbar" aria-valuenow="{{ item.percent }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ item.name }} progress">
-                    <div class="campaign-progress-fill is-{{ item.tone }}" style="width: {{ item.percent }}%"></div>
-                </div>
-                <p class="campaign-progress-note">
-                    {% if item.remaining %}
-                    {{ item.remaining }} unit{{ item.remaining|pluralize }} left to reach MOQ
-                    {% else %}
-                    MOQ reached
-                    {% endif %}
-                </p>
-            </li>
+            <div class="dash-sale-stat-row">
+                <span>{{ item.percent }}%+ of MOQ reached</span>
+                <strong>{{ item.count }}</strong>
+            </div>
             {% endfor %}
-        </ul>
+        </div>
         {% else %}
-        <p class="manage-section-lead">No active campaigns right now.</p>
+        <p class="manage-section-lead">No products on active campaigns right now.</p>
         {% endif %}
     </div>
     <div class="dash-panel">

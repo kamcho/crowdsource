@@ -1,4 +1,4 @@
-"""WhatsApp support bot tools — product search, orders, platform Q&A."""
+"""WhatsApp support bot tools — catalog and customer account queries."""
 
 from __future__ import annotations
 
@@ -9,8 +9,12 @@ from django.conf import settings
 from django.db.models import Q
 
 from core.category_utils import get_category_descendant_ids
+from core.complaint import Complaint
+from core.group_buy import GroupBuyEntry
 from core.models import Category, Product
 from core.order import Order
+from core.payment import Payment
+from core.refund import Refund
 from home.catalog import get_public_products_queryset
 
 MAX_TOOL_PRODUCTS = 5
@@ -50,6 +54,22 @@ PLATFORM_TOPICS = {
 class ToolResult:
     data: dict
     products: list = field(default_factory=list)
+
+
+def _unlinked_account_result(record_key: str) -> ToolResult:
+    signup_url = (
+        f'{settings.SITE_PROTOCOL}://{settings.SITE_DOMAIN}/users/signup/'
+    )
+    return ToolResult(data={
+        'ok': False,
+        'account_linked': False,
+        'message': (
+            'No account was found for this WhatsApp number. '
+            f'Sign up at {signup_url} using this same phone number, then ask again.'
+        ),
+        'signup_url': signup_url,
+        record_key: [],
+    })
 
 
 def _product_summary(product: Product) -> dict:
@@ -234,12 +254,8 @@ def list_categories() -> ToolResult:
 
 
 def get_my_orders(*, user, order_id: int | None = None) -> ToolResult:
-    if not user:
-        return ToolResult(data={
-            'ok': False,
-            'message': 'No account linked to this WhatsApp number.',
-            'orders': [],
-        })
+    if not user or not user.is_authenticated:
+        return _unlinked_account_result('orders')
 
     orders_qs = (
         Order.objects.filter(user=user)
@@ -270,6 +286,179 @@ def get_my_orders(*, user, order_id: int | None = None) -> ToolResult:
         'ok': bool(rows),
         'message': message,
         'orders': rows,
+    })
+
+
+def get_my_group_buys(*, user, group_buy_id: int | None = None) -> ToolResult:
+    if not user or not user.is_authenticated:
+        return _unlinked_account_result('group_buys')
+
+    entries_qs = (
+        GroupBuyEntry.objects.filter(user=user)
+        .select_related('group_buy__product', 'variation')
+        .order_by('-created_at')
+    )
+    if group_buy_id:
+        entries_qs = entries_qs.filter(group_buy_id=group_buy_id)
+
+    entries = list(entries_qs[:5 if not group_buy_id else 20])
+    rows = [
+        {
+            'group_buy_id': entry.group_buy_id,
+            'product': entry.group_buy.product.name,
+            'status': entry.group_buy.get_status_display(),
+            'quantity': entry.quantity,
+            'variation': entry.variation.display_name if entry.variation_id else None,
+            'moq': entry.group_buy.moq,
+            'pledged_units': entry.group_buy.pledged_units,
+            'units_remaining': entry.group_buy.units_remaining,
+            'closes_at': entry.group_buy.closes_at.isoformat(),
+        }
+        for entry in entries
+    ]
+    if group_buy_id and not rows:
+        message = f'No group-buy pledge #{group_buy_id} was found on your account.'
+    elif not rows:
+        message = 'No group-buy pledges found for your account.'
+    else:
+        message = f'Found {len(rows)} group-buy pledge(s)'
+
+    return ToolResult(data={
+        'ok': bool(rows),
+        'message': message,
+        'group_buys': rows,
+    })
+
+
+def get_my_complaints(*, user, reference: str = '', order_id: int | None = None) -> ToolResult:
+    if not user or not user.is_authenticated:
+        return _unlinked_account_result('complaints')
+
+    complaints_qs = Complaint.objects.filter(user=user).select_related('order').order_by('-created_at')
+    if reference:
+        complaints_qs = complaints_qs.filter(reference__iexact=reference.strip())
+    if order_id:
+        complaints_qs = complaints_qs.filter(order_id=order_id)
+
+    complaints = list(complaints_qs[:5 if not reference else 1])
+    rows = [
+        {
+            'reference': complaint.reference,
+            'subject': complaint.subject,
+            'category': complaint.get_category_display(),
+            'status': complaint.get_status_display(),
+            'order_id': complaint.order_id,
+            'description': complaint.description[:300],
+            'created_at': complaint.created_at.isoformat(),
+        }
+        for complaint in complaints
+    ]
+    if reference and not rows:
+        message = f'Complaint {reference} was not found on your account.'
+    elif not rows:
+        message = 'No complaints found for your account.'
+    else:
+        message = f'Found {len(rows)} complaint(s)'
+
+    return ToolResult(data={
+        'ok': bool(rows),
+        'message': message,
+        'complaints': rows,
+    })
+
+
+def get_my_payments(
+    *,
+    user,
+    reference: str = '',
+    order_id: int | None = None,
+) -> ToolResult:
+    if not user or not user.is_authenticated:
+        return _unlinked_account_result('payments')
+
+    payments_qs = (
+        Payment.objects.filter(user=user)
+        .select_related('order', 'group_buy__product')
+        .order_by('-created_at')
+    )
+    if reference:
+        payments_qs = payments_qs.filter(reference__iexact=reference.strip())
+    if order_id:
+        payments_qs = payments_qs.filter(order_id=order_id)
+
+    payments = list(payments_qs[:5 if not reference else 1])
+    rows = [
+        {
+            'reference': payment.reference,
+            'status': payment.get_status_display(),
+            'amount': str(payment.amount),
+            'product': payment.group_buy.product.name,
+            'order_id': payment.order_id,
+            'receipt_number': payment.mpesa_receipt_number or None,
+            'created_at': payment.created_at.isoformat(),
+            'completed_at': payment.completed_at.isoformat() if payment.completed_at else None,
+        }
+        for payment in payments
+    ]
+    if reference and not rows:
+        message = f'Payment {reference} was not found on your account.'
+    elif not rows:
+        message = 'No payments found for your account.'
+    else:
+        message = f'Found {len(rows)} payment(s)'
+
+    return ToolResult(data={
+        'ok': bool(rows),
+        'message': message,
+        'payments': rows,
+    })
+
+
+def get_my_refunds(
+    *,
+    user,
+    reference: str = '',
+    order_id: int | None = None,
+) -> ToolResult:
+    if not user or not user.is_authenticated:
+        return _unlinked_account_result('refunds')
+
+    refunds_qs = (
+        Refund.objects.filter(order__user=user)
+        .select_related('order__group_buy__product')
+        .order_by('-created_at')
+    )
+    if reference:
+        refunds_qs = refunds_qs.filter(reference__iexact=reference.strip())
+    if order_id:
+        refunds_qs = refunds_qs.filter(order_id=order_id)
+
+    refunds = list(refunds_qs[:5 if not reference else 1])
+    rows = [
+        {
+            'reference': refund.reference,
+            'status': refund.get_status_display(),
+            'type': refund.get_refund_type_display(),
+            'amount': str(refund.amount),
+            'reason': refund.reason,
+            'order_id': refund.order_id,
+            'product': refund.order.group_buy.product.name,
+            'created_at': refund.created_at.isoformat(),
+            'completed_at': refund.completed_at.isoformat() if refund.completed_at else None,
+        }
+        for refund in refunds
+    ]
+    if reference and not rows:
+        message = f'Refund {reference} was not found on your account.'
+    elif not rows:
+        message = 'No refunds found for your account.'
+    else:
+        message = f'Found {len(rows)} refund(s)'
+
+    return ToolResult(data={
+        'ok': bool(rows),
+        'message': message,
+        'refunds': rows,
     })
 
 
@@ -411,6 +600,93 @@ TOOL_DEFINITIONS = [
     {
         'type': 'function',
         'function': {
+            'name': 'get_my_group_buys',
+            'description': (
+                'Look up the group buys and quantities the customer has pledged. '
+                'Use for questions about their own group-buy participation, MOQ progress, or pledge status.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'group_buy_id': {
+                        'type': 'integer',
+                        'description': 'Optional specific group-buy id.',
+                    },
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_my_complaints',
+            'description': (
+                'Look up the customer complaints and their status. Use for complaint or support-case updates.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'reference': {
+                        'type': 'string',
+                        'description': 'Optional complaint reference, e.g. CP-ABC123.',
+                    },
+                    'order_id': {
+                        'type': 'integer',
+                        'description': 'Optional order id to find related complaints.',
+                    },
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_my_payments',
+            'description': (
+                'Look up the customer payment status, amount, and M-Pesa receipt. '
+                'Use for questions about a payment or payment reference.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'reference': {
+                        'type': 'string',
+                        'description': 'Optional payment reference, e.g. CS-ABC123.',
+                    },
+                    'order_id': {
+                        'type': 'integer',
+                        'description': 'Optional order id.',
+                    },
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_my_refunds',
+            'description': (
+                'Look up the customer refund status, amount, and reason. '
+                'Use for questions about a refund or refund reference.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'reference': {
+                        'type': 'string',
+                        'description': 'Optional refund reference, e.g. RF-ABC123.',
+                    },
+                    'order_id': {
+                        'type': 'integer',
+                        'description': 'Optional order id.',
+                    },
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
             'name': 'get_platform_info',
             'description': (
                 'Answer general questions about how Kenya Imports / CrowdSource works: '
@@ -452,6 +728,33 @@ def execute_tool(name: str, arguments: dict, *, user=None) -> ToolResult:
     if name == 'get_my_orders':
         order_id = arguments.get('order_id')
         return get_my_orders(user=user, order_id=int(order_id) if order_id else None)
+    if name == 'get_my_group_buys':
+        group_buy_id = arguments.get('group_buy_id')
+        return get_my_group_buys(
+            user=user,
+            group_buy_id=int(group_buy_id) if group_buy_id else None,
+        )
+    if name == 'get_my_complaints':
+        order_id = arguments.get('order_id')
+        return get_my_complaints(
+            user=user,
+            reference=str(arguments.get('reference') or ''),
+            order_id=int(order_id) if order_id else None,
+        )
+    if name == 'get_my_payments':
+        order_id = arguments.get('order_id')
+        return get_my_payments(
+            user=user,
+            reference=str(arguments.get('reference') or ''),
+            order_id=int(order_id) if order_id else None,
+        )
+    if name == 'get_my_refunds':
+        order_id = arguments.get('order_id')
+        return get_my_refunds(
+            user=user,
+            reference=str(arguments.get('reference') or ''),
+            order_id=int(order_id) if order_id else None,
+        )
     if name == 'get_platform_info':
         return get_platform_info(topic=str(arguments.get('topic') or 'overview'))
     return ToolResult(data={'ok': False, 'message': f'Unknown tool: {name}'})

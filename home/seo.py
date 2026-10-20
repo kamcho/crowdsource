@@ -48,8 +48,18 @@ def organization_and_website_json_ld():
         'name': site_name,
         'url': site_url,
         'description': (
-            'Group-buying platform for factory-direct imports from China to Kenya.'
+            'Kenya-based group-buy platform helping retailers and online sellers '
+            'source wholesale products from Chinese suppliers.'
         ),
+        'areaServed': {
+            '@type': 'Country',
+            'name': 'Kenya',
+        },
+        'knowsAbout': [
+            'Importing products from China to Kenya',
+            'Wholesale sourcing for Kenyan retailers',
+            'Group buying and minimum order quantities',
+        ],
     }
     if contact_phone:
         organization['telephone'] = contact_phone
@@ -62,6 +72,7 @@ def organization_and_website_json_ld():
                 '@id': f'{site_url}#website',
                 'url': site_url,
                 'name': site_name,
+                'inLanguage': 'en-KE',
                 'publisher': {'@id': f'{site_url}#organization'},
                 'potentialAction': {
                     '@type': 'SearchAction',
@@ -89,15 +100,15 @@ def landing_seo(has_filters, category, search):
         }
     site_name = getattr(settings, 'SITE_NAME', 'Kenya Imports')
     description = (
-        'Join group buys to meet factory MOQ and import products from China at wholesale prices. '
-        'Save on shipping with Kenya Imports.'
+        'Import wholesale products from China to Kenya. Join group buys to meet factory MOQ '
+        'and source stock for businesses in Nairobi, Nakuru and nationwide.'
     )
     return {
         'seo_robots': 'index, follow, max-image-preview:large',
         'seo_canonical_url': public_site_url('/'),
-        'seo_title': f'{site_name} — Buy Together, Save More on China Imports',
+        'seo_title': f'China Imports & Wholesale Group Buys in Kenya | {site_name}',
         'seo_description': description,
-        'seo_og_title': f'{site_name} — Buy Together, Save More',
+        'seo_og_title': f'Wholesale Imports from China to Kenya | {site_name}',
         'seo_og_description': description,
     }
 
@@ -131,8 +142,8 @@ def browse_page_seo(category, search, page_number=1):
     else:
         title = f'Browse Group Buy Products — Factory Direct Imports | {site_name}'
         description = (
-            'Browse factory-direct products available for group buy import to Kenya. '
-            'Filter by category and join others to hit MOQ and save on shipping.'
+            'Browse wholesale products sourced from Chinese suppliers for import to Kenya. '
+            'Join group buys to meet MOQ and find stock for shops and online businesses.'
         )
 
     robots = 'index, follow, max-image-preview:large'
@@ -184,10 +195,10 @@ def product_page_seo(product, price_min=None):
         product.description,
         fallback=(
             f'Join a group buy for {product.name}. '
-            'Meet MOQ with other buyers in Kenya and import at wholesale pricing.'
+            'Meet MOQ with other buyers and import wholesale stock from China to Kenya.'
         ),
     )
-    title = f'{product.name} — Group Buy Import | {site_name}'
+    title = f'{product.name} Wholesale Group Buy | {site_name}'
     canonical = public_site_url(product.get_absolute_url())
     return {
         'seo_robots': 'index, follow, max-image-preview:large',

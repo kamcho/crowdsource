@@ -192,6 +192,8 @@ class ProductFileForm(forms.ModelForm):
         cleaned = super().clean()
         if cleaned.get('DELETE'):
             return cleaned
+        if self.instance.pk and not cleaned.get('file'):
+            return cleaned
         if not cleaned.get('file') and not self.instance.pk:
             return cleaned
         if not cleaned.get('file'):
@@ -473,6 +475,15 @@ class ProductVariationForm(forms.ModelForm):
                     widget=forms.Select(attrs={'class': 'form-input form-select'}),
                     required=True,
                 )
+            if self.instance.pk:
+                selected = {
+                    option_value.option_id: option_value.pk
+                    for option_value in self.instance.option_values.all()
+                }
+                for option in product.options.all():
+                    field_name = f'option_{option.pk}'
+                    if field_name in self.fields and option.pk in selected:
+                        self.fields[field_name].initial = selected[option.pk]
 
     def clean(self):
         cleaned = super().clean()

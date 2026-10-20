@@ -668,6 +668,44 @@ def product_create(request):
 
 
 @admin_required
+def product_edit(request, product_id):
+    product = get_object_or_404(
+        Product.objects.prefetch_related(
+            'options__values',
+            'variations__option_values__option',
+            'variations__files',
+        ),
+        pk=product_id,
+    )
+
+    if request.method == 'POST':
+        form = ProductForm(request.POST, instance=product)
+        formset = ProductFileFormSet(request.POST, request.FILES, instance=product)
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                product = form.save()
+                files = formset.save(commit=False)
+                for product_file in files:
+                    product_file.product = product
+                    product_file.save()
+                for deleted in formset.deleted_objects:
+                    deleted.delete()
+            messages.success(request, f'Product "{product.name}" updated successfully.')
+            return redirect('core:product_edit', product_id=product.pk)
+        messages.error(request, 'Please correct the errors below.')
+    else:
+        form = ProductForm(instance=product)
+        formset = ProductFileFormSet(instance=product)
+
+    return render(request, 'core/products/edit.html', {
+        'form': form,
+        'formset': formset,
+        'product': product,
+        'variations': product.variations.all(),
+    })
+
+
+@admin_required
 def product_option_list(request, product_id):
     product = get_object_or_404(Product.objects.prefetch_related('options__values'), pk=product_id)
     return render(request, 'core/product_options/list.html', {
@@ -797,6 +835,53 @@ def product_variation_create(request, product_id):
     return render(request, 'core/product_variations/create.html', {
         'form': form,
         'product': product,
+        'option_fields': option_fields,
+    })
+
+
+@admin_required
+def product_variation_edit(request, product_id, variation_id):
+    product = get_object_or_404(
+        Product.objects.prefetch_related('options__values'),
+        pk=product_id,
+    )
+    variation = get_object_or_404(
+        ProductVariation.objects.prefetch_related('option_values__option'),
+        pk=variation_id,
+        product=product,
+    )
+
+    if request.method == 'POST':
+        form = ProductVariationForm(request.POST, instance=variation, product=product)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    form.save()
+            except ValidationError as exc:
+                if hasattr(exc, 'message_dict'):
+                    for field, errors in exc.message_dict.items():
+                        for error in errors:
+                            form.add_error(None, error)
+                else:
+                    form.add_error(None, exc.messages[0] if exc.messages else str(exc))
+                messages.error(request, 'Please correct the errors below.')
+            else:
+                messages.success(request, f'Variation "{form.instance.sku}" updated successfully.')
+                return redirect('core:product_edit', product_id=product.pk)
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = ProductVariationForm(instance=variation, product=product)
+
+    option_fields = [
+        (option, form[f'option_{option.pk}'])
+        for option in product.options.all()
+    ]
+
+    return render(request, 'core/product_variations/edit.html', {
+        'form': form,
+        'product': product,
+        'variation': variation,
         'option_fields': option_fields,
     })
 

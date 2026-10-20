@@ -1520,6 +1520,66 @@ class CategoryGoTogetherTests(TestCase):
         self.assertIn('Lipstick Set', related_names)
 
 
+class AdminDashboardCampaignProgressTests(TestCase):
+    def test_campaign_progress_counts_distinct_products_at_moq_milestones(self):
+        from django.contrib.auth import get_user_model
+
+        from core.admin_dashboard import get_admin_dashboard_context
+        from core.group_buy import GroupBuy, GroupBuyEntry
+
+        user = get_user_model().objects.create_user(
+            phone='+254700000001',
+            password='pass',
+        )
+        category = Category.objects.create(name='Dashboard products')
+        quantities = (20, 50, 80, 100)
+        products = [
+            Product.objects.create(
+                category=category,
+                name=f'Dashboard product {index}',
+                is_active=True,
+            )
+            for index in range(len(quantities))
+        ]
+        for product, quantity in zip(products, quantities):
+            group_buy = GroupBuy.objects.create(
+                product=product,
+                moq=100,
+                unit_price='10.00',
+                closes_at=timezone.now() + timedelta(days=5),
+            )
+            GroupBuyEntry.objects.create(
+                group_buy=group_buy,
+                user=user,
+                quantity=quantity,
+            )
+
+        # Multiple campaigns for one product should still count as one product.
+        additional_campaign = GroupBuy.objects.create(
+            product=products[0],
+            moq=100,
+            unit_price='10.00',
+            closes_at=timezone.now() + timedelta(days=5),
+        )
+        GroupBuyEntry.objects.create(
+            group_buy=additional_campaign,
+            user=user,
+            quantity=30,
+        )
+
+        context = get_admin_dashboard_context()
+
+        self.assertEqual(
+            context['campaign_progress'],
+            [
+                {'percent': 25, 'count': 4},
+                {'percent': 50, 'count': 3},
+                {'percent': 75, 'count': 2},
+                {'percent': 100, 'count': 1},
+            ],
+        )
+
+
 class WhatsAppServiceTests(TestCase):
     def setUp(self):
         from django.contrib.auth import get_user_model
@@ -1807,6 +1867,167 @@ class WhatsAppServiceTests(TestCase):
         result = get_my_orders(user=self.user)
         self.assertTrue(result.data['ok'])
         self.assertEqual(result.data['orders'][0]['id'], order.pk)
+
+    def test_get_my_group_buys_tool_only_returns_own_pledges(self):
+        from django.contrib.auth import get_user_model
+
+        from core.group_buy import GroupBuyEntry
+        from core.whatsapp_tools import execute_tool
+
+        other_user = get_user_model().objects.create_user(
+            phone='+254712345679',
+            password='pass',
+        )
+        group_buy = self.product.group_buys.first()
+        GroupBuyEntry.objects.create(group_buy=group_buy, user=self.user, quantity=2)
+        GroupBuyEntry.objects.create(group_buy=group_buy, user=other_user, quantity=3)
+
+        result = execute_tool('get_my_group_buys', {}, user=self.user)
+
+        self.assertTrue(result.data['ok'])
+        self.assertEqual(len(result.data['group_buys']), 1)
+        self.assertEqual(result.data['group_buys'][0]['quantity'], 2)
+        self.assertEqual(result.data['group_buys'][0]['pledged_units'], 5)
+
+    def test_get_my_complaints_tool_only_returns_own_complaints(self):
+        from django.contrib.auth import get_user_model
+
+        from core.complaint import Complaint
+        from core.whatsapp_tools import execute_tool
+
+        other_user = get_user_model().objects.create_user(
+            phone='+254712345679',
+            password='pass',
+        )
+        complaint = Complaint.objects.create(
+            user=self.user,
+            category=Complaint.Category.DELIVERY,
+            subject='Delivery update',
+            description='Please check my delivery.',
+        )
+        Complaint.objects.create(
+            user=other_user,
+            category=Complaint.Category.OTHER,
+            subject='Private complaint',
+            description='This belongs to another customer.',
+        )
+
+        result = execute_tool('get_my_complaints', {}, user=self.user)
+
+        self.assertTrue(result.data['ok'])
+        self.assertEqual(len(result.data['complaints']), 1)
+        self.assertEqual(result.data['complaints'][0]['reference'], complaint.reference)
+        self.assertNotIn('staff_notes', result.data['complaints'][0])
+
+    def test_get_my_payments_tool_only_returns_own_payments(self):
+        from django.contrib.auth import get_user_model
+
+        from core.whatsapp_tools import execute_tool
+
+        other_user = get_user_model().objects.create_user(
+            phone='+254712345679',
+            password='pass',
+        )
+        group_buy = self.product.group_buys.first()
+        payment = Payment.objects.create(
+            group_buy=group_buy,
+            user=self.user,
+            amount='50.00',
+            status=Payment.Status.COMPLETED,
+            mpesa_receipt_number='ABC123',
+        )
+        Payment.objects.create(
+            group_buy=group_buy,
+            user=other_user,
+            amount='75.00',
+        )
+
+        result = execute_tool('get_my_payments', {}, user=self.user)
+
+        self.assertTrue(result.data['ok'])
+        self.assertEqual(len(result.data['payments']), 1)
+        self.assertEqual(result.data['payments'][0]['reference'], payment.reference)
+        self.assertEqual(result.data['payments'][0]['receipt_number'], 'ABC123')
+
+    def test_get_my_refunds_tool_only_returns_refunds_for_own_orders(self):
+        from django.contrib.auth import get_user_model
+
+        from core.order import Order
+        from core.refund import Refund
+        from core.whatsapp_tools import execute_tool
+
+        other_user = get_user_model().objects.create_user(
+            phone='+254712345679',
+            password='pass',
+        )
+        group_buy = self.product.group_buys.first()
+        order = Order.objects.create(
+            group_buy=group_buy,
+            user=self.user,
+            status=Order.Status.PAID,
+            total_amount='50.00',
+        )
+        payment = Payment.objects.create(
+            group_buy=group_buy,
+            user=self.user,
+            order=order,
+            amount='50.00',
+            status=Payment.Status.COMPLETED,
+        )
+        refund = Refund.objects.create(
+            payment=payment,
+            order=order,
+            amount='10.00',
+            refund_type=Refund.RefundType.PARTIAL,
+            reason='Delivery issue',
+            created_by=self.user,
+        )
+
+        other_order = Order.objects.create(
+            group_buy=group_buy,
+            user=other_user,
+            status=Order.Status.PAID,
+            total_amount='50.00',
+        )
+        other_payment = Payment.objects.create(
+            group_buy=group_buy,
+            user=other_user,
+            order=other_order,
+            amount='50.00',
+        )
+        Refund.objects.create(
+            payment=other_payment,
+            order=other_order,
+            amount='20.00',
+            refund_type=Refund.RefundType.PARTIAL,
+            reason='Other customer refund',
+            created_by=other_user,
+        )
+
+        result = execute_tool('get_my_refunds', {}, user=self.user)
+
+        self.assertTrue(result.data['ok'])
+        self.assertEqual(len(result.data['refunds']), 1)
+        self.assertEqual(result.data['refunds'][0]['reference'], refund.reference)
+
+    @override_settings(SITE_PROTOCOL='https', SITE_DOMAIN='kenyaimports.com')
+    def test_customer_account_tools_return_signup_link_when_number_is_unlinked(self):
+        from core.whatsapp_tools import execute_tool
+
+        expected_url = 'https://kenyaimports.com/users/signup/'
+        for tool_name in (
+            'get_my_orders',
+            'get_my_group_buys',
+            'get_my_complaints',
+            'get_my_payments',
+            'get_my_refunds',
+        ):
+            with self.subTest(tool_name=tool_name):
+                result = execute_tool(tool_name, {}, user=None)
+                self.assertFalse(result.data['ok'])
+                self.assertFalse(result.data['account_linked'])
+                self.assertEqual(result.data['signup_url'], expected_url)
+                self.assertIn(expected_url, result.data['message'])
 
     @override_settings(
         WHATSAPP_PUBLIC_BASE_URL='https://example.ngrok-free.dev',
@@ -2277,6 +2498,21 @@ class ProductListSearchTests(TestCase):
         self.assertNotIn(other.name, names)
         self.assertEqual(response.context['products'][0].order_count, 3)
 
+    def test_admin_can_open_product_edit_page(self):
+        from django.contrib.auth import get_user_model
+
+        from users.models import User
+
+        UserModel = get_user_model()
+        admin = UserModel.objects.create_user(phone='+254700000010', password='pass', role=User.Role.ADMIN)
+        category = Category.objects.create(name='Test')
+        product = Product.objects.create(category=category, name='Edit Me', is_active=True)
+        self.client.force_login(admin)
+        response = self.client.get(reverse('core:product_edit', kwargs={'product_id': product.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Edit product')
+        self.assertContains(response, 'Edit Me')
+
 
 class OpsOrderCustomerTests(TestCase):
     def setUp(self):
@@ -2413,4 +2649,3 @@ class BackupTests(TestCase):
         self.assertEqual(download['Content-Type'], 'application/zip')
         b''.join(download.streaming_content)
         download.close()
-

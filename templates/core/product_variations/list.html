@@ -17,6 +17,7 @@
                 <p>SKUs for <strong>{{ product.name }}</strong> based on option combinations.</p>
             </div>
             <div class="admin-header-actions">
+                <a href="{% url 'core:product_edit' product.pk %}" class="btn btn-outline">Edit product</a>
                 <a href="{% url 'core:product_variation_create' product.pk %}" class="btn btn-primary">Add Variation</a>
                 <a href="{% url 'core:product_attribute_list' product.pk %}" class="btn btn-outline">Attributes</a>
                 <a href="{% url 'core:product_option_list' product.pk %}" class="btn btn-outline">Options</a>
@@ -52,6 +53,7 @@
                                 {% endif %}
                             </td>
                             <td class="table-actions">
+                                <a href="{% url 'core:product_variation_edit' product.pk variation.pk %}" class="btn btn-outline btn-sm">Edit</a>
                                 <a href="{% url 'core:product_variation_files' product.pk variation.pk %}" class="btn btn-outline btn-sm">Images</a>
                             </td>
                         </tr>
@@ -68,7 +70,9 @@
         </div>
 
         <p class="category-summary">
-            <a href="{% url 'core:product_list' %}">← Back to products</a>
+            <a href="{% url 'core:product_edit' product.pk %}">← Back to product edit</a>
+            ·
+            <a href="{% url 'core:product_list' %}">All products</a>
         </p>
     </div>
 </section>
