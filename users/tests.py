@@ -7,7 +7,7 @@ from django.core.cache import cache
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from tenants.models import Tenant
+from tenants.models import Tenant, TenantMembership
 from users.two_factor import activate_totp, generate_totp_secret, verify_user_totp
 
 User = get_user_model()
@@ -254,6 +254,54 @@ class UserProfileTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['user_stats']['cart_items'], 0)
+
+    def test_tenant_staff_sees_shop_management_links_in_account_sidebar(self):
+        staff_user = User.objects.create_user(
+            phone='0722334456',
+            password='testpass123',
+            first_name='Shop',
+            last_name='Staff',
+        )
+        tenant = Tenant.objects.get(is_default=True)
+        TenantMembership.objects.update_or_create(
+            tenant=tenant,
+            user=staff_user,
+            defaults={'role': TenantMembership.Role.STAFF},
+        )
+        self.client.force_login(staff_user)
+
+        response = self.client.get(reverse('users:profile'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Shop management')
+        self.assertContains(response, reverse('core:admin_dashboard'))
+        self.assertContains(response, reverse('core:admin_order_list'))
+        self.assertContains(response, reverse('core:customer_list'))
+        self.assertContains(response, reverse('core:group_buy_list'))
+        self.assertContains(response, reverse('core:import_shipment_list'))
+        self.assertNotContains(response, reverse('core:product_list'))
+        self.assertNotContains(response, 'Shop settings &amp; staff')
+
+    def test_tenant_admin_sidebar_also_links_to_shop_settings(self):
+        tenant_admin = User.objects.create_user(
+            phone='0722334457',
+            password='testpass123',
+        )
+        tenant = Tenant.objects.get(is_default=True)
+        TenantMembership.objects.update_or_create(
+            tenant=tenant,
+            user=tenant_admin,
+            defaults={'role': TenantMembership.Role.ADMIN},
+        )
+        self.client.force_login(tenant_admin)
+
+        response = self.client.get(reverse('users:profile'))
+
+        self.assertContains(response, reverse('core:product_list'))
+        self.assertContains(
+            response,
+            reverse('core:tenant_edit', kwargs={'tenant_id': tenant.pk}),
+        )
 
 
 class SignupTenantAttributionTests(TestCase):
