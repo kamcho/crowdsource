@@ -196,39 +196,77 @@ def _track_outbound_send(
     *,
     message_type='text',
     media_id='',
+    message_record=None,
 ):
     wamid = _extract_sent_message_id(api_response)
-    if not wamid:
+    if not wamid and message_record is None:
         return
     recipient = whatsapp.normalize_whatsapp_recipient(to)
     from core.whatsapp_message import WhatsAppMessage
 
     sent_at = timezone.now()
-    WhatsAppMessage.objects.update_or_create(
-        message_id=wamid,
-        defaults={
-            'phone': recipient or to,
-            'direction': WhatsAppMessage.Direction.OUTBOUND,
-            'message_type': message_type,
-            'body': (preview or '')[:4096],
-            'media_id': media_id,
-            'delivery_status': 'sent',
-            'sent_at': sent_at,
-            'status_updated_at': sent_at,
-        },
-    )
-    cache.set(
-        _outbound_meta_key(wamid),
-        {'phone': recipient, 'preview': (preview or '')[:120]},
-        OUTBOUND_META_TTL,
-    )
-    record_whatsapp_activity(
+    if message_record is None:
+        message_record, _ = WhatsAppMessage.objects.update_or_create(
+            message_id=wamid,
+            defaults={
+                'phone': recipient or to,
+                'direction': WhatsAppMessage.Direction.OUTBOUND,
+                'message_type': message_type,
+                'body': (preview or '')[:4096],
+                'media_id': media_id,
+                'delivery_status': 'sent',
+                'sent_at': sent_at,
+                'status_updated_at': sent_at,
+            },
+        )
+    else:
+        message_record.message_id = wamid
+        message_record.delivery_status = 'sent'
+        message_record.status_detail = (
+            '' if wamid else 'WhatsApp accepted the message without returning a message ID.'
+        )
+        message_record.status_updated_at = sent_at
+        message_record.save(update_fields=[
+            'message_id',
+            'delivery_status',
+            'status_detail',
+            'status_updated_at',
+        ])
+        if not wamid:
+            logger.warning('WhatsApp accepted an outbound message without returning a message ID')
+
+    if wamid:
+        cache.set(
+            _outbound_meta_key(wamid),
+            {'phone': recipient, 'preview': (preview or '')[:120]},
+            OUTBOUND_META_TTL,
+        )
+
+
+def _create_outbound_message(*, to, body, message_type='text', media_id=''):
+    from core.whatsapp_message import WhatsAppMessage
+
+    recipient = whatsapp.normalize_whatsapp_recipient(to)
+    return WhatsAppMessage.objects.create(
         phone=recipient or to,
-        direction='outbound',
-        summary=preview,
-        message_id=wamid,
-        delivery_status='sent',
+        direction=WhatsAppMessage.Direction.OUTBOUND,
+        message_type=message_type,
+        body=(body or '')[:4096],
+        media_id=media_id,
+        delivery_status='sending',
+        sent_at=timezone.now(),
     )
+
+
+def _mark_outbound_message_failed(message_record, exc):
+    message_record.delivery_status = 'failed'
+    message_record.status_detail = str(exc)[:2000]
+    message_record.status_updated_at = timezone.now()
+    message_record.save(update_fields=[
+        'delivery_status',
+        'status_detail',
+        'status_updated_at',
+    ])
 
 
 def product_remark_lines(product: Product, limit: int = MAX_PRODUCT_REMARKS) -> list[str]:
@@ -287,24 +325,25 @@ def get_conversation_history(phone: str, *, exclude_message_id=''):
 def find_user_by_whatsapp_phone(phone: str):
     from users.models import User
 
-    candidates = []
-    raw = phone.strip()
-    if raw:
-        candidates.append(raw)
-        if not raw.startswith('+'):
-            candidates.append(f'+{raw}')
-    normalized = None
-    for candidate in candidates:
-        try:
-            normalized = normalize_kenyan_mobile(candidate)
-            break
-        except ValueError:
-            continue
-    if not normalized:
+    raw = str(phone or '').strip()
+    try:
+        normalized = normalize_kenyan_mobile(raw)
+    except ValueError:
         return None
 
-    e164 = f'+{normalized}'
-    return User.objects.filter(Q(phone=e164) | Q(phone=normalized)).first()
+    national = f'0{normalized[3:]}'
+    candidates = {raw, normalized, f'+{normalized}', national}
+    user = User.objects.filter(phone__in=candidates).first()
+    if user:
+        return user
+
+    for user in User.objects.filter(phone__endswith=normalized[-9:]).iterator():
+        try:
+            if normalize_kenyan_mobile(str(user.phone)) == normalized:
+                return user
+        except ValueError:
+            continue
+    return None
 
 
 def resolve_products_from_intent(intent_data, *, user=None, limit=MAX_SEARCH_RESULTS):
@@ -450,26 +489,41 @@ def _log_whatsapp_send_failure(exc: Exception):
 
 
 def _safe_send_text(*, to: str, body: str) -> bool:
+    message_record = _create_outbound_message(to=to, body=body)
     try:
         data = whatsapp.send_text(to=to, body=body)
-        _track_outbound_send(to, body, data)
+        _track_outbound_send(
+            to,
+            body,
+            data,
+            message_record=message_record,
+        )
         return True
     except (WhatsAppAPIError, WhatsAppConfigError) as exc:
+        _mark_outbound_message_failed(message_record, exc)
         _log_whatsapp_send_failure(exc)
         return False
 
 
 def _safe_send_image(*, to: str, image_url: str, caption: str = '') -> bool:
+    preview = caption or 'Image'
+    message_record = _create_outbound_message(
+        to=to,
+        body=preview,
+        message_type='image',
+    )
     try:
         data = whatsapp.send_image(to=to, image_url=image_url, caption=caption)
         _track_outbound_send(
             to,
-            caption or 'Image',
+            preview,
             data,
             message_type='image',
+            message_record=message_record,
         )
         return True
     except (WhatsAppAPIError, WhatsAppConfigError) as exc:
+        _mark_outbound_message_failed(message_record, exc)
         _log_whatsapp_send_failure(exc)
         return False
 
@@ -480,6 +534,11 @@ def _safe_send_product_image(*, to: str, product: Product, caption: str = '') ->
         logger.warning('No usable image for product #%s (%s)', product.pk, product.name)
         return False
 
+    message_record = _create_outbound_message(
+        to=to,
+        body=caption or product.name,
+        message_type='image',
+    )
     try:
         media_id = whatsapp.upload_media(
             file_bytes=image_bytes,
@@ -493,9 +552,11 @@ def _safe_send_product_image(*, to: str, product: Product, caption: str = '') ->
             data,
             message_type='image',
             media_id=media_id,
+            message_record=message_record,
         )
         return True
     except (WhatsAppAPIError, WhatsAppConfigError) as exc:
+        _mark_outbound_message_failed(message_record, exc)
         _log_whatsapp_send_failure(exc)
         return False
 
@@ -594,7 +655,12 @@ def handle_inbound_text_message(
     user = find_user_by_whatsapp_phone(from_phone)
 
     try:
-        result = run_whatsapp_agent(message_text, history=history, user=user)
+        result = run_whatsapp_agent(
+            message_text,
+            history=history,
+            user=user,
+            phone=from_phone,
+        )
     except WhatsAppAgentError as exc:
         _safe_send_text(to=from_phone, body=str(exc))
         return

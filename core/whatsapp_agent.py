@@ -58,6 +58,7 @@ Rules:
 - order or delivery status → get_my_orders.
 - the customer's pledges or their group-buy progress → get_my_group_buys.
 - complaint/support-case status → get_my_complaints.
+- "I want to pay", "how do I pay", or payment for a pending order → first use get_my_orders and guide the customer to the secure order page returned for that pending order. Do not treat a missing payment record as a missing customer account.
 - payment status, amount, or M-Pesa receipt → get_my_payments.
 - refund status or amount → get_my_refunds.
 - how group buys / MOQ / signup work → get_platform_info.
@@ -80,7 +81,7 @@ def _dedupe_products(products):
     return unique[:MAX_TOOL_PRODUCTS]
 
 
-def run_whatsapp_agent(message: str, *, history=None, user=None) -> AgentResult:
+def run_whatsapp_agent(message: str, *, history=None, user=None, phone='') -> AgentResult:
     message = (message or '').strip()
     if not message:
         return AgentResult(reply_text='Send me a message and I can help you browse products or check orders.')
@@ -141,7 +142,12 @@ def run_whatsapp_agent(message: str, *, history=None, user=None) -> AgentResult:
                     arguments = json.loads(tool_call.function.arguments or '{}')
                 except json.JSONDecodeError:
                     arguments = {}
-                result = execute_tool(tool_call.function.name, arguments, user=user)
+                result = execute_tool(
+                    tool_call.function.name,
+                    arguments,
+                    user=user,
+                    phone=phone,
+                )
                 collected_products.extend(result.products)
                 if result.data.get('account_linked') is False:
                     return AgentResult(reply_text=result.data['message'])

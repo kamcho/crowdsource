@@ -8,9 +8,28 @@ from .models import Tenant, TenantMembership
 
 
 class TenantForm(forms.ModelForm):
+    contact_phone = PhoneNumberField(
+        region='KE',
+        required=False,
+        label='Contact phone / WhatsApp',
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'type': 'tel',
+            'placeholder': 'e.g. 0712345678',
+            'autocomplete': 'tel',
+        }),
+        help_text='Shown on this tenant store. Leave blank to use the platform contact number.',
+    )
+
     class Meta:
         model = Tenant
-        fields = ('name', 'slug', 'is_active')
+        fields = (
+            'name',
+            'slug',
+            'contact_phone',
+            'contact_phone_display',
+            'is_active',
+        )
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-input',
@@ -20,8 +39,19 @@ class TenantForm(forms.ModelForm):
                 'class': 'form-input',
                 'placeholder': 'e.g. nairobi-wholesale',
             }),
+            'contact_phone_display': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'e.g. +254 712 345678',
+            }),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
         }
+        help_texts = {
+            'contact_phone_display': 'Optional display format. If empty, the contact phone is shown as entered.',
+        }
+
+    def clean_contact_phone(self):
+        phone = self.cleaned_data.get('contact_phone')
+        return str(phone) if phone else ''
 
     def clean_is_active(self):
         is_active = self.cleaned_data['is_active']

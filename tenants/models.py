@@ -9,6 +9,8 @@ from .context import get_current_tenant
 class Tenant(models.Model):
     name = models.CharField(max_length=150)
     slug = models.SlugField(max_length=80, unique=True)
+    contact_phone = models.CharField(max_length=32, blank=True)
+    contact_phone_display = models.CharField(max_length=40, blank=True)
     is_active = models.BooleanField(default=True)
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

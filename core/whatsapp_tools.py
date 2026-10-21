@@ -17,6 +17,17 @@ from core.payment import Payment
 from core.refund import Refund
 from home.catalog import get_public_products_queryset
 
+
+def _resolve_tool_user(user, phone=''):
+    if user and user.is_authenticated:
+        return user
+    if phone:
+        from core.whatsapp_services import find_user_by_whatsapp_phone
+
+        return find_user_by_whatsapp_phone(phone)
+    return None
+
+
 MAX_TOOL_PRODUCTS = 5
 
 PLATFORM_TOPICS = {
@@ -272,6 +283,10 @@ def get_my_orders(*, user, order_id: int | None = None) -> ToolResult:
             'status': order.get_status_display(),
             'product': order.group_buy.product.name,
             'total_amount': str(order.total_amount),
+            'url': (
+                f'{settings.SITE_PROTOCOL}://{settings.SITE_DOMAIN}/orders/{order.pk}/'
+            ),
+            'payment_due': order.status == Order.Status.PENDING_PAYMENT,
         }
         for order in orders
     ]
@@ -707,7 +722,8 @@ TOOL_DEFINITIONS = [
 ]
 
 
-def execute_tool(name: str, arguments: dict, *, user=None) -> ToolResult:
+def execute_tool(name: str, arguments: dict, *, user=None, phone='') -> ToolResult:
+    user = _resolve_tool_user(user, phone)
     if name == 'search_products':
         return search_products(
             query=str(arguments.get('query') or ''),

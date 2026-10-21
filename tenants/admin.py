@@ -5,7 +5,9 @@ from .models import Tenant, TenantMembership
 
 @admin.register(Tenant)
 class TenantAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'is_default', 'is_active', 'updated_at')
+    list_display = (
+        'name', 'slug', 'contact_phone', 'is_default', 'is_active', 'updated_at',
+    )
     list_filter = ('is_default', 'is_active')
     search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}

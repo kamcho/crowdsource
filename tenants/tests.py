@@ -51,6 +51,38 @@ class TenantResolutionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.default_tenant.name)
 
+    @override_settings(
+        SITE_CONTACT_PHONE='+254700111222',
+        SITE_CONTACT_PHONE_DISPLAY='+254 700 111222',
+    )
+    def test_subdomain_uses_tenant_contact_number_in_site_footer(self):
+        self.alpha.contact_phone = '+254711222333'
+        self.alpha.contact_phone_display = '+254 711 222333'
+        self.alpha.save(update_fields=['contact_phone', 'contact_phone_display'])
+
+        response = self.client.get(
+            reverse('home:landing'),
+            HTTP_HOST='alpha.localhost',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'WhatsApp +254 711 222333')
+        self.assertContains(response, 'https://wa.me/254711222333')
+        self.assertNotContains(response, 'WhatsApp +254 700 111222')
+
+    @override_settings(
+        SITE_CONTACT_PHONE='+254700111222',
+        SITE_CONTACT_PHONE_DISPLAY='+254 700 111222',
+    )
+    def test_tenant_without_contact_uses_platform_contact_number(self):
+        response = self.client.get(
+            reverse('home:landing'),
+            HTTP_HOST='alpha.localhost',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'WhatsApp +254 700 111222')
+
     @override_settings(DEBUG=False)
     def test_testserver_resolves_default_tenant_when_debug_is_disabled(self):
         response = self.client.get(
@@ -190,10 +222,18 @@ class TenantManagementTests(TestCase):
     def test_admin_can_create_and_edit_tenant(self):
         response = self.client.post(
             reverse('core:tenant_create'),
-            {'name': 'Nairobi Wholesale', 'slug': 'nairobi-wholesale', 'is_active': 'on'},
+            {
+                'name': 'Nairobi Wholesale',
+                'slug': 'nairobi-wholesale',
+                'contact_phone': '0711222333',
+                'contact_phone_display': '+254 711 222333',
+                'is_active': 'on',
+            },
         )
 
         tenant = Tenant.objects.get(slug='nairobi-wholesale')
+        self.assertEqual(tenant.contact_phone, '+254711222333')
+        self.assertEqual(tenant.contact_phone_display, '+254 711 222333')
         self.assertRedirects(
             response,
             reverse('core:tenant_edit', kwargs={'tenant_id': tenant.pk}),

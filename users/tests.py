@@ -240,6 +240,22 @@ class TwoFactorAuthTests(TestCase):
         self.assertEqual(user.totp_secret, setup_secret)
 
 
+class UserProfileTests(TestCase):
+    def test_profile_renders_when_user_has_no_cart(self):
+        user = User.objects.create_user(
+            phone='0722334455',
+            password='testpass123',
+            first_name='New',
+            last_name='Buyer',
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('users:profile'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['user_stats']['cart_items'], 0)
+
+
 class SignupTenantAttributionTests(TestCase):
     @override_settings(
         TENANT_BASE_DOMAIN='example.test',

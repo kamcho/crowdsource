@@ -1729,6 +1729,9 @@ class WhatsAppServiceTests(TestCase):
         sent_bodies = [call.kwargs['body'] for call in mock_text.call_args_list]
         combined = ' '.join(sent_bodies)
         self.assertIn('Leather Handbag', combined)
+        mock_agent.assert_called_once()
+        self.assertEqual(mock_agent.call_args.kwargs['user'], self.user)
+        self.assertEqual(mock_agent.call_args.kwargs['phone'], '254712345678')
 
     @override_settings(WHATSAPP_ENABLED=True, WHATSAPP_BACKEND='console', OPENAI_API_KEY='test-key')
     @patch('core.whatsapp_services.run_whatsapp_agent')
@@ -2067,6 +2070,48 @@ class WhatsAppServiceTests(TestCase):
         self.assertEqual(message.delivery_status, 'delivered')
         self.assertEqual(message.body, 'Your order has shipped')
 
+    @override_settings(WHATSAPP_ENABLED=True, WHATSAPP_BACKEND='console')
+    @patch('core.whatsapp.send_text')
+    def test_outbound_ai_reply_is_saved_to_database(self, mock_send_text):
+        from core.whatsapp_message import WhatsAppMessage
+        from core.whatsapp_services import _safe_send_text
+
+        mock_send_text.return_value = {
+            'messages': [{'id': 'wamid.saved-ai-reply'}],
+        }
+
+        self.assertTrue(_safe_send_text(
+            to='254712345678',
+            body='I found your pending order. You can pay here.',
+        ))
+
+        message = WhatsAppMessage.objects.get(message_id='wamid.saved-ai-reply')
+        self.assertEqual(message.direction, WhatsAppMessage.Direction.OUTBOUND)
+        self.assertEqual(message.body, 'I found your pending order. You can pay here.')
+        self.assertEqual(message.delivery_status, 'sent')
+
+    @override_settings(WHATSAPP_ENABLED=True, WHATSAPP_BACKEND='console')
+    @patch('core.whatsapp.send_text')
+    def test_failed_outbound_reply_is_saved_with_failure_details(self, mock_send_text):
+        from core.whatsapp import WhatsAppAPIError
+        from core.whatsapp_message import WhatsAppMessage
+        from core.whatsapp_services import _safe_send_text
+
+        mock_send_text.side_effect = WhatsAppAPIError('Temporary send failure')
+
+        self.assertFalse(_safe_send_text(
+            to='254712345678',
+            body='I found your pending order.',
+        ))
+
+        message = WhatsAppMessage.objects.get(
+            phone='254712345678',
+            direction=WhatsAppMessage.Direction.OUTBOUND,
+        )
+        self.assertEqual(message.body, 'I found your pending order.')
+        self.assertEqual(message.delivery_status, 'failed')
+        self.assertIn('Temporary send failure', message.status_detail)
+
     @override_settings(WHATSAPP_ENABLED=True, WHATSAPP_BACKEND='console', OPENAI_API_KEY='test-key')
     @patch('core.whatsapp_services.run_whatsapp_agent')
     @patch('core.whatsapp.mark_message_read')
@@ -2105,6 +2150,43 @@ class WhatsAppServiceTests(TestCase):
         result = get_my_orders(user=self.user)
         self.assertTrue(result.data['ok'])
         self.assertEqual(result.data['orders'][0]['id'], order.pk)
+
+    def test_customer_tools_resolve_registered_account_by_whatsapp_phone(self):
+        from core.order import Order
+        from core.whatsapp_tools import execute_tool
+
+        order = Order.objects.create(
+            group_buy=self.product.group_buys.first(),
+            user=self.user,
+            status=Order.Status.PENDING_PAYMENT,
+            total_amount='50.00',
+        )
+
+        result = execute_tool(
+            'get_my_orders',
+            {},
+            user=None,
+            phone='254712345678',
+        )
+
+        self.assertTrue(result.data['ok'])
+        self.assertNotIn('account_linked', result.data)
+        self.assertEqual(result.data['orders'][0]['id'], order.pk)
+        self.assertTrue(result.data['orders'][0]['payment_due'])
+        self.assertTrue(result.data['orders'][0]['url'].endswith(f'/orders/{order.pk}/'))
+
+    def test_payment_tool_does_not_claim_account_missing_when_no_payment_exists(self):
+        from core.whatsapp_tools import execute_tool
+
+        result = execute_tool(
+            'get_my_payments',
+            {},
+            user=None,
+            phone='254712345678',
+        )
+
+        self.assertNotIn('account_linked', result.data)
+        self.assertIn('No payments found', result.data['message'])
 
     def test_get_my_group_buys_tool_only_returns_own_pledges(self):
         from django.contrib.auth import get_user_model

@@ -5,7 +5,7 @@ def get_user_dashboard_context(user):
 
     orders = Order.objects.filter(user=user)
     pledges = GroupBuyEntry.objects.filter(user=user)
-    cart = getattr(user, 'cart', None)
+    cart = user.cart.first()
 
     recent_orders = list(
         orders.filter(status=Order.Status.PAID)

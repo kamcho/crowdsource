@@ -103,8 +103,16 @@ def category_nav(request):
 def site_contact(request):
     from django.conf import settings
 
-    raw = getattr(settings, 'SITE_CONTACT_PHONE', '').strip()
-    display = getattr(settings, 'SITE_CONTACT_PHONE_DISPLAY', '').strip() or raw
+    tenant = getattr(request, 'tenant', None)
+    raw = (
+        (tenant.contact_phone if tenant else '')
+        or getattr(settings, 'SITE_CONTACT_PHONE', '')
+    ).strip()
+    display = (
+        (tenant.contact_phone_display if tenant else '')
+        or getattr(settings, 'SITE_CONTACT_PHONE_DISPLAY', '')
+        or raw
+    ).strip()
     digits = ''.join(character for character in raw if character.isdigit())
     tel_href = f'tel:+{digits}' if digits else ''
     whatsapp_href = f'https://wa.me/{digits}' if digits else ''
