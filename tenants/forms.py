@@ -102,3 +102,59 @@ class TenantMembershipForm(forms.Form):
             )
         self.cleaned_data['user'] = user
         return phone
+
+
+class TenantMemberCreateForm(forms.Form):
+    phone = PhoneNumberField(
+        region='KE',
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'type': 'tel',
+            'placeholder': 'e.g. 0712345678',
+            'autocomplete': 'tel',
+        }),
+    )
+    first_name = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'autocomplete': 'given-name',
+        }),
+    )
+    last_name = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'autocomplete': 'family-name',
+        }),
+    )
+    email = forms.EmailField(
+        required=False,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-input',
+            'autocomplete': 'email',
+        }),
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-input',
+            'autocomplete': 'new-password',
+        }),
+        strip=False,
+        help_text='Set the password for this account. You can use any non-empty value.',
+    )
+    role = forms.ChoiceField(
+        choices=(
+            (TenantMembership.Role.ADMIN, 'Tenant admin'),
+            (TenantMembership.Role.STAFF, 'Staff'),
+        ),
+        widget=forms.Select(attrs={'class': 'form-input form-select'}),
+    )
+
+    def clean_phone(self):
+        phone = self.cleaned_data['phone']
+        if User.objects.filter(phone=phone).exists():
+            raise ValidationError(
+                'An account already uses this phone number. Use the existing-account form to add it.',
+            )
+        return phone

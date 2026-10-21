@@ -34,6 +34,11 @@ urlpatterns = [
         name='tenant_add_membership',
     ),
     path(
+        'dashboard/tenants/<int:tenant_id>/members/create/',
+        tenant_views.tenant_create_member,
+        name='tenant_create_member',
+    ),
+    path(
         'dashboard/tenants/<int:tenant_id>/members/<int:membership_id>/remove/',
         tenant_views.tenant_remove_membership,
         name='tenant_remove_membership',

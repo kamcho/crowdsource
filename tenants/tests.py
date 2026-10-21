@@ -337,6 +337,75 @@ class TenantManagementTests(TestCase):
             ).exists(),
         )
 
+    def test_tenant_admin_can_create_staff_account_with_arbitrary_password(self):
+        phone = '+254700000091'
+        password = '0712345678'
+
+        response = self.client.post(
+            reverse(
+                'core:tenant_create_member',
+                kwargs={'tenant_id': self.default_tenant.pk},
+            ),
+            {
+                'phone': phone,
+                'first_name': 'New',
+                'last_name': 'Staff',
+                'email': 'new.staff@example.com',
+                'password': password,
+                'role': TenantMembership.Role.STAFF,
+            },
+        )
+
+        user = self.user_model.objects.get(phone=phone)
+        membership = TenantMembership.objects.get(
+            tenant=self.default_tenant,
+            user=user,
+        )
+        self.assertRedirects(
+            response,
+            reverse('core:tenant_edit', kwargs={'tenant_id': self.default_tenant.pk}),
+        )
+        self.assertTrue(user.check_password(password))
+        self.assertEqual(membership.role, TenantMembership.Role.STAFF)
+        self.assertEqual(user.role, self.user_model.Role.CUSTOMER)
+        self.assertFalse(
+            TenantMembership.objects.filter(
+                user=user,
+            ).exclude(tenant=self.default_tenant).exists(),
+        )
+
+    def test_tenant_member_create_rejects_existing_phone(self):
+        existing_user = self.user_model.objects.create_user(
+            phone='+254700000090',
+            password='existing-password',
+        )
+
+        response = self.client.post(
+            reverse(
+                'core:tenant_create_member',
+                kwargs={'tenant_id': self.default_tenant.pk},
+            ),
+            {
+                'phone': str(existing_user.phone),
+                'first_name': 'Existing',
+                'last_name': 'User',
+                'password': 'any-password',
+                'role': TenantMembership.Role.ADMIN,
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('core:tenant_edit', kwargs={'tenant_id': self.default_tenant.pk}),
+        )
+        self.assertFalse(
+            TenantMembership.objects.filter(
+                tenant=self.default_tenant,
+                user=existing_user,
+                role=TenantMembership.Role.ADMIN,
+            ).exists(),
+        )
+
     def test_other_tenant_admin_cannot_manage_platform_tenants(self):
         tenant = Tenant.objects.create(name='Alpha Shop', slug='alpha')
         other_admin = self.user_model.objects.create_user(

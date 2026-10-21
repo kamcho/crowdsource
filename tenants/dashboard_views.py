@@ -2,12 +2,15 @@ from functools import wraps
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from .forms import TenantForm, TenantMembershipForm
+from .context import reset_current_tenant, set_current_tenant
+from .forms import TenantForm, TenantMemberCreateForm, TenantMembershipForm
 from .models import Tenant, TenantMembership
 from .permissions import user_can_manage_tenant, user_can_manage_tenants
 
@@ -80,6 +83,7 @@ def tenant_edit(request, tenant_id):
         return redirect('core:tenant_edit', tenant_id=tenant.pk)
 
     membership_form = TenantMembershipForm()
+    create_member_form = TenantMemberCreateForm()
     memberships = tenant.memberships.select_related('user').order_by(
         'role',
         'user__phone',
@@ -89,6 +93,7 @@ def tenant_edit(request, tenant_id):
         'page_title': f'Manage {tenant.name}',
         'tenant': tenant,
         'membership_form': membership_form,
+        'create_member_form': create_member_form,
         'memberships': memberships,
         'tenant_domain': settings.TENANT_BASE_DOMAIN,
     })
@@ -111,6 +116,43 @@ def tenant_add_membership(request, tenant_id):
         messages.success(
             request,
             f'{membership.user.get_full_name()} is now a '
+            f'{membership.get_role_display().lower()} for {tenant.name}.',
+        )
+    else:
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(request, error)
+    return redirect('core:tenant_edit', tenant_id=tenant.pk)
+
+
+@tenant_admin_required
+@require_POST
+def tenant_create_member(request, tenant_id):
+    tenant = get_object_or_404(Tenant, pk=tenant_id)
+    form = TenantMemberCreateForm(request.POST)
+    if form.is_valid():
+        user_model = get_user_model()
+        tenant_token = set_current_tenant(tenant)
+        try:
+            with transaction.atomic():
+                user = user_model.objects.create_user(
+                    phone=form.cleaned_data['phone'],
+                    password=form.cleaned_data['password'],
+                    first_name=form.cleaned_data['first_name'],
+                    last_name=form.cleaned_data['last_name'],
+                    email=form.cleaned_data['email'],
+                    role=user_model.Role.CUSTOMER,
+                )
+                membership, _ = TenantMembership.objects.update_or_create(
+                    tenant=tenant,
+                    user=user,
+                    defaults={'role': form.cleaned_data['role']},
+                )
+        finally:
+            reset_current_tenant(tenant_token)
+        messages.success(
+            request,
+            f'Account created for {membership.user.get_full_name()} and added as '
             f'{membership.get_role_display().lower()} for {tenant.name}.',
         )
     else:

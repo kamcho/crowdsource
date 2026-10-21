@@ -64,10 +64,27 @@
             <div class="dashboard-section-header">
                 <div>
                     <h2 class="manage-section-title">Tenant staff and admins</h2>
-                    <p>Add an existing account by phone number and give it access to this tenant.</p>
+                    <p>Create a new login for this shop, or link an account that already exists.</p>
                 </div>
             </div>
 
+            <h3 class="manage-section-title">Create account and grant access</h3>
+            <form method="post" action="{% url 'core:tenant_create_member' tenant.pk %}" class="admin-form admin-form-inline">
+                {% csrf_token %}
+                {% for field in create_member_form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small class="category-desc">{{ field.help_text }}</small>{% endif %}
+                    {% for error in field.errors %}<small class="form-error">{{ error }}</small>{% endfor %}
+                </div>
+                {% endfor %}
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Create account</button>
+                </div>
+            </form>
+
+            <h3 class="manage-section-title">Link an existing account</h3>
             <form method="post" action="{% url 'core:tenant_add_membership' tenant.pk %}" class="admin-form admin-form-inline">
                 {% csrf_token %}
                 {% for field in membership_form %}
