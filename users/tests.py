@@ -160,6 +160,52 @@ class GoogleAuthTests(TestCase):
         self.assertIn('Missing Google credential', response.json()['error'])
 
 
+@override_settings(
+    DEBUG=True,
+    TENANT_BASE_DOMAIN='localhost',
+    ALLOWED_HOSTS=['testserver', 'localhost', '127.0.0.1', '.localhost'],
+)
+class TenantStaffLoginRedirectTests(TestCase):
+    def _assert_tenant_role_redirects_to_shop_dashboard(self, role, slug):
+        tenant = Tenant.objects.create(name=f'{slug} Shop', slug=slug)
+        user = User.objects.create_user(
+            phone=f'+254700{len(slug):06d}',
+            password='testpass123',
+        )
+        TenantMembership.objects.create(
+            tenant=tenant,
+            user=user,
+            role=role,
+        )
+
+        response = self.client.post(
+            reverse('users:signin'),
+            {
+                'login': str(user.phone),
+                'password': 'testpass123',
+                'next': reverse('users:profile'),
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            f'http://{slug}.localhost{reverse("core:admin_dashboard")}',
+            fetch_redirect_response=False,
+        )
+
+    def test_tenant_staff_sign_in_redirects_to_their_shop_dashboard(self):
+        self._assert_tenant_role_redirects_to_shop_dashboard(
+            TenantMembership.Role.STAFF,
+            'jjlogistics',
+        )
+
+    def test_tenant_admin_sign_in_redirects_to_their_shop_dashboard(self):
+        self._assert_tenant_role_redirects_to_shop_dashboard(
+            TenantMembership.Role.ADMIN,
+            'admin-shop',
+        )
+
+
 class TwoFactorAuthTests(TestCase):
     def setUp(self):
         cache.clear()

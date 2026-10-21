@@ -54,6 +54,7 @@ from .two_factor import (
     verify_totp_secret,
     verify_user_totp,
 )
+from tenants.models import TenantMembership
 
 
 class AccountPasswordResetView(PasswordResetView):
@@ -106,6 +107,25 @@ def _resolve_post_login_redirect(request, user, next_url=None):
         ):
             return f'{profile_url}?{urlencode({"next": next_url})}'
         return profile_url
+
+    tenant_memberships = user.tenant_memberships.filter(
+        role__in=[TenantMembership.Role.STAFF, TenantMembership.Role.ADMIN],
+        tenant__is_active=True,
+    ).select_related('tenant')
+    current_tenant = getattr(request, 'tenant', None)
+    membership = (
+        tenant_memberships.filter(tenant=current_tenant).first()
+        if current_tenant
+        else None
+    )
+    membership = membership or tenant_memberships.order_by('tenant__name').first()
+    if membership:
+        tenant = membership.tenant
+        host = settings.TENANT_BASE_DOMAIN
+        if not tenant.is_default:
+            host = f'{tenant.slug}.{host}'
+        dashboard_url = reverse('core:admin_dashboard')
+        return f'{request.scheme}://{host}{dashboard_url}'
 
     if next_url and url_has_allowed_host_and_scheme(
         next_url,
