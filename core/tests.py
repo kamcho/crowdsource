@@ -1757,7 +1757,9 @@ class WhatsAppServiceTests(TestCase):
         }
         with patch(
             'core.whatsapp_services._dispatch_inbound_message',
-            side_effect=lambda message: handle_inbound_text_message(**message),
+            side_effect=lambda message: handle_inbound_text_message(
+                **{key: value for key, value in message.items() if key != 'tenant_id'}
+            ),
         ), patch('core.whatsapp.send_text') as mock_text:
             response = self.client.post(
                 reverse('whatsapp_webhook'),
@@ -1789,7 +1791,9 @@ class WhatsAppServiceTests(TestCase):
         }
         with patch(
             'core.whatsapp_services._dispatch_inbound_message',
-            side_effect=lambda message: mock_handle(**message),
+            side_effect=lambda message: mock_handle(
+                **{key: value for key, value in message.items() if key != 'tenant_id'}
+            ),
         ):
             self.assertEqual(process_webhook_payload(payload), 1)
             self.assertEqual(process_webhook_payload(payload), 0)
