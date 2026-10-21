@@ -1,4 +1,5 @@
 {% extends 'dashboard/admin_base.html' %}
+{% load currency_tags %}
 
 {% block title %}{{ page_title }} — CrowdSource Import{% endblock %}
 
@@ -36,7 +37,105 @@
             {% endif %}
         </div>
 
+        {% if tenant %}
+        <section class="tenant-analytics" aria-labelledby="tenant-analytics-title">
+            <div class="dashboard-section-header">
+                <div>
+                    <h2 id="tenant-analytics-title" class="manage-section-title">Shop analytics</h2>
+                    <p>Store activity for the last 30 days, scoped to {{ tenant.name }}.</p>
+                </div>
+                <div class="admin-form-actions">
+                    {% if tenant.is_default %}
+                    <a href="{% url 'core:product_list' %}" class="btn btn-outline">Manage products</a>
+                    <a href="{% url 'core:admin_order_list' %}" class="btn btn-primary">View orders</a>
+                    {% else %}
+                    <a href="{{ request.scheme }}://{{ tenant.slug }}.{{ tenant_domain }}{% url 'core:product_list' %}" class="btn btn-outline">Manage products</a>
+                    <a href="{{ request.scheme }}://{{ tenant.slug }}.{{ tenant_domain }}{% url 'core:admin_order_list' %}" class="btn btn-primary">View orders</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="profile-stat-grid">
+                <article class="profile-stat-card">
+                    <div class="profile-stat-top"><div class="profile-stat-value">{{ analytics.products_total }}</div></div>
+                    <p class="profile-stat-label">Products</p>
+                    <div class="profile-stat-footer"><span>{{ analytics.products_active }} active</span></div>
+                </article>
+                <article class="profile-stat-card">
+                    <div class="profile-stat-top"><div class="profile-stat-value">{{ analytics.orders_total }}</div></div>
+                    <p class="profile-stat-label">Orders</p>
+                    <div class="profile-stat-footer"><span>{{ analytics.orders_paid }} paid</span></div>
+                </article>
+                <article class="profile-stat-card">
+                    <div class="profile-stat-top"><div class="profile-stat-value">{% money analytics.paid_revenue %}</div></div>
+                    <p class="profile-stat-label">Paid order value</p>
+                    <div class="profile-stat-footer"><span>Paid orders</span></div>
+                </article>
+                <article class="profile-stat-card">
+                    <div class="profile-stat-top"><div class="profile-stat-value">{{ analytics.views_30_days }}</div></div>
+                    <p class="profile-stat-label">Page views</p>
+                    <div class="profile-stat-footer"><span>{{ analytics.views_7_days }} in the last 7 days</span></div>
+                </article>
+                <article class="profile-stat-card">
+                    <div class="profile-stat-top"><div class="profile-stat-value">{{ analytics.unique_ips_30_days }}</div></div>
+                    <p class="profile-stat-label">Distinct visitor IPs</p>
+                    <div class="profile-stat-footer"><span>Last 30 days</span></div>
+                </article>
+            </div>
+
+            <div class="tenant-analytics-tables">
+                <div class="admin-card manage-table-card">
+                    <h3 class="manage-section-title">Most viewed pages</h3>
+                    {% if analytics.top_pages %}
+                    <div class="data-table-wrap">
+                        <table class="data-table">
+                            <thead><tr><th>Page</th><th>Views</th></tr></thead>
+                            <tbody>
+                                {% for page in analytics.top_pages %}
+                                <tr><td>{{ page.path }}</td><td>{{ page.views }}</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state-box"><p>No page views recorded in the last 30 days yet.</p></div>
+                    {% endif %}
+                </div>
+
+                <div class="admin-card manage-table-card">
+                    <div class="dashboard-section-header">
+                        <div>
+                            <h3 class="manage-section-title">Recent site visits</h3>
+                            <p>Successful storefront page loads, excluding dashboard, API, and static-file requests.</p>
+                        </div>
+                    </div>
+                    {% if analytics.recent_views %}
+                    <div class="data-table-wrap">
+                        <table class="data-table">
+                            <thead><tr><th>Page</th><th>When</th><th>IP address</th><th>Account</th></tr></thead>
+                            <tbody>
+                                {% for visit in analytics.recent_views %}
+                                <tr>
+                                    <td>{{ visit.path }}</td>
+                                    <td>{{ visit.viewed_at|date:"M j, Y, g:i a" }}</td>
+                                    <td>{{ visit.ip_address|default:"Unavailable" }}</td>
+                                    <td>{% if visit.user %}{{ visit.user.get_full_name|default:visit.user.phone }}{% else %}Anonymous{% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state-box"><p>No site visits have been recorded yet.</p></div>
+                    {% endif %}
+                    <p class="category-desc">Visitor IP addresses are personal data. Disclose this collection in your privacy notice and retain it only as long as needed.</p>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
         <div class="admin-card admin-card-narrow">
+            {% if tenant %}<h2 class="manage-section-title">Shop settings</h2>{% endif %}
             <form method="post" class="admin-form">
                 {% csrf_token %}
                 {% for field in form %}

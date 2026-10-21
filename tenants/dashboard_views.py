@@ -1,3 +1,4 @@
+from datetime import timedelta
 from functools import wraps
 
 from django.conf import settings
@@ -5,13 +6,14 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Sum
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .context import reset_current_tenant, set_current_tenant
 from .forms import TenantForm, TenantMemberCreateForm, TenantMembershipForm
-from .models import Tenant, TenantMembership
+from .models import Tenant, TenantMembership, TenantPageView
 from .permissions import user_can_manage_tenant, user_can_manage_tenants
 
 
@@ -71,6 +73,48 @@ def tenant_create(request):
 @tenant_admin_required
 def tenant_edit(request, tenant_id):
     tenant = get_object_or_404(Tenant, pk=tenant_id)
+    tenant_token = set_current_tenant(tenant)
+    try:
+        from core.models import Order, Product
+
+        now = timezone.now()
+        month_ago = now - timedelta(days=30)
+        recent_views = TenantPageView.objects.filter(
+            tenant=tenant,
+            viewed_at__gte=month_ago,
+        )
+        analytics = {
+            'products_total': Product.objects.filter(tenant=tenant).count(),
+            'products_active': Product.objects.filter(
+                tenant=tenant,
+                is_active=True,
+            ).count(),
+            'orders_total': Order.objects.filter(tenant=tenant).count(),
+            'orders_paid': Order.objects.filter(
+                tenant=tenant,
+                status=Order.Status.PAID,
+            ).count(),
+            'paid_revenue': Order.objects.filter(
+                tenant=tenant,
+                status=Order.Status.PAID,
+            ).aggregate(total=Sum('total_amount'))['total'] or 0,
+            'views_30_days': recent_views.count(),
+            'views_7_days': recent_views.filter(
+                viewed_at__gte=now - timedelta(days=7),
+            ).count(),
+            'unique_ips_30_days': recent_views.exclude(
+                ip_address__isnull=True,
+            ).values('ip_address').distinct().count(),
+            'top_pages': recent_views.values('path').annotate(
+                views=Count('id'),
+            ).order_by('-views', 'path')[:10],
+            'recent_views': TenantPageView.objects.filter(
+                tenant=tenant,
+            ).select_related('user')[:100],
+        }
+    finally:
+        reset_current_tenant(tenant_token)
+
     form = TenantForm(
         request.POST or None,
         instance=tenant,
@@ -92,6 +136,7 @@ def tenant_edit(request, tenant_id):
         'form': form,
         'page_title': f'Manage {tenant.name}',
         'tenant': tenant,
+        'analytics': analytics,
         'membership_form': membership_form,
         'create_member_form': create_member_form,
         'memberships': memberships,

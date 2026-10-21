@@ -72,6 +72,7 @@ MIDDLEWARE = [
     'tenants.middleware.TenantMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'tenants.page_view_middleware.TenantPageViewMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'home.middleware.FriendlyErrorsMiddleware',

@@ -5,7 +5,7 @@ from django.urls import reverse
 from core.models import Category, Product
 from core.product_variation import ProductOption, ProductOptionValue, ProductVariation
 from .context import reset_current_tenant, set_current_tenant
-from .models import Tenant, TenantMembership
+from .models import Tenant, TenantMembership, TenantPageView
 from .permissions import user_is_tenant_admin
 
 
@@ -232,6 +232,77 @@ class TenantManagementTests(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse('home:landing'))
+
+    def test_tenant_dashboard_shows_store_analytics_scoped_to_selected_tenant(self):
+        tenant = Tenant.objects.create(name='Analytics Shop', slug='analytics-shop')
+        other_tenant = Tenant.objects.create(name='Other Shop', slug='other-shop')
+        token = set_current_tenant(tenant)
+        try:
+            category = Category.objects.create(name='Analytics category')
+            Product.objects.create(category=category, name='Analytics product')
+        finally:
+            reset_current_tenant(token)
+        token = set_current_tenant(other_tenant)
+        try:
+            category = Category.objects.create(name='Other category')
+            Product.objects.create(category=category, name='Other product')
+        finally:
+            reset_current_tenant(token)
+
+        TenantPageView.objects.create(
+            tenant=tenant,
+            path='/products/analytics-product/',
+            ip_address='203.0.113.1',
+        )
+        TenantPageView.objects.create(
+            tenant=other_tenant,
+            path='/products/other-product/',
+            ip_address='203.0.113.2',
+        )
+        platform_admin = self.user_model.objects.create_superuser(
+            phone='+254700000089',
+            password='test-pass-123',
+        )
+        self.client.force_login(platform_admin)
+
+        response = self.client.get(
+            reverse('core:tenant_edit', kwargs={'tenant_id': tenant.pk}),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['analytics']['products_total'], 1)
+        self.assertEqual(response.context['analytics']['views_30_days'], 1)
+        self.assertContains(response, 'Shop analytics')
+        self.assertContains(response, '203.0.113.1')
+        self.assertNotContains(response, '203.0.113.2')
+        self.assertContains(response, 'Manage products')
+        self.assertContains(response, 'View orders')
+        self.assertContains(
+            response,
+            'http://analytics-shop.localhost/core/products/',
+        )
+
+    def test_storefront_page_views_record_page_ip_and_logged_in_user(self):
+        response = self.client.get(
+            reverse('home:landing'),
+            HTTP_HOST='testserver',
+            HTTP_X_REAL_IP='203.0.113.10',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        page_view = TenantPageView.objects.get(path='/')
+        self.assertEqual(page_view.tenant, self.default_tenant)
+        self.assertEqual(page_view.ip_address, '203.0.113.10')
+        self.assertEqual(page_view.user, self.admin)
+
+    def test_dashboard_pages_are_not_recorded_as_storefront_views(self):
+        response = self.client.get(
+            reverse('core:tenant_edit', kwargs={'tenant_id': self.default_tenant.pk}),
+            HTTP_X_REAL_IP='203.0.113.11',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(TenantPageView.objects.exists())
 
     def test_admin_can_create_and_edit_tenant(self):
         platform_admin = self.user_model.objects.create_superuser(

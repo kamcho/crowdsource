@@ -66,6 +66,34 @@ class TenantMembership(models.Model):
         return f'{self.user} — {self.tenant} ({self.get_role_display()})'
 
 
+class TenantPageView(models.Model):
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='page_views',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tenant_page_views',
+    )
+    path = models.CharField(max_length=2048)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    viewed_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-viewed_at']
+        indexes = [
+            models.Index(fields=['tenant', '-viewed_at']),
+            models.Index(fields=['tenant', 'path']),
+        ]
+
+    def __str__(self):
+        return f'{self.tenant} — {self.path} ({self.viewed_at})'
+
+
 class TenantManager(models.Manager):
     def get_queryset(self):
         queryset = super().get_queryset()

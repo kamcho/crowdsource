@@ -38,6 +38,34 @@
     max-width: 560px;
 }
 
+.tenant-analytics {
+    margin-bottom: 2rem;
+}
+
+.tenant-analytics .profile-stat-grid {
+    margin-bottom: 1.5rem;
+}
+
+.tenant-analytics-tables {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr);
+    gap: 1.25rem;
+}
+
+.tenant-analytics-tables .admin-card {
+    min-width: 0;
+}
+
+.tenant-analytics-tables .manage-section-title {
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 900px) {
+    .tenant-analytics-tables {
+        grid-template-columns: 1fr;
+    }
+}
+
 .admin-form {
     display: flex;
     flex-direction: column;
