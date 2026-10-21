@@ -4,7 +4,7 @@ from .models import TenantPageView
 
 
 class TenantPageViewMiddleware:
-    excluded_prefixes = ('/admin/', '/api/', '/core/', '/media/', '/static/', '/webhooks/')
+    excluded_prefixes = ('/api/', '/media/', '/static/', '/webhooks/')
 
     def __init__(self, get_response):
         self.get_response = get_response

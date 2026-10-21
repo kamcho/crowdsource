@@ -295,14 +295,22 @@ class TenantManagementTests(TestCase):
         self.assertEqual(page_view.ip_address, '203.0.113.10')
         self.assertEqual(page_view.user, self.admin)
 
-    def test_dashboard_pages_are_not_recorded_as_storefront_views(self):
+    def test_dashboard_page_views_record_admin_url_and_ip(self):
         response = self.client.get(
             reverse('core:tenant_edit', kwargs={'tenant_id': self.default_tenant.pk}),
             HTTP_X_REAL_IP='203.0.113.11',
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(TenantPageView.objects.exists())
+        page_view = TenantPageView.objects.get(
+            path=reverse(
+                'core:tenant_edit',
+                kwargs={'tenant_id': self.default_tenant.pk},
+            ),
+        )
+        self.assertEqual(page_view.tenant, self.default_tenant)
+        self.assertEqual(page_view.ip_address, '203.0.113.11')
+        self.assertEqual(page_view.user, self.admin)
 
     def test_admin_can_create_and_edit_tenant(self):
         platform_admin = self.user_model.objects.create_superuser(
