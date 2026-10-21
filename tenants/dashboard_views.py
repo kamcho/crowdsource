@@ -1,8 +1,8 @@
 from functools import wraps
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.conf import settings
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -18,7 +18,7 @@ def tenant_management_required(view_func):
     def wrapped(request, *args, **kwargs):
         if not user_can_manage_tenants(request.user):
             messages.error(request, 'You do not have permission to manage tenants.')
-            return redirect('core:admin_dashboard')
+            return redirect('home:landing')
         return view_func(request, *args, **kwargs)
 
     return wrapped
@@ -95,8 +95,9 @@ def tenant_add_membership(request, tenant_id):
             f'{membership.get_role_display().lower()} for {tenant.name}.',
         )
     else:
-        for error in form.errors.get('phone', form.non_field_errors()):
-            messages.error(request, error)
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(request, error)
     return redirect('core:tenant_edit', tenant_id=tenant.pk)
 
 

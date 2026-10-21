@@ -250,4 +250,5 @@ class TenantManagementTests(TestCase):
 
         response = self.client.get(reverse('core:tenant_list'))
 
-        self.assertRedirects(response, reverse('core:admin_dashboard'))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('home:landing'))

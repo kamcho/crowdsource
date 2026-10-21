@@ -4,27 +4,14 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
-def assign_existing_records_to_default_tenant(apps, schema_editor):
-    Tenant = apps.get_model('tenants', 'Tenant')
-    tenant = Tenant.objects.get(is_default=True)
-
-    for model in apps.get_app_config('core').get_models():
-        if any(field.name == 'tenant' for field in model._meta.fields):
-            model.objects.all().update(tenant_id=tenant.pk)
-
-
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0028_address_tenant_cart_tenant_cartitem_tenant_and_more'),
+        ('core', '0029_assign_existing_records_to_default_tenant'),
         ('tenants', '0001_initial'),
     ]
 
     operations = [
-        migrations.RunPython(
-            assign_existing_records_to_default_tenant,
-            migrations.RunPython.noop,
-        ),
         migrations.RemoveConstraint(
             model_name='shippingrate',
             name='unique_shipping_rate_mode_class',
