@@ -6,17 +6,20 @@ import hashlib
 import hmac
 import logging
 import threading
+from datetime import datetime, timezone as datetime_timezone
 
 from django.conf import settings
 from django.core.cache import cache
 from django.db import close_old_connections
 from django.db.models import Q
+from django.utils import timezone
 
 from core.models import Product
 from core.order import Order
 from core.pricing import format_price_range, product_variation_price_range
 from core.textsms import normalize_kenyan_mobile
 from home.catalog import get_public_products_queryset
+from tenants.context import get_current_tenant
 
 from . import whatsapp
 from .whatsapp import WhatsAppAPIError, WhatsAppConfigError
@@ -30,13 +33,9 @@ from .whatsapp_media import (
 
 logger = logging.getLogger('crowdsource.whatsapp')
 
-SESSION_TTL = 3600
 MAX_HISTORY = 8
 MAX_SEARCH_RESULTS = 3
-PROCESSED_MESSAGE_TTL = 86400
-ACTIVITY_FEED_KEY = 'whatsapp:activity_feed'
 ACTIVITY_FEED_MAX = 40
-ACTIVITY_FEED_TTL = 86400
 OUTBOUND_META_TTL = 7 * 86400
 MAX_PRODUCT_REMARKS = 4
 MAX_REMARK_LINE_LEN = 96
@@ -45,8 +44,16 @@ DELIVERY_STATUS_REMARKS = {
     'sent': 'Sent',
     'delivered': 'Delivered',
     'read': 'Read',
+    'read_by_business': 'Read by business',
     'failed': 'Failed',
 }
+
+
+def _event_datetime(timestamp):
+    try:
+        return datetime.fromtimestamp(int(timestamp), tz=datetime_timezone.utc)
+    except (TypeError, ValueError, OSError, OverflowError):
+        return timezone.now()
 
 
 def verify_webhook_signature(body: bytes, signature_header: str) -> bool:
@@ -65,10 +72,6 @@ def absolute_site_url(path: str) -> str:
     if not path:
         return base
     return f"{base}/{path.lstrip('/')}"
-
-
-def _processed_message_key(message_id: str) -> str:
-    return f'whatsapp:processed:{message_id}'
 
 
 def absolute_media_url(relative_url: str) -> str:
@@ -104,38 +107,116 @@ def record_whatsapp_activity(
     phone: str,
     direction: str,
     summary: str,
-    read_remark: str = '',
     message_id: str = '',
     delivery_status: str = '',
 ):
     phone = (phone or '').strip()
     if not phone and not summary:
         return
-    from django.utils import timezone
+    message_id = (message_id or '').strip()
+    event_time = timezone.now()
 
-    item = {
+    from core.whatsapp_message import WhatsAppMessage
+
+    defaults = {
         'phone': phone,
         'direction': direction,
-        'summary': (summary or '').strip()[:160],
-        'read_remark': (read_remark or '').strip(),
-        'message_id': (message_id or '').strip(),
+        'body': (summary or '').strip()[:4096],
+        'message_type': 'text',
         'delivery_status': (delivery_status or '').strip(),
-        'at': timezone.now().isoformat(),
+        'sent_at': event_time,
+        'status_updated_at': event_time if delivery_status else None,
     }
-    feed = cache.get(ACTIVITY_FEED_KEY, [])
-    feed.insert(0, item)
-    cache.set(ACTIVITY_FEED_KEY, feed[:ACTIVITY_FEED_MAX], ACTIVITY_FEED_TTL)
+    if message_id:
+        message = WhatsAppMessage.objects.filter(message_id=message_id).first()
+        if message:
+            if delivery_status:
+                message.delivery_status = delivery_status
+                message.status_updated_at = event_time
+                message.save(update_fields=['delivery_status', 'status_updated_at'])
+        else:
+            WhatsAppMessage.objects.create(message_id=message_id, **defaults)
+    else:
+        WhatsAppMessage.objects.create(**defaults)
 
 
 def get_whatsapp_activity_feed():
-    return cache.get(ACTIVITY_FEED_KEY, [])
+    from core.whatsapp_message import WhatsAppMessage
+
+    rows = list(WhatsAppMessage.objects.all()[:ACTIVITY_FEED_MAX])
+    users_by_phone = _users_by_whatsapp_phone(item.phone for item in rows)
+    return [
+        {
+            'id': item.pk,
+            'phone': item.phone,
+            'direction': item.direction,
+            'summary': (item.body or '').strip()[:160],
+            'read_remark': DELIVERY_STATUS_REMARKS.get(
+                item.delivery_status,
+                item.delivery_status.replace('_', ' ').title(),
+            ),
+            'message_id': item.message_id,
+            'delivery_status': item.delivery_status,
+            'status_detail': item.status_detail,
+            'at': item.sent_at,
+            'message_type': item.message_type,
+            'sender_name': item.sender_name,
+            'user': users_by_phone.get(_normalized_whatsapp_phone(item.phone)),
+        }
+        for item in rows
+    ]
 
 
-def _track_outbound_send(to: str, preview: str, api_response):
+def _normalized_whatsapp_phone(phone):
+    try:
+        return normalize_kenyan_mobile(str(phone or ''))
+    except ValueError:
+        return ''
+
+
+def _users_by_whatsapp_phone(phones):
+    from users.models import User
+
+    phone_values = {str(phone).strip() for phone in phones if phone}
+    candidates = phone_values | {
+        f'+{phone}' for phone in phone_values if not phone.startswith('+')
+    }
+    users = User.objects.filter(phone__in=candidates)
+    return {
+        _normalized_whatsapp_phone(user.phone): user
+        for user in users
+        if _normalized_whatsapp_phone(user.phone)
+    }
+
+
+def _track_outbound_send(
+    to: str,
+    preview: str,
+    api_response,
+    *,
+    message_type='text',
+    media_id='',
+):
     wamid = _extract_sent_message_id(api_response)
     if not wamid:
         return
     recipient = whatsapp.normalize_whatsapp_recipient(to)
+    from core.whatsapp_message import WhatsAppMessage
+
+    sent_at = timezone.now()
+    WhatsAppMessage.objects.update_or_create(
+        message_id=wamid,
+        defaults={
+            'phone': recipient or to,
+            'direction': WhatsAppMessage.Direction.OUTBOUND,
+            'message_type': message_type,
+            'body': (preview or '')[:4096],
+            'media_id': media_id,
+            'delivery_status': 'sent',
+            'sent_at': sent_at,
+            'status_updated_at': sent_at,
+        },
+    )
     cache.set(
         _outbound_meta_key(wamid),
         {'phone': recipient, 'preview': (preview or '')[:120]},
@@ -145,7 +226,6 @@ def _track_outbound_send(to: str, preview: str, api_response):
         phone=recipient or to,
         direction='outbound',
         summary=preview,
-        read_remark=DELIVERY_STATUS_REMARKS.get('sent', 'Sent'),
         message_id=wamid,
         delivery_status='sent',
     )
@@ -188,18 +268,20 @@ def build_products_intro(products) -> str:
     return f'Found {count} {noun} — sending photos now:'
 
 
-def _history_key(phone: str) -> str:
-    return f'whatsapp:history:{phone}'
+def get_conversation_history(phone: str, *, exclude_message_id=''):
+    from core.whatsapp_message import WhatsAppMessage
 
-
-def get_conversation_history(phone: str):
-    return cache.get(_history_key(phone), [])
-
-
-def append_conversation(phone: str, role: str, content: str):
-    history = get_conversation_history(phone)
-    history.append({'role': role, 'content': content})
-    cache.set(_history_key(phone), history[-MAX_HISTORY:], SESSION_TTL)
+    messages = WhatsAppMessage.objects.filter(phone=phone)
+    if exclude_message_id:
+        messages = messages.exclude(message_id=exclude_message_id)
+    recent_messages = list(messages.order_by('-sent_at', '-pk')[:MAX_HISTORY])
+    return [
+        {
+            'role': 'user' if item.direction == WhatsAppMessage.Direction.INBOUND else 'assistant',
+            'content': item.body or f'[{item.message_type.title()} message]',
+        }
+        for item in reversed(recent_messages)
+    ]
 
 
 def find_user_by_whatsapp_phone(phone: str):
@@ -380,7 +462,12 @@ def _safe_send_text(*, to: str, body: str) -> bool:
 def _safe_send_image(*, to: str, image_url: str, caption: str = '') -> bool:
     try:
         data = whatsapp.send_image(to=to, image_url=image_url, caption=caption)
-        _track_outbound_send(to, caption or 'Image', data)
+        _track_outbound_send(
+            to,
+            caption or 'Image',
+            data,
+            message_type='image',
+        )
         return True
     except (WhatsAppAPIError, WhatsAppConfigError) as exc:
         _log_whatsapp_send_failure(exc)
@@ -400,7 +487,13 @@ def _safe_send_product_image(*, to: str, product: Product, caption: str = '') ->
             filename=f'product-{product.pk}.jpg',
         )
         data = whatsapp.send_image_id(to=to, media_id=media_id, caption=caption)
-        _track_outbound_send(to, caption or product.name, data)
+        _track_outbound_send(
+            to,
+            caption or product.name,
+            data,
+            message_type='image',
+            media_id=media_id,
+        )
         return True
     except (WhatsAppAPIError, WhatsAppConfigError) as exc:
         _log_whatsapp_send_failure(exc)
@@ -438,25 +531,55 @@ def generate_reply_text(*, intent_data, user=None, products=None) -> str:
 def _dispatch_inbound_message(message: dict):
     def runner():
         close_old_connections()
+        tenant_token = None
         try:
-            handle_inbound_text_message(**message)
+            tenant_id = message.get('tenant_id')
+            if tenant_id:
+                from tenants.context import set_current_tenant
+                from tenants.models import Tenant
+
+                tenant = Tenant.objects.get(pk=tenant_id)
+                tenant_token = set_current_tenant(tenant)
+            handle_inbound_text_message(
+                from_phone=message.get('from_phone', ''),
+                message_text=message.get('message_text', ''),
+                message_id=message.get('message_id', ''),
+                message_persisted=True,
+            )
         except Exception:
             logger.exception(
                 'Failed to handle WhatsApp message from %s',
                 message.get('from_phone'),
             )
         finally:
+            if tenant_token is not None:
+                from tenants.context import reset_current_tenant
+
+                reset_current_tenant(tenant_token)
             close_old_connections()
 
     threading.Thread(target=runner, daemon=True).start()
 
 
-def handle_inbound_text_message(*, from_phone: str, message_text: str, message_id: str = ''):
+def handle_inbound_text_message(
+    *,
+    from_phone: str,
+    message_text: str,
+    message_id: str = '',
+    message_persisted: bool = False,
+):
     from_phone = (from_phone or '').strip()
     message_text = (message_text or '').strip()
     if not from_phone or not message_text:
         return
 
+    if not message_persisted:
+        _save_inbound_message({
+            'from_phone': from_phone,
+            'message_text': message_text,
+            'message_id': message_id,
+            'message_type': 'text',
+        })
     _acknowledge_inbound_message(
         message_id,
         from_phone,
@@ -464,7 +587,10 @@ def handle_inbound_text_message(*, from_phone: str, message_text: str, message_i
         show_typing=True,
     )
 
-    history = get_conversation_history(from_phone)
+    history = get_conversation_history(
+        from_phone,
+        exclude_message_id=message_id,
+    )
     user = find_user_by_whatsapp_phone(from_phone)
 
     try:
@@ -473,16 +599,12 @@ def handle_inbound_text_message(*, from_phone: str, message_text: str, message_i
         _safe_send_text(to=from_phone, body=str(exc))
         return
 
-    append_conversation(from_phone, 'user', message_text)
-
     if result.products:
         products = refresh_products_for_whatsapp(result.products)
         _safe_send_text(to=from_phone, body=build_products_intro(products))
         send_product_replies(to=from_phone, products=products)
-        append_conversation(from_phone, 'assistant', build_products_intro(products))
     else:
         _safe_send_text(to=from_phone, body=result.reply_text)
-        append_conversation(from_phone, 'assistant', result.reply_text)
 
 
 def extract_inbound_text_messages(payload: dict):
@@ -503,8 +625,89 @@ def extract_inbound_text_messages(payload: dict):
                     'from_phone': item.get('from', ''),
                     'message_id': item.get('id', ''),
                     'message_text': text_body,
+                    'message_type': 'text',
+                    'sent_at': item.get('timestamp'),
+                    'sender_name': _contact_name(value, item.get('from', '')),
                 })
     return messages
+
+
+def _contact_name(value, phone):
+    for contact in value.get('contacts', []):
+        if contact.get('wa_id') == phone:
+            return ((contact.get('profile') or {}).get('name') or '')[:150]
+    return ''
+
+
+def extract_inbound_messages(payload: dict):
+    messages = []
+    if payload.get('object') != 'whatsapp_business_account':
+        return messages
+
+    for entry in payload.get('entry', []):
+        for change in entry.get('changes', []):
+            value = change.get('value', {})
+            for item in value.get('messages', []):
+                message_type = (item.get('type') or 'unknown').strip().lower()
+                content = item.get(message_type) or {}
+                body = ''
+                if message_type == 'text':
+                    body = (content.get('body') or '').strip()
+                elif message_type == 'button':
+                    body = (content.get('text') or content.get('payload') or '').strip()
+                elif message_type == 'interactive':
+                    interactive = content.get('button_reply') or content.get('list_reply') or {}
+                    body = (interactive.get('title') or interactive.get('description') or '').strip()
+                elif message_type == 'location':
+                    latitude = content.get('latitude')
+                    longitude = content.get('longitude')
+                    if latitude is not None and longitude is not None:
+                        body = f'Location: {latitude}, {longitude}'
+                elif message_type in {'image', 'video', 'audio', 'document', 'sticker'}:
+                    body = (content.get('caption') or content.get('filename') or '').strip()
+
+                messages.append({
+                    'from_phone': item.get('from', ''),
+                    'message_id': item.get('id', ''),
+                    'message_text': body,
+                    'message_type': message_type,
+                    'sent_at': item.get('timestamp'),
+                    'sender_name': _contact_name(value, item.get('from', '')),
+                    'media_id': (content.get('id') or '').strip(),
+                    'media_mime_type': (content.get('mime_type') or '').strip(),
+                })
+    return messages
+
+
+def _save_inbound_message(message):
+    from core.whatsapp_message import WhatsAppMessage
+
+    phone = (message.get('from_phone') or '').strip()
+    message_id = (message.get('message_id') or '').strip()
+    if not phone:
+        return
+    message_type = (message.get('message_type') or 'text').strip().lower()
+    body = (message.get('message_text') or '').strip()
+    sent_at = _event_datetime(message.get('sent_at'))
+    values = {
+        'phone': phone,
+        'sender_name': (message.get('sender_name') or '')[:150],
+        'direction': WhatsAppMessage.Direction.INBOUND,
+        'message_type': message_type[:32],
+        'body': body[:4096],
+        'media_id': (message.get('media_id') or '')[:255],
+        'media_mime_type': (message.get('media_mime_type') or '')[:120],
+        'sent_at': sent_at,
+    }
+    if message_id:
+        _, created = WhatsAppMessage.objects.get_or_create(
+            message_id=message_id,
+            defaults=values,
+        )
+        return created
+    else:
+        WhatsAppMessage.objects.create(**values)
+        return True
 
 
 def extract_message_status_updates(payload: dict):
@@ -523,10 +726,24 @@ def extract_message_status_updates(payload: dict):
                 updates.append({
                     'message_id': message_id,
                     'status': status,
+                    'status_detail': _status_detail(item.get('errors', [])),
                     'recipient_id': (item.get('recipient_id') or '').strip(),
                     'timestamp': item.get('timestamp'),
                 })
     return updates
+
+
+def _status_detail(errors):
+    details = []
+    for error in errors:
+        if not isinstance(error, dict):
+            continue
+        code = error.get('code')
+        title = (error.get('title') or error.get('message') or '').strip()
+        detail = f'{code}: {title}' if code and title else (title or str(code or ''))
+        if detail:
+            details.append(detail)
+    return '; '.join(details)[:2000]
 
 
 def handle_message_status_update(update: dict):
@@ -535,18 +752,37 @@ def handle_message_status_update(update: dict):
     if not status or not message_id:
         return
 
+    from core.whatsapp_message import WhatsAppMessage
+
+    persisted = WhatsAppMessage.objects.filter(message_id=message_id).first()
     meta = cache.get(_outbound_meta_key(message_id)) or {}
-    phone = meta.get('phone') or update.get('recipient_id') or ''
-    preview = meta.get('preview') or ''
-    read_remark = DELIVERY_STATUS_REMARKS.get(status, status.replace('_', ' ').title())
+    phone = (
+        (persisted.phone if persisted else '')
+        or meta.get('phone')
+        or update.get('recipient_id')
+        or ''
+    )
+    preview = (persisted.body if persisted else '') or meta.get('preview') or ''
+    if persisted:
+        persisted.delivery_status = status
+        persisted.status_detail = (update.get('status_detail') or '')[:2000]
+        persisted.status_updated_at = _event_datetime(update.get('timestamp'))
+        persisted.save(update_fields=[
+            'delivery_status',
+            'status_detail',
+            'status_updated_at',
+        ])
     record_whatsapp_activity(
         phone=phone,
         direction='outbound',
         summary=preview or 'Outbound message',
-        read_remark=read_remark,
         message_id=message_id,
         delivery_status=status,
     )
+    if not persisted:
+        WhatsAppMessage.objects.filter(message_id=message_id).update(
+            status_detail=(update.get('status_detail') or '')[:2000],
+        )
     logger.info(
         'WhatsApp message %s status=%s recipient=%s',
         message_id,
@@ -566,13 +802,12 @@ def _acknowledge_inbound_message(
         return
     try:
         whatsapp.mark_message_read(message_id, show_typing=show_typing)
-        read_remark = 'Typing…' if show_typing else 'Read by business'
         record_whatsapp_activity(
             phone=from_phone,
             direction='inbound',
             summary=preview,
-            read_remark=read_remark,
             message_id=message_id,
+            delivery_status='read_by_business',
         )
     except Exception:
         logger.debug('Could not acknowledge WhatsApp message', exc_info=True)
@@ -592,11 +827,18 @@ def process_webhook_payload(payload: dict):
         handle_message_status_update(update)
         handled += 1
 
-    for message in extract_inbound_text_messages(payload):
+    for message in extract_inbound_messages(payload):
         message_id = (message.get('message_id') or '').strip()
-        if message_id and not cache.add(_processed_message_key(message_id), 1, PROCESSED_MESSAGE_TTL):
+        created = _save_inbound_message(message)
+        if not created:
             logger.info('Skipping duplicate WhatsApp message %s', message_id)
             continue
-        _dispatch_inbound_message(message)
+        if message.get('message_type') == 'text' and message.get('message_text'):
+            _dispatch_inbound_message({
+                'from_phone': message.get('from_phone', ''),
+                'message_text': message.get('message_text', ''),
+                'message_id': message_id,
+                'tenant_id': getattr(get_current_tenant(), 'pk', None),
+            })
         handled += 1
     return handled

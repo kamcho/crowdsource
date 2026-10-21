@@ -10,6 +10,17 @@ app_name = 'core'
 
 urlpatterns = [
     path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('dashboard/whatsapp/', views.whatsapp_chat_list, name='whatsapp_chat_list'),
+    path(
+        'dashboard/whatsapp/conversation/',
+        views.whatsapp_chat_detail,
+        name='whatsapp_chat_detail',
+    ),
+    path(
+        'dashboard/whatsapp/messages/<int:message_id>/',
+        views.whatsapp_message_detail,
+        name='whatsapp_message_detail',
+    ),
     path('dashboard/tenants/', tenant_views.tenant_list, name='tenant_list'),
     path('dashboard/tenants/create/', tenant_views.tenant_create, name='tenant_create'),
     path(

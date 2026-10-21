@@ -52,6 +52,14 @@ class User(AbstractBaseUser, PermissionsMixin):
         choices=Role.choices,
         default=Role.CUSTOMER,
     )
+    signup_tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.SET_NULL,
+        related_name='signup_users',
+        null=True,
+        blank=True,
+        help_text='Tenant where this account was first created.',
+    )
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

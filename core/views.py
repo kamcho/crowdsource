@@ -5,7 +5,19 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.http import Http404, JsonResponse
 from django.db import transaction
-from django.db.models import Case, Count, IntegerField, Prefetch, Q, Sum, Value, When
+from django.db.models import (
+    Case,
+    Count,
+    IntegerField,
+    Max,
+    OuterRef,
+    Prefetch,
+    Q,
+    Subquery,
+    Sum,
+    Value,
+    When,
+)
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -148,6 +160,152 @@ def admin_dashboard(request):
         else 'Group buys, imports, and delivery operations.'
     )
     return render(request, 'core/dashboard/index.html', context)
+
+
+@admin_required
+def whatsapp_chat_list(request):
+    from core.whatsapp_message import WhatsAppMessage
+    from core.whatsapp_services import _users_by_whatsapp_phone
+
+    latest_message_id = (
+        WhatsAppMessage.objects.filter(phone=OuterRef('phone'))
+        .order_by('-sent_at', '-pk')
+        .values('pk')[:1]
+    )
+    summaries = list(
+        WhatsAppMessage.objects.values('phone')
+        .annotate(
+            latest_at=Max('sent_at'),
+            message_count=Count('pk'),
+            latest_message_id=Subquery(latest_message_id),
+        )
+        .order_by('-latest_at')[:200]
+    )
+    phones = [item['phone'] for item in summaries]
+    users_by_phone = _users_by_whatsapp_phone(phones)
+    latest_messages = {
+        message.pk: message
+        for message in WhatsAppMessage.objects.filter(
+            pk__in=[item['latest_message_id'] for item in summaries if item['latest_message_id']],
+        )
+    }
+
+    chats = []
+    for item in summaries:
+        phone = item['phone']
+        user = users_by_phone.get(_whatsapp_phone_key(phone))
+        latest_message = latest_messages.get(item['latest_message_id'])
+        contact_name = (
+            (user.get_full_name() if user else '')
+            or (latest_message.sender_name if latest_message else '')
+            or phone
+        )
+        chats.append({
+            'phone': phone,
+            'display_name': contact_name,
+            'user': user,
+            'latest_at': item['latest_at'],
+            'message_count': item['message_count'],
+            'latest_preview': latest_message.body if latest_message else '',
+            'latest_direction': latest_message.get_direction_display() if latest_message else '',
+            'latest_message_id': latest_message.pk if latest_message else None,
+        })
+
+    query = request.GET.get('q', '').strip()
+    if query:
+        query_lower = query.casefold()
+        chats = [
+            chat for chat in chats
+            if query_lower in chat['phone'].casefold()
+            or query_lower in chat['display_name'].casefold()
+            or (
+                chat['user']
+                and query_lower in (chat['user'].email or '').casefold()
+            )
+        ]
+
+    return render(request, 'core/whatsapp/chat_list.html', {
+        'chats': chats,
+        'query': query,
+    })
+
+
+@admin_required
+def whatsapp_chat_detail(request):
+    from core.whatsapp_message import WhatsAppMessage
+    from core.whatsapp_services import _users_by_whatsapp_phone
+
+    phone = (request.GET.get('phone') or '').strip()
+    if not phone:
+        return redirect('core:whatsapp_chat_list')
+
+    chat_messages = list(
+        WhatsAppMessage.objects.filter(phone=phone)
+        .select_related('tenant')
+        .order_by('sent_at', 'pk')
+    )
+    if not chat_messages:
+        raise Http404('WhatsApp conversation not found')
+
+    user = _users_by_whatsapp_phone([phone]).get(_whatsapp_phone_key(phone))
+    sender_name = next(
+        (message.sender_name for message in reversed(chat_messages) if message.sender_name),
+        '',
+    )
+    display_name = (
+        (user.get_full_name() if user else '')
+        or sender_name
+        or phone
+    )
+    return render(request, 'core/whatsapp/chat_detail.html', {
+        'phone': phone,
+        'display_name': display_name,
+        'customer': user,
+        'chat_messages': chat_messages,
+    })
+
+
+@admin_required
+def whatsapp_message_detail(request, message_id):
+    from core.whatsapp_message import WhatsAppMessage
+    from core.whatsapp_services import _users_by_whatsapp_phone
+
+    message = get_object_or_404(
+        WhatsAppMessage.objects.select_related('tenant'),
+        pk=message_id,
+    )
+    user = _users_by_whatsapp_phone([message.phone]).get(
+        _whatsapp_phone_key(message.phone),
+    )
+    return JsonResponse({
+        'phone': message.phone,
+        'display_name': (
+            (user.get_full_name() if user else '')
+            or message.sender_name
+            or message.phone
+        ),
+        'direction': message.get_direction_display(),
+        'body': message.body,
+        'message_id': message.message_id,
+        'message_type': message.message_type,
+        'media_id': message.media_id,
+        'media_mime_type': message.media_mime_type,
+        'delivery_status': message.delivery_status,
+        'status_detail': message.status_detail,
+        'sent_at': message.sent_at.isoformat(),
+        'status_updated_at': (
+            message.status_updated_at.isoformat()
+            if message.status_updated_at else ''
+        ),
+        'sender_name': message.sender_name,
+        'tenant': message.tenant.name,
+    })
+
+
+def _whatsapp_phone_key(phone):
+    from core.whatsapp_services import _normalized_whatsapp_phone
+
+    return _normalized_whatsapp_phone(phone)
 
 
 def _serialize_media_file(product_file):

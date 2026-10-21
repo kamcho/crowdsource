@@ -1,0 +1,31 @@
+{% extends 'dashboard/admin_base.html' %}
+
+{% block title %}Chat with {{ display_name }} — CrowdSource Import{% endblock %}
+{% block topbar_title %}WhatsApp conversation{% endblock %}
+
+{% block content %}
+<div class="user-dash-welcome whatsapp-conversation-heading">
+    <div>
+        <h1>{{ display_name }}</h1>
+        <p>+{{ phone }}{% if customer %} · Registered account{% endif %}</p>
+    </div>
+    <a href="{% url 'core:whatsapp_chat_list' %}" class="btn btn-outline">All chats</a>
+</div>
+
+<div class="admin-card whatsapp-conversation">
+    {% for message in chat_messages %}
+    <article class="whatsapp-chat-message{% if message.direction == 'outbound' %} is-outbound{% else %} is-inbound{% endif %}">
+        <div class="whatsapp-chat-message-meta">
+            <strong>{{ message.get_direction_display }}</strong>
+            <time datetime="{{ message.sent_at|date:'c' }}">{{ message.sent_at|date:"M j, Y H:i" }}</time>
+            {% if message.delivery_status %}<span class="status-badge">{{ message.delivery_status|title }}</span>{% endif %}
+        </div>
+        {% if message.message_type != 'text' %}<p class="whatsapp-chat-message-type">{{ message.message_type|title }}</p>{% endif %}
+        <p class="whatsapp-chat-message-body">{{ message.body|default:"(No text content)" }}</p>
+        {% if message.media_id %}<p class="category-desc">Media attachment available · {{ message.media_mime_type|default:message.message_type }}</p>{% endif %}
+        <button type="button" class="btn btn-outline btn-sm whatsapp-message-open" data-detail-url="{% url 'core:whatsapp_message_detail' message.pk %}">View message details</button>
+    </article>
+    {% endfor %}
+</div>
+{% include 'core/whatsapp/message_modal.html' %}
+{% endblock %}

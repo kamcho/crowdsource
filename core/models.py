@@ -228,3 +228,4 @@ from core.complaint import Complaint, ComplaintMessage  # noqa: E402, F401
 from core.user_preference import UserCategoryPreference  # noqa: E402, F401
 from core.user_preference import UserCategoryViewStat, UserProductView  # noqa: E402, F401
 from core.category_link import CategoryGoTogetherLink  # noqa: E402, F401
+from core.whatsapp_message import WhatsAppMessage  # noqa: E402, F401

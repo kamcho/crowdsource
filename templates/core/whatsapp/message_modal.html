@@ -1,0 +1,14 @@
+{% load static %}
+<dialog class="whatsapp-message-modal" id="whatsappMessageModal" aria-labelledby="whatsappMessageTitle">
+    <div class="whatsapp-message-modal-header">
+        <h2 id="whatsappMessageTitle">WhatsApp message details</h2>
+        <form method="dialog">
+            <button type="submit" class="btn btn-outline btn-sm" aria-label="Close message details">Close</button>
+        </form>
+    </div>
+    <p class="whatsapp-message-modal-error" id="whatsappMessageError" hidden></p>
+    <dl class="whatsapp-message-metadata" id="whatsappMessageMetadata"></dl>
+    <h3>Message content</h3>
+    <pre class="whatsapp-message-body" id="whatsappMessageBody"></pre>
+</dialog>
+<script src="{% static 'js/whatsapp-message-details.js' %}" defer></script>

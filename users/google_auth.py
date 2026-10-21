@@ -37,7 +37,7 @@ def verify_google_credential(credential):
     return idinfo
 
 
-def get_or_create_user_from_google(idinfo):
+def get_or_create_user_from_google(idinfo, signup_tenant=None):
     google_id = idinfo['sub']
     email = (idinfo.get('email') or '').strip()
     first_name = (idinfo.get('given_name') or '').strip()
@@ -65,6 +65,7 @@ def get_or_create_user_from_google(idinfo):
         email=email or None,
         first_name=first_name or 'Google',
         last_name=last_name or 'User',
+        signup_tenant=signup_tenant,
     )
     user.set_unusable_password()
     user.save()

@@ -8,15 +8,24 @@ from .models import User
 class UserAdmin(BaseUserAdmin):
     list_display = (
         'phone', 'email', 'first_name', 'last_name', 'role',
-        'two_factor_enabled', 'is_active', 'date_joined',
+        'signup_tenant', 'two_factor_enabled', 'is_active', 'date_joined',
     )
-    list_filter = ('role', 'two_factor_enabled', 'is_active', 'is_staff', 'date_joined')
+    list_filter = (
+        'role', 'signup_tenant', 'two_factor_enabled', 'is_active',
+        'is_staff', 'date_joined',
+    )
     search_fields = ('phone', 'first_name', 'last_name', 'email', 'google_id')
     ordering = ('-date_joined',)
+    readonly_fields = ('signup_tenant',)
 
     fieldsets = (
         (None, {'fields': ('phone', 'password', 'google_id')}),
-        ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'role', 'two_factor_enabled')}),
+        ('Personal info', {
+            'fields': (
+                'first_name', 'last_name', 'email', 'role', 'signup_tenant',
+                'two_factor_enabled',
+            ),
+        }),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
     )

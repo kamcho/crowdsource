@@ -1,0 +1,63 @@
+{% extends 'dashboard/admin_base.html' %}
+
+{% block title %}WhatsApp chats — CrowdSource Import{% endblock %}
+{% block topbar_title %}WhatsApp chats{% endblock %}
+
+{% block content %}
+<div class="user-dash-welcome">
+    <h1>WhatsApp chats</h1>
+    <p>Customer conversations received by the WhatsApp webhook.</p>
+</div>
+
+<div class="admin-card manage-table-card whatsapp-chat-list">
+    <div class="dashboard-section-header">
+        <h2 class="manage-section-title">Conversations</h2>
+        <form method="get" class="whatsapp-chat-search">
+            <label class="sr-only" for="whatsappChatSearch">Search chats</label>
+            <input id="whatsappChatSearch" type="search" name="q" value="{{ query }}" placeholder="Search name or phone">
+            <button type="submit" class="btn btn-outline btn-sm">Search</button>
+        </form>
+    </div>
+    {% if chats %}
+    <div class="data-table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Latest message</th>
+                    <th>Messages</th>
+                    <th>Last activity</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for chat in chats %}
+                <tr>
+                    <td>
+                        <strong>{{ chat.display_name }}</strong><br>
+                        <span class="category-desc">+{{ chat.phone }}</span>
+                        {% if chat.user %}<br><span class="category-desc">Registered account</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if chat.latest_direction %}<span class="category-desc">{{ chat.latest_direction }}:</span> {% endif %}
+                        {{ chat.latest_preview|default:"(No text content)"|truncatechars:110 }}
+                    </td>
+                    <td>{{ chat.message_count }}</td>
+                    <td>{{ chat.latest_at|date:"M j, Y H:i" }}</td>
+                    <td>
+                        <a href="{% url 'core:whatsapp_chat_detail' %}?phone={{ chat.phone|urlencode }}" class="btn btn-outline btn-sm">Open chat</a>
+                        {% if chat.latest_message_id %}
+                        <button type="button" class="btn btn-outline btn-sm whatsapp-message-open" data-detail-url="{% url 'core:whatsapp_message_detail' chat.latest_message_id %}">Details</button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="dashboard-empty-note">{% if query %}No WhatsApp chats match your search.{% else %}No WhatsApp conversations have been saved yet.{% endif %}</p>
+    {% endif %}
+</div>
+{% include 'core/whatsapp/message_modal.html' %}
+{% endblock %}

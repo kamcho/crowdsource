@@ -7,6 +7,7 @@ from django.core.cache import cache
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
+from tenants.models import Tenant
 from users.two_factor import activate_totp, generate_totp_secret, verify_user_totp
 
 User = get_user_model()
@@ -49,6 +50,7 @@ class GoogleAuthTests(TestCase):
         user = User.objects.get(google_id='google-sub-123')
         self.assertEqual(user.role, User.Role.CUSTOMER)
         self.assertIsNone(user.phone)
+        self.assertEqual(user.signup_tenant, Tenant.objects.get(is_default=True))
         self.assertEqual(self.client.session['_auth_user_id'], str(user.pk))
 
     @override_settings(**GOOGLE_SETTINGS)
@@ -69,6 +71,8 @@ class GoogleAuthTests(TestCase):
         self.assertTrue(data['ok'])
         self.assertEqual(data['redirect'], reverse('users:profile'))
         self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
+        user.refresh_from_db()
+        self.assertIsNone(user.signup_tenant)
 
     @override_settings(**GOOGLE_SETTINGS)
     @patch('users.views.verify_google_credential')
@@ -234,3 +238,55 @@ class TwoFactorAuthTests(TestCase):
         user.refresh_from_db()
         self.assertTrue(user.two_factor_enabled)
         self.assertEqual(user.totp_secret, setup_secret)
+
+
+class SignupTenantAttributionTests(TestCase):
+    @override_settings(
+        TENANT_BASE_DOMAIN='example.test',
+        ALLOWED_HOSTS=['testserver', '.example.test'],
+    )
+    def test_phone_signup_records_subdomain_tenant(self):
+        tenant = Tenant.objects.create(name='Beta Imports', slug='beta')
+        response = self.client.post(
+            reverse('users:signup'),
+            {
+                'phone': '0712345678',
+                'first_name': 'New',
+                'last_name': 'Buyer',
+                'password1': 'Secure-pass-123!',
+                'password2': 'Secure-pass-123!',
+            },
+            HTTP_HOST='beta.example.test',
+        )
+
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(phone='+254712345678')
+        self.assertEqual(user.signup_tenant, tenant)
+
+    @override_settings(
+        TENANT_BASE_DOMAIN='example.test',
+        ALLOWED_HOSTS=['testserver', '.example.test'],
+        GOOGLE_CLIENT_ID='test-client-id.apps.googleusercontent.com',
+    )
+    @patch('users.views.verify_google_credential')
+    def test_google_signup_records_subdomain_tenant(self, verify):
+        tenant = Tenant.objects.create(name='Beta Imports', slug='beta')
+        verify.return_value = {
+            'sub': 'google-beta-signup',
+            'email': 'beta-buyer@gmail.com',
+            'email_verified': True,
+            'given_name': 'Beta',
+            'family_name': 'Buyer',
+            'aud': 'test-client-id.apps.googleusercontent.com',
+        }
+
+        response = self.client.post(
+            reverse('users:google_auth'),
+            data=json.dumps({'credential': 'fake-token'}),
+            content_type='application/json',
+            HTTP_HOST='beta.example.test',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        user = User.objects.get(google_id='google-beta-signup')
+        self.assertEqual(user.signup_tenant, tenant)

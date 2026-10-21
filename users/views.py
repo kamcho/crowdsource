@@ -108,7 +108,9 @@ def signup_view(request):
     if request.method == 'POST':
         form = SignUpForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)
+            user.signup_tenant = request.tenant
+            user.save()
             raw_password = form.cleaned_data['password1']
             authenticated_user = authenticate(request, phone=user.phone, password=raw_password)
             if authenticated_user:
@@ -202,7 +204,10 @@ def google_auth_view(request):
 
     try:
         idinfo = verify_google_credential(credential)
-        user, created = get_or_create_user_from_google(idinfo)
+        user, created = get_or_create_user_from_google(
+            idinfo,
+            signup_tenant=request.tenant,
+        )
     except GoogleAuthError as exc:
         return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
 

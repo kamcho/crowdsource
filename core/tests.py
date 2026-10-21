@@ -1873,12 +1873,10 @@ class WhatsAppServiceTests(TestCase):
         from django.core.cache import cache
 
         from core.whatsapp_services import (
-            ACTIVITY_FEED_KEY,
             get_whatsapp_activity_feed,
             process_webhook_payload,
         )
 
-        cache.delete(ACTIVITY_FEED_KEY)
         cache.set(
             'whatsapp:outbound:wamid.read-test',
             {'phone': '254712345678', 'preview': 'Your order is on the way'},
@@ -1903,6 +1901,167 @@ class WhatsAppServiceTests(TestCase):
         feed = get_whatsapp_activity_feed()
         self.assertEqual(feed[0]['read_remark'], 'Read')
         self.assertEqual(feed[0]['delivery_status'], 'read')
+
+    @override_settings(WHATSAPP_ENABLED=True, WHATSAPP_BACKEND='console')
+    def test_webhook_persists_inbound_text_and_non_text_messages(self):
+        from django.core.cache import cache
+
+        from core.whatsapp_message import WhatsAppMessage
+        from core.whatsapp_services import process_webhook_payload
+
+        cache.clear()
+        payload = {
+            'object': 'whatsapp_business_account',
+            'entry': [{
+                'changes': [{
+                    'value': {
+                        'contacts': [{
+                            'wa_id': '254712345678',
+                            'profile': {'name': 'Jane Buyer'},
+                        }],
+                        'messages': [
+                            {
+                                'from': '254712345678',
+                                'id': 'wamid.persisted-text',
+                                'timestamp': '1792587429',
+                                'type': 'text',
+                                'text': {'body': 'Where is my order?'},
+                            },
+                            {
+                                'from': '254712345678',
+                                'id': 'wamid.persisted-image',
+                                'timestamp': '1792587430',
+                                'type': 'image',
+                                'image': {
+                                    'id': 'media-image-1',
+                                    'mime_type': 'image/jpeg',
+                                    'caption': 'The item arrived damaged',
+                                },
+                            },
+                        ],
+                    },
+                }],
+            }],
+        }
+
+        with patch('core.whatsapp_services._dispatch_inbound_message'):
+            self.assertEqual(process_webhook_payload(payload), 2)
+
+        text_message = WhatsAppMessage.objects.get(message_id='wamid.persisted-text')
+        image_message = WhatsAppMessage.objects.get(message_id='wamid.persisted-image')
+        self.assertEqual(text_message.body, 'Where is my order?')
+        self.assertEqual(text_message.sender_name, 'Jane Buyer')
+        self.assertEqual(text_message.direction, WhatsAppMessage.Direction.INBOUND)
+        self.assertEqual(image_message.message_type, 'image')
+        self.assertEqual(image_message.media_id, 'media-image-1')
+        self.assertEqual(image_message.media_mime_type, 'image/jpeg')
+        self.assertEqual(image_message.body, 'The item arrived damaged')
+        from core.whatsapp_services import get_whatsapp_activity_feed
+
+        feed = get_whatsapp_activity_feed()
+        self.assertEqual(feed[0]['message_id'], 'wamid.persisted-image')
+        self.assertEqual(feed[0]['sender_name'], 'Jane Buyer')
+        self.assertEqual(feed[0]['user'].get_full_name(), 'Jane Buyer')
+
+    @override_settings(WHATSAPP_ENABLED=True, WHATSAPP_BACKEND='console')
+    def test_duplicate_inbound_webhook_only_dispatches_reply_once(self):
+        from core.whatsapp_services import process_webhook_payload
+        from core.whatsapp_message import WhatsAppMessage
+
+        payload = {
+            'object': 'whatsapp_business_account',
+            'entry': [{
+                'changes': [{
+                    'value': {
+                        'messages': [{
+                            'from': '254712345678',
+                            'id': 'wamid.duplicate-inbound',
+                            'timestamp': '1792587429',
+                            'type': 'text',
+                            'text': {'body': 'I need to see my orders'},
+                        }],
+                    },
+                }],
+            }],
+        }
+
+        with patch('core.whatsapp_services._dispatch_inbound_message') as dispatch:
+            self.assertEqual(process_webhook_payload(payload), 1)
+            self.assertEqual(process_webhook_payload(payload), 0)
+
+        self.assertEqual(dispatch.call_count, 1)
+        self.assertEqual(
+            WhatsAppMessage.objects.filter(message_id='wamid.duplicate-inbound').count(),
+            1,
+        )
+
+    def test_whatsapp_admin_can_open_conversation_and_message_metadata(self):
+        from core.whatsapp_message import WhatsAppMessage
+        from tenants.models import Tenant, TenantMembership
+
+        tenant = Tenant.objects.get(is_default=True)
+        TenantMembership.objects.update_or_create(
+            tenant=tenant,
+            user=self.user,
+            defaults={'role': TenantMembership.Role.ADMIN},
+        )
+        message = WhatsAppMessage.objects.create(
+            tenant=tenant,
+            phone='254712345678',
+            sender_name='Jane on WhatsApp',
+            direction=WhatsAppMessage.Direction.INBOUND,
+            message_id='wamid.dashboard-detail',
+            message_type='text',
+            body='I need to see my orders',
+            sent_at=timezone.now(),
+        )
+        self.client.force_login(self.user)
+
+        chat_list = self.client.get(reverse('core:whatsapp_chat_list'))
+        self.assertEqual(chat_list.status_code, 200)
+        self.assertContains(chat_list, 'Jane Buyer')
+        self.assertContains(chat_list, 'Open chat')
+
+        conversation = self.client.get(
+            reverse('core:whatsapp_chat_detail'),
+            {'phone': '254712345678'},
+        )
+        self.assertEqual(conversation.status_code, 200)
+        self.assertContains(conversation, 'I need to see my orders')
+
+        detail = self.client.get(
+            reverse('core:whatsapp_message_detail', args=[message.pk]),
+        )
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.json()['display_name'], 'Jane Buyer')
+        self.assertEqual(detail.json()['message_id'], 'wamid.dashboard-detail')
+        self.assertEqual(detail.json()['tenant'], tenant.name)
+
+    @override_settings(WHATSAPP_ENABLED=True, WHATSAPP_BACKEND='console')
+    def test_message_status_updates_are_persisted_without_cache_metadata(self):
+        from django.core.cache import cache
+
+        from core.whatsapp_services import _track_outbound_send, handle_message_status_update
+        from core.whatsapp_message import WhatsAppMessage
+
+        _track_outbound_send(
+            '254712345678',
+            'Your order has shipped',
+            {'messages': [{'id': 'wamid.persisted-outbound'}]},
+        )
+        cache.delete('whatsapp:outbound:wamid.persisted-outbound')
+
+        handle_message_status_update({
+            'message_id': 'wamid.persisted-outbound',
+            'status': 'delivered',
+            'recipient_id': '254712345678',
+            'timestamp': '1792587429',
+            'status_detail': '',
+        })
+
+        message = WhatsAppMessage.objects.get(message_id='wamid.persisted-outbound')
+        self.assertEqual(message.delivery_status, 'delivered')
+        self.assertEqual(message.body, 'Your order has shipped')
 
     @override_settings(WHATSAPP_ENABLED=True, WHATSAPP_BACKEND='console', OPENAI_API_KEY='test-key')
     @patch('core.whatsapp_services.run_whatsapp_agent')
