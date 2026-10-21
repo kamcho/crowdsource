@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pyotp
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.core import mail
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
@@ -254,6 +255,7 @@ class UserProfileTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['user_stats']['cart_items'], 0)
+        self.assertContains(response, reverse('users:password_change'))
 
     def test_tenant_staff_sees_shop_management_links_in_account_sidebar(self):
         staff_user = User.objects.create_user(
@@ -301,6 +303,98 @@ class UserProfileTests(TestCase):
         self.assertContains(
             response,
             reverse('core:tenant_edit', kwargs={'tenant_id': tenant.pk}),
+        )
+
+    def test_password_reset_email_completes_password_reset(self):
+        user = User.objects.create_user(
+            phone='0722334458',
+            password='old-password-456!',
+            email='reset@example.com',
+        )
+
+        response = self.client.post(
+            reverse('users:password_reset'),
+            {'email': 'reset@example.com'},
+        )
+
+        self.assertRedirects(response, reverse('users:password_reset_done'))
+        self.assertNotIn('_auth_user_id', self.client.session)
+        self.assertEqual(len(mail.outbox), 1)
+        reset_url = next(
+            line for line in mail.outbox[0].body.splitlines()
+            if '/users/reset/' in line
+        )
+        response = self.client.get(reset_url, follow=True)
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post(response.request['PATH_INFO'], {
+            'new_password1': 'Better-new-password-456!',
+            'new_password2': 'Better-new-password-456!',
+        })
+
+        self.assertRedirects(
+            response,
+            reverse('users:password_reset_complete'),
+        )
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('Better-new-password-456!'))
+        self.assertFalse(user.check_password('old-password-456!'))
+
+    def test_password_reset_response_does_not_disclose_unknown_email(self):
+        response = self.client.post(
+            reverse('users:password_reset'),
+            {'email': 'not-registered@example.com'},
+        )
+
+        self.assertRedirects(response, reverse('users:password_reset_done'))
+        self.assertContains(
+            self.client.get(response.url),
+            'If an active account uses that email address',
+        )
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_google_account_can_set_password_using_email_reset(self):
+        user = User.objects.create_user(
+            phone='0722334459',
+            password='temporary-password-123!',
+            email='google-reset@example.com',
+            google_id='google-password-reset',
+        )
+        user.set_unusable_password()
+        user.save(update_fields=['password'])
+
+        response = self.client.post(
+            reverse('users:password_reset'),
+            {'email': user.email},
+        )
+
+        self.assertRedirects(response, reverse('users:password_reset_done'))
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_signed_in_user_can_change_password_without_logging_out(self):
+        user = User.objects.create_user(
+            phone='0722334460',
+            password='old-password-789!',
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse('users:password_change'),
+            {
+                'old_password': 'old-password-789!',
+                'new_password1': 'Brand-new-password-789!',
+                'new_password2': 'Brand-new-password-789!',
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('users:password_change_done'),
+        )
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('Brand-new-password-789!'))
+        self.assertEqual(
+            self.client.get(reverse('users:profile')).status_code,
+            200,
         )
 
 

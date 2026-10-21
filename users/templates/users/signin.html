@@ -51,6 +51,9 @@
                 {% if form.password.errors %}<span class="field-error">{{ form.password.errors.0 }}</span>{% endif %}
             </div>
 
+            <p class="auth-switch auth-password-reset-link">
+                <a href="{% url 'users:password_reset' %}">Forgot your password?</a>
+            </p>
             <button type="submit" class="btn btn-primary btn-block btn-lg">Sign In</button>
         </form>
 

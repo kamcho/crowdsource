@@ -1,5 +1,10 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import (
+    PasswordChangeForm,
+    PasswordResetForm,
+    SetPasswordForm,
+    UserCreationForm,
+)
 from django.core.exceptions import ValidationError
 from phonenumber_field.formfields import PhoneNumberField
 
@@ -95,6 +100,46 @@ class SignInForm(forms.Form):
             raise ValidationError({'login': exc.messages[0] if exc.messages else str(exc)})
         self.lookup_user = User.objects.filter(phone=cleaned['login_phone']).first()
         return cleaned
+
+
+class AccountPasswordChangeForm(PasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs['class'] = 'form-input'
+        self.fields['old_password'].widget.attrs['autocomplete'] = 'current-password'
+        self.fields['new_password1'].widget.attrs['autocomplete'] = 'new-password'
+        self.fields['new_password2'].widget.attrs['autocomplete'] = 'new-password'
+
+
+class AccountPasswordResetForm(PasswordResetForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['email'].widget.attrs.update({
+            'class': 'form-input',
+            'placeholder': 'Email address',
+            'autocomplete': 'email',
+        })
+
+    def get_users(self, email):
+        email_field_name = User.get_email_field_name()
+        active_users = User._default_manager.filter(
+            **{
+                f'{email_field_name}__iexact': email,
+                'is_active': True,
+            },
+        )
+        return iter(active_users)
+
+
+class AccountSetPasswordForm(SetPasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.update({
+                'class': 'form-input',
+                'autocomplete': 'new-password',
+            })
 
 
 class CompleteProfileForm(forms.Form):

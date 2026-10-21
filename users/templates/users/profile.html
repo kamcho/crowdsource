@@ -112,6 +112,16 @@
                         <a href="{% url 'users:two_factor_settings' %}" class="account-inline-link">Manage</a>
                     </dd>
                 </div>
+                <div>
+                    <dt>Password</dt>
+                    <dd>
+                        {% if user.has_usable_password %}
+                        <a href="{% url 'users:password_change' %}" class="account-inline-link">Change password</a>
+                        {% else %}
+                        <a href="{% url 'users:password_reset' %}" class="account-inline-link">Set a password by email</a>
+                        {% endif %}
+                    </dd>
+                </div>
             </dl>
         </section>
 

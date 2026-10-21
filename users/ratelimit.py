@@ -67,3 +67,10 @@ def throttle_two_factor_resend(request, user_id=''):
     if check_rate_limits(limits):
         return 'Too many code requests. Please wait before trying again.'
     return None
+
+
+def throttle_password_reset(request):
+    ip = get_client_ip(request)
+    return check_rate_limits([
+        (f'rl:password-reset:ip:{ip}', 10, 15 * 60),
+    ]) is not None
