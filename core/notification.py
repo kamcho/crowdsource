@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.db import models
 
+from tenants.models import TenantOwnedModel
 
-class NotificationLog(models.Model):
+
+class NotificationLog(TenantOwnedModel):
     class Channel(models.TextChoices):
         SMS = 'sms', 'SMS'
         EMAIL = 'email', 'Email'

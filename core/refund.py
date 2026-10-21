@@ -7,13 +7,15 @@ from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
 
+from tenants.models import TenantOwnedModel
+
 
 # PRODUCTION: Replace manual completion with Safaricom Daraja Reversal API
 # before marking refunds as completed. See refund_services.complete_refund().
 MPESA_REVERSAL_REQUIRED_IN_PRODUCTION = True
 
 
-class Refund(models.Model):
+class Refund(TenantOwnedModel):
     class Status(models.TextChoices):
         PENDING = 'pending', 'Pending'
         COMPLETED = 'completed', 'Completed'

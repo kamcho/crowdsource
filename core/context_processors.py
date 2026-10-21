@@ -11,7 +11,7 @@ from .models import Category
 def cart_summary(request):
     if not getattr(request, 'user', None) or not request.user.is_authenticated:
         return {'cart_item_count': 0}
-    cart = getattr(request.user, 'cart', None)
+    cart = request.user.cart.first()
     if cart is None:
         return {'cart_item_count': 0}
     return {'cart_item_count': cart.item_count}
@@ -34,7 +34,9 @@ def wishlist_summary(request):
 
 def admin_sidebar(request):
     user = getattr(request, 'user', None)
-    if not user or not user.is_authenticated or not user.is_ops_user:
+    from tenants.permissions import user_is_tenant_ops
+
+    if not user_is_tenant_ops(user, getattr(request, 'tenant', None)):
         return {}
     if not request.path.startswith('/core/'):
         return {}
@@ -45,6 +47,20 @@ def admin_sidebar(request):
                 status__in=[Complaint.Status.OPEN, Complaint.Status.IN_PROGRESS],
             ).count(),
         },
+    }
+
+
+def tenant_context(request):
+    from tenants.permissions import get_tenant_membership, user_is_tenant_admin, user_is_tenant_ops
+
+    tenant = getattr(request, 'tenant', None)
+    user = getattr(request, 'user', None)
+    membership = get_tenant_membership(user, tenant)
+    return {
+        'current_tenant': tenant,
+        'tenant_membership': membership,
+        'tenant_is_admin': user_is_tenant_admin(user, tenant),
+        'tenant_is_ops': user_is_tenant_ops(user, tenant),
     }
 
 

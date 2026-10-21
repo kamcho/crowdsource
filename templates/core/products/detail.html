@@ -29,9 +29,9 @@
                         <div class="product-gallery-main" id="product-gallery-main">
                             {% with hero=product.primary_image|default:product.primary_file %}
                             {% if hero and hero.is_image %}
-                            <img src="{{ hero.file.url }}" alt="{{ product.name }}" id="product-main-media" class="product-gallery-media">
+                            <img src="{{ hero.file.url }}" alt="{{ product.name }}" id="product-main-media" class="product-gallery-media" fetchpriority="high" decoding="async">
                             {% elif hero and hero.is_video %}
-                            <video src="{{ hero.file.url }}" controls id="product-main-media" class="product-gallery-media"></video>
+                            <video src="{{ hero.file.url }}" controls preload="none" id="product-main-media" class="product-gallery-media"></video>
                             {% endif %}
                             {% endwith %}
                         </div>
@@ -44,7 +44,7 @@
                                     data-media-type="{{ media.media_type }}"
                                     aria-label="Show {{ media.get_media_type_display|lower }} {{ forloop.counter }}">
                                 {% if media.is_image %}
-                                <img src="{{ media.file.url }}" alt="">
+                                <img src="{{ media.file.url }}" alt="" loading="lazy" decoding="async">
                                 {% else %}
                                 <span class="product-gallery-thumb-video">▶</span>
                                 {% endif %}
@@ -147,7 +147,7 @@
                                         title="{{ value.value }}">
                                     {% if thumb and 'color' in option_name or thumb and 'colour' in option_name %}
                                     <span class="product-option-swatch">
-                                        <img src="{{ thumb }}" alt="">
+                                        <img src="{{ thumb }}" alt="" loading="lazy" decoding="async">
                                     </span>
                                     {% endif %}
                                     <span class="product-option-btn-text">{{ value.value }}</span>
@@ -471,6 +471,7 @@
             video.className = 'product-gallery-media';
             video.src = item.url;
             video.controls = true;
+            video.preload = 'none';
             container.replaceChildren(video);
             return;
         }
@@ -480,6 +481,8 @@
         img.className = 'product-gallery-media';
         img.src = item.url;
         img.alt = productName;
+        img.fetchPriority = 'high';
+        img.decoding = 'async';
         container.replaceChildren(img);
     }
 
@@ -505,7 +508,7 @@
                 var activeClass = index === 0 ? ' is-active' : '';
                 var thumbInner = item.type === 'video'
                     ? '<span class="product-gallery-thumb-video">▶</span>'
-                    : '<img src="' + item.url + '" alt="">';
+                    : '<img src="' + item.url + '" alt="" loading="lazy" decoding="async">';
                 thumbsHtml += '<button type="button" class="product-gallery-thumb' + activeClass + '"'
                     + ' data-media-url="' + item.url + '"'
                     + ' data-media-type="' + item.type + '"'

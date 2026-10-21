@@ -3,6 +3,7 @@ from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
 
 from core.models import Category, Product
+from tenants.urls import get_tenant_domain
 
 
 class SiteAwareSitemap(Sitemap):
@@ -11,7 +12,7 @@ class SiteAwareSitemap(Sitemap):
         return getattr(settings, 'SITE_PROTOCOL', 'https')
 
     def get_domain(self, site=None):
-        return settings.SITE_DOMAIN
+        return get_tenant_domain()
 
 
 class StaticPageSitemap(SiteAwareSitemap):

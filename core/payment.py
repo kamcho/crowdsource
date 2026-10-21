@@ -5,8 +5,10 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from tenants.models import TenantOwnedModel
 
-class Payment(models.Model):
+
+class Payment(TenantOwnedModel):
     class Status(models.TextChoices):
         PENDING = 'pending', 'Pending'
         COMPLETED = 'completed', 'Completed'

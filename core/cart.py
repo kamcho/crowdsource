@@ -5,9 +5,11 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 
+from tenants.models import TenantOwnedModel
 
-class Cart(models.Model):
-    user = models.OneToOneField(
+
+class Cart(TenantOwnedModel):
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='cart',
@@ -17,6 +19,12 @@ class Cart(models.Model):
 
     class Meta:
         ordering = ['-updated_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'user'],
+                name='unique_tenant_cart_per_user',
+            ),
+        ]
 
     def __str__(self):
         return f'Cart for {self.user}'
@@ -30,7 +38,7 @@ class Cart(models.Model):
         return sum(item.line_total for item in self.items.select_related('group_buy'))
 
 
-class CartItem(models.Model):
+class CartItem(TenantOwnedModel):
     cart = models.ForeignKey(
         Cart,
         on_delete=models.CASCADE,

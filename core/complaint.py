@@ -4,8 +4,10 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from tenants.models import TenantOwnedModel
 
-class Complaint(models.Model):
+
+class Complaint(TenantOwnedModel):
     class Category(models.TextChoices):
         DELIVERY = 'delivery', 'Delivery issue'
         PRODUCT_QUALITY = 'product_quality', 'Product quality'
@@ -73,7 +75,7 @@ class Complaint(models.Model):
             raise ValidationError({'order': 'Order must belong to this customer.'})
 
 
-class ComplaintMessage(models.Model):
+class ComplaintMessage(TenantOwnedModel):
     complaint = models.ForeignKey(
         Complaint,
         on_delete=models.CASCADE,

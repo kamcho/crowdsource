@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 
-from users.models import User
+from tenants.permissions import user_is_tenant_admin, user_is_tenant_ops
 
 
 def staff_required(view_func):
@@ -13,7 +13,7 @@ def staff_required(view_func):
     @login_required(login_url='users:signin')
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if not request.user.is_ops_user:
+        if not user_is_tenant_ops(request.user, request.tenant):
             messages.error(request, 'You do not have permission to access this page.')
             return redirect('home:landing')
         return view_func(request, *args, **kwargs)
@@ -27,9 +27,9 @@ def admin_required(view_func):
     @login_required(login_url='users:signin')
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if request.user.role == User.Role.ADMIN:
+        if user_is_tenant_admin(request.user, request.tenant):
             return view_func(request, *args, **kwargs)
-        if request.user.role == User.Role.STAFF:
+        if user_is_tenant_ops(request.user, request.tenant):
             messages.error(request, 'That area is restricted to admins. Use the Ops dashboard for group buys and deliveries.')
             return redirect('core:admin_dashboard')
         messages.error(request, 'You do not have permission to access this page.')

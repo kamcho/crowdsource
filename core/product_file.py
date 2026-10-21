@@ -3,6 +3,8 @@ import os
 from django.db import models
 from django.utils.text import slugify
 
+from tenants.models import TenantOwnedModel
+
 IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'}
 VIDEO_EXTENSIONS = {'mp4', 'webm', 'mov', 'avi', 'mkv', 'm4v'}
 
@@ -21,7 +23,7 @@ def product_file_upload_path(instance, filename):
     return f'products/{product_id}/{filename}'
 
 
-class ProductFile(models.Model):
+class ProductFile(TenantOwnedModel):
     class MediaType(models.TextChoices):
         IMAGE = 'image', 'Image'
         VIDEO = 'video', 'Video'

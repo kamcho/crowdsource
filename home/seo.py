@@ -8,11 +8,13 @@ from django.urls import reverse
 from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
 
+from tenants.urls import get_tenant_domain, get_tenant_site_name
+
 
 def public_site_url(path=''):
     """Canonical public origin (production domain), not the request host."""
     protocol = (getattr(settings, 'SITE_PROTOCOL', 'https') or 'https').strip().rstrip(':')
-    domain = (getattr(settings, 'SITE_DOMAIN', '') or '').strip().rstrip('/')
+    domain = get_tenant_domain()
     if not domain:
         return path or '/'
     if not path:
@@ -40,7 +42,7 @@ def json_ld_script(data):
 def organization_and_website_json_ld():
     site_url = public_site_url('/')
     browse_url = public_site_url(reverse('home:product_browse'))
-    site_name = getattr(settings, 'SITE_NAME', 'Kenya Imports')
+    site_name = get_tenant_site_name()
     contact_phone = getattr(settings, 'SITE_CONTACT_PHONE', '').strip()
     organization = {
         '@type': 'Organization',
@@ -98,7 +100,7 @@ def landing_seo(has_filters, category, search):
             'seo_og_title': browse['seo_og_title'],
             'seo_og_description': browse['seo_og_description'],
         }
-    site_name = getattr(settings, 'SITE_NAME', 'Kenya Imports')
+    site_name = get_tenant_site_name()
     description = (
         'Import wholesale products from China to Kenya. Join group buys to meet factory MOQ '
         'and source stock for businesses in Nairobi, Nakuru and nationwide.'
@@ -114,7 +116,7 @@ def landing_seo(has_filters, category, search):
 
 
 def browse_page_seo(category, search, page_number=1):
-    site_name = getattr(settings, 'SITE_NAME', 'Kenya Imports')
+    site_name = get_tenant_site_name()
     params = {}
     if category:
         params['category'] = category.slug
@@ -161,7 +163,7 @@ def browse_page_seo(category, search, page_number=1):
 
 
 def privacy_page_seo():
-    site_name = getattr(settings, 'SITE_NAME', 'Kenya Imports')
+    site_name = get_tenant_site_name()
     description = (
         'How Kenya Imports collects and uses your personal information. '
         'We do not sell or share your data with third parties.'
@@ -178,7 +180,7 @@ def privacy_page_seo():
 
 def privacy_webpage_json_ld():
     url = public_site_url(reverse('home:privacy_policy'))
-    site_name = getattr(settings, 'SITE_NAME', 'Kenya Imports')
+    site_name = get_tenant_site_name()
     return {
         '@context': 'https://schema.org',
         '@type': 'WebPage',
@@ -190,7 +192,7 @@ def privacy_webpage_json_ld():
 
 
 def product_page_seo(product, price_min=None):
-    site_name = getattr(settings, 'SITE_NAME', 'Kenya Imports')
+    site_name = get_tenant_site_name()
     description = _clean_description(
         product.description,
         fallback=(
@@ -237,7 +239,7 @@ def browse_item_list_json_ld(products):
 
 
 def product_structured_data(product, group_buy=None, price_min=None):
-    site_name = getattr(settings, 'SITE_NAME', 'Kenya Imports')
+    site_name = get_tenant_site_name()
     url = public_site_url(product.get_absolute_url())
     data = {
         '@context': 'https://schema.org',

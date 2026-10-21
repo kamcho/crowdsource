@@ -3,8 +3,10 @@ from django.utils import timezone
 
 from decimal import Decimal
 
+from tenants.models import TenantOwnedModel
 
-class ImportBatch(models.Model):
+
+class ImportBatch(TenantOwnedModel):
     class Status(models.TextChoices):
         PENDING = 'pending', 'Pending'
         ORDERED = 'ordered', 'Ordered from supplier'

@@ -8,7 +8,7 @@
     <meta name="description" content="{% if seo_description %}{{ seo_description }}{% else %}{% block meta_description %}Source wholesale products from Chinese suppliers for Kenya. Join group buys to meet MOQ and find stock for your shop or online business.{% endblock %}{% endif %}">
     <title>{% if seo_title %}{{ seo_title }}{% else %}{% block title %}China Imports & Wholesale Group Buys in Kenya — Kenya Imports{% endblock %}{% endif %}</title>
     <link rel="canonical" href="{% if seo_canonical_url %}{{ seo_canonical_url }}{% else %}{% block canonical_url %}{{ request.build_absolute_uri }}{% endblock %}{% endif %}">
-    <meta property="og:site_name" content="Kenya Imports">
+    <meta property="og:site_name" content="{{ current_tenant.name|default:'Kenya Imports' }}">
     <meta property="og:locale" content="en_KE">
     <meta property="og:type" content="{% if seo_og_type %}{{ seo_og_type }}{% else %}{% block og_type %}website{% endblock %}{% endif %}">
     <meta property="og:title" content="{% if seo_og_title %}{{ seo_og_title }}{% else %}{% block og_title %}China Imports & Wholesale Group Buys in Kenya — Kenya Imports{% endblock %}{% endif %}">
@@ -19,7 +19,7 @@
     <meta name="twitter:title" content="{% if seo_og_title %}{{ seo_og_title }}{% else %}China Imports & Wholesale Group Buys in Kenya — Kenya Imports{% endif %}">
     <meta name="twitter:description" content="{% if seo_og_description %}{{ seo_og_description }}{% else %}Source wholesale products from Chinese suppliers for Kenya. Join group buys to meet MOQ and find stock for your shop or online business.{% endif %}">
     {% if seo_og_image %}<meta name="twitter:image" content="{{ seo_og_image }}">{% endif %}
-    <meta name="application-name" content="Kenya Imports">
+    <meta name="application-name" content="{{ current_tenant.name|default:'Kenya Imports' }}">
     {{ seo_json_ld|default:'' }}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +39,7 @@
                             <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </span>
-                    <span class="logo-text">Kenya Imports</span>
+                    <span class="logo-text">{{ current_tenant.name|default:'Kenya Imports' }}</span>
                 </a>
 
                 <form class="header-search" action="{% url 'home:product_browse' %}" method="get" role="search">
@@ -96,7 +96,7 @@
                         </svg>
                         <span>Account</span>
                     </a>
-                    {% if user.role == 'admin' or user.role == 'staff' %}
+                    {% if tenant_is_ops %}
                     <a href="{% url 'core:admin_dashboard' %}" class="header-action" title="Admin">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.75"/>
@@ -104,7 +104,7 @@
                             <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.75"/>
                             <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.75"/>
                         </svg>
-                        <span>{% if user.role == 'admin' %}Admin{% else %}Ops{% endif %}</span>
+                        <span>{% if tenant_is_admin %}Admin{% else %}Ops{% endif %}</span>
                     </a>
                     {% endif %}
                     {% else %}
@@ -163,9 +163,9 @@
                             <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </span>
-                    Kenya Imports
+                    {{ current_tenant.name|default:'Kenya Imports' }}
                 </a>
-                <p>Kenya Imports is a group-buying platform for factory-direct imports from China. Meet MOQ together, save together.</p>
+                <p>{{ current_tenant.name|default:'Kenya Imports' }} is a group-buying platform for factory-direct imports from China. Meet MOQ together, save together.</p>
             </div>
             <div class="footer-col">
                 <h4>Platform</h4>
@@ -188,7 +188,7 @@
             </div>
         </div>
         <div class="container footer-bottom">
-            <p>&copy; {% now "Y" %} Kenya Imports. All rights reserved. · <a href="{% url 'home:privacy_policy' %}">Privacy Policy</a></p>
+            <p>&copy; {% now "Y" %} {{ current_tenant.name|default:'Kenya Imports' }}. All rights reserved. · <a href="{% url 'home:privacy_policy' %}">Privacy Policy</a></p>
         </div>
     </footer>
     {% include 'partials/category_drawer.html' %}

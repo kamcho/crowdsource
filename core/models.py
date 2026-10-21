@@ -1,8 +1,10 @@
 from django.db import models
 from django.utils.text import slugify
 
+from tenants.models import TenantOwnedModel
 
-class Category(models.Model):
+
+class Category(TenantOwnedModel):
     parent = models.ForeignKey(
         'self',
         on_delete=models.CASCADE,
@@ -11,7 +13,7 @@ class Category(models.Model):
         related_name='children',
     )
     name = models.CharField(max_length=100)
-    slug = models.SlugField(max_length=160, unique=True, blank=True)
+    slug = models.SlugField(max_length=160, blank=True)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -21,6 +23,10 @@ class Category(models.Model):
         verbose_name_plural = 'categories'
         ordering = ['name']
         constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'slug'],
+                name='unique_category_slug_per_tenant',
+            ),
             models.UniqueConstraint(
                 fields=['parent', 'name'],
                 name='unique_category_name_per_parent',
@@ -79,7 +85,7 @@ class Category(models.Model):
         return slug
 
 
-class Product(models.Model):
+class Product(TenantOwnedModel):
     category = models.ForeignKey(
         Category,
         on_delete=models.PROTECT,
@@ -93,7 +99,7 @@ class Product(models.Model):
         blank=True,
     )
     name = models.CharField(max_length=200)
-    slug = models.SlugField(max_length=220, unique=True, blank=True)
+    slug = models.SlugField(max_length=220, blank=True)
     description = models.TextField(blank=True)
     is_special_class = models.BooleanField(
         default=False,
@@ -105,6 +111,12 @@ class Product(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'slug'],
+                name='unique_product_slug_per_tenant',
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -216,4 +228,3 @@ from core.complaint import Complaint, ComplaintMessage  # noqa: E402, F401
 from core.user_preference import UserCategoryPreference  # noqa: E402, F401
 from core.user_preference import UserCategoryViewStat, UserProductView  # noqa: E402, F401
 from core.category_link import CategoryGoTogetherLink  # noqa: E402, F401
-

@@ -1,8 +1,10 @@
 from django.db import models
 from django.db.models import Q
 
+from tenants.models import TenantOwnedModel
 
-class ProductAttribute(models.Model):
+
+class ProductAttribute(TenantOwnedModel):
     class Section(models.TextChoices):
         KEY = 'key', 'Key attributes'
         PACKAGING = 'packaging', 'Packaging and delivery'

@@ -1,9 +1,10 @@
 from django.db import models
 
 from .models import Category
+from tenants.models import TenantOwnedModel
 
 
-class CategoryGoTogetherLink(models.Model):
+class CategoryGoTogetherLink(TenantOwnedModel):
     """Merchandising link: products in linked categories pair well together."""
 
     source_category = models.ForeignKey(

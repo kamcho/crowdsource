@@ -104,13 +104,13 @@
                         <span class="dashboard-nav-label">How it works</span>
                     </a>
                 </li>
-                {% if user.is_ops_user %}
+                {% if tenant_is_ops %}
                 <li>
                     <a href="{% url 'core:admin_dashboard' %}" class="dashboard-nav-link">
                         <span class="dashboard-nav-icon dashboard-nav-icon--slate" aria-hidden="true">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                         </span>
-                        <span class="dashboard-nav-label">{% if user.is_admin_user %}Admin{% else %}Ops{% endif %} dashboard</span>
+                        <span class="dashboard-nav-label">{% if tenant_is_admin %}Admin{% else %}Ops{% endif %} dashboard</span>
                     </a>
                 </li>
                 {% endif %}

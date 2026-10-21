@@ -171,6 +171,24 @@ journalctl -u crowdsource -e --no-pager
 
 ## 11. Nginx
 
+For tenant subdomains, the root domain and wildcard subdomain must resolve to this server:
+
+```text
+kenyaimports.com       A      DROPLET_IP
+*.kenyaimports.com     A      DROPLET_IP
+www.kenyaimports.com   CNAME  kenyaimports.com
+```
+
+Set `TENANT_BASE_DOMAIN=kenyaimports.com` and include `.kenyaimports.com` in
+`ALLOWED_HOSTS` plus `https://*.kenyaimports.com` in
+`CSRF_TRUSTED_ORIGINS`. The production environment example contains these
+values. The root domain serves the default Kenya Imports tenant; each
+`<tenant-slug>.kenyaimports.com` host resolves to that active tenant.
+Create tenant records in Django admin with a unique slug; the slug is the
+subdomain, for example `nairobi-shop.kenyaimports.com`. User accounts are
+shared across tenant stores, while staff/admin access is granted separately
+through each tenant's membership.
+
 ```bash
 cp /srv/crowdsource/deploy/nginx.conf /etc/nginx/sites-available/crowdsource
 ln -sf /etc/nginx/sites-available/crowdsource /etc/nginx/sites-enabled/crowdsource
@@ -183,7 +201,14 @@ Visit **http://DROPLET_IP** — the site should load.
 
 ## 12. HTTPS with Let's Encrypt
 
-DNS A records for `@` and `www` must point to your droplet IP.
+The Nginx `server_name` includes `*.kenyaimports.com`, so tenant traffic is
+proxied to the same Django app. The TLS certificate must cover both
+`kenyaimports.com` and `*.kenyaimports.com`; Let's Encrypt only issues wildcard
+certificates using DNS-01 validation. Use a DNS-provider Certbot plugin or
+another DNS-01-capable ACME client, then configure the HTTPS Nginx server block
+with that certificate and the same root, `www`, and wildcard `server_name`
+entries. A normal HTTP-01 Certbot run for only the root and `www` names does
+not cover tenant subdomains.
 
 ```bash
 apt install -y certbot python3-certbot-nginx
@@ -197,7 +222,8 @@ SECURE_SSL_REDIRECT=True
 SESSION_COOKIE_SECURE=True
 CSRF_COOKIE_SECURE=True
 SECURE_HSTS_SECONDS=31536000
-CSRF_TRUSTED_ORIGINS=https://YOUR_DOMAIN,https://www.YOUR_DOMAIN
+CSRF_TRUSTED_ORIGINS=https://YOUR_DOMAIN,https://www.YOUR_DOMAIN,https://*.YOUR_DOMAIN
+TENANT_BASE_DOMAIN=YOUR_DOMAIN
 MPESA_CALLBACK_BASE_URL=https://YOUR_DOMAIN
 ```
 

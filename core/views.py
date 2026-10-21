@@ -136,7 +136,9 @@ def get_related_products(product, limit=6):
 
 @staff_required
 def admin_dashboard(request):
-    full_admin_access = request.user.is_admin_user
+    from tenants.permissions import user_is_tenant_admin
+
+    full_admin_access = user_is_tenant_admin(request.user, request.tenant)
     context = get_admin_dashboard_context(full_admin_access=full_admin_access)
     context['full_admin_access'] = full_admin_access
     context['dashboard_title'] = 'Admin dashboard' if full_admin_access else 'Ops dashboard'

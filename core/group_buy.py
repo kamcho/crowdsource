@@ -6,8 +6,10 @@ from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
 
+from tenants.models import TenantOwnedModel
 
-class GroupBuy(models.Model):
+
+class GroupBuy(TenantOwnedModel):
     class Status(models.TextChoices):
         OPEN = 'open', 'Open'
         MOQ_REACHED = 'moq_reached', 'MOQ Reached'
@@ -122,7 +124,7 @@ class GroupBuy(models.Model):
         return ''
 
 
-class GroupBuyEntry(models.Model):
+class GroupBuyEntry(TenantOwnedModel):
     group_buy = models.ForeignKey(
         GroupBuy,
         on_delete=models.CASCADE,

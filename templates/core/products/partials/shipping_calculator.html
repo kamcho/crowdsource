@@ -44,7 +44,7 @@
             <p class="product-shipping-basis" id="shipping-basis-air"></p>
             <p class="product-shipping-arrival" id="shipping-arrival-air"></p>
             <p class="product-shipping-error" id="shipping-error-air" hidden></p>
-            {% if user.is_authenticated and user.is_admin_user and shipping_needs_weight %}
+            {% if user.is_authenticated and tenant_is_admin and shipping_needs_weight %}
             <p class="product-shipping-admin-action">
                 <a href="{% url 'core:product_attribute_create' product.pk %}?title=Single+gross+weight&amp;section=packaging&amp;description=0.180+kg&amp;next={{ request.path|urlencode }}">Add weight attribute (admin)</a>
             </p>
@@ -58,7 +58,7 @@
             <p class="product-shipping-basis" id="shipping-basis-sea"></p>
             <p class="product-shipping-arrival" id="shipping-arrival-sea"></p>
             <p class="product-shipping-error" id="shipping-error-sea" hidden></p>
-            {% if user.is_authenticated and user.is_admin_user and shipping_needs_size %}
+            {% if user.is_authenticated and tenant_is_admin and shipping_needs_size %}
             <p class="product-shipping-admin-action">
                 <a href="{% url 'core:product_attribute_create' product.pk %}?title=Single+package+size&amp;section=packaging&amp;description=40X35X2+cm&amp;next={{ request.path|urlencode }}">Add package size attribute (admin)</a>
             </p>
@@ -68,7 +68,7 @@
 
     <p class="product-shipping-footnote">
         Estimates use packaging attributes and current freight rates. Final shipping is confirmed after MOQ.
-        {% if user.is_authenticated and user.is_admin_user %}
+        {% if user.is_authenticated and tenant_is_admin %}
         <span class="product-shipping-admin-footnote">
             <a href="{% url 'core:product_attribute_list' product.pk %}">Manage product attributes</a>
         </span>

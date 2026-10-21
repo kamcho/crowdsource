@@ -21,7 +21,19 @@ from .product_variation import ProductOption, ProductOptionValue, ProductVariati
 from .shipping import ShippingRate
 
 
-class ProductFileInline(admin.TabularInline):
+class TenantOwnedAdminMixin:
+    def get_exclude(self, request, obj=None):
+        excluded = super().get_exclude(request, obj) or ()
+        return tuple(field for field in excluded if field != 'tenant') + ('tenant',)
+
+
+class TenantOwnedInlineMixin:
+    def get_exclude(self, request, obj=None):
+        excluded = super().get_exclude(request, obj) or ()
+        return tuple(field for field in excluded if field != 'tenant') + ('tenant',)
+
+
+class ProductFileInline(TenantOwnedInlineMixin, admin.TabularInline):
     model = ProductFile
     extra = 1
     fields = ('file', 'variation', 'media_type', 'caption', 'sort_order', 'is_primary')
@@ -31,7 +43,7 @@ class ProductFileInline(admin.TabularInline):
         return super().get_queryset(request).filter(variation__isnull=True)
 
 
-class ProductAttributeInline(admin.TabularInline):
+class ProductAttributeInline(TenantOwnedInlineMixin, admin.TabularInline):
     model = ProductAttribute
     extra = 1
     fields = ('variation', 'title', 'description', 'section', 'sort_order')
@@ -41,14 +53,14 @@ class ProductAttributeInline(admin.TabularInline):
         return super().get_queryset(request).filter(variation__isnull=True)
 
 
-class ProductOptionInline(admin.TabularInline):
+class ProductOptionInline(TenantOwnedInlineMixin, admin.TabularInline):
     model = ProductOption
     extra = 1
     fields = ('name', 'sort_order')
 
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('indented_name', 'parent', 'slug', 'is_active', 'created_at')
     list_filter = ('is_active', 'parent')
     search_fields = ('name', 'slug', 'description')
@@ -62,14 +74,14 @@ class CategoryAdmin(admin.ModelAdmin):
 
 
 @admin.register(Supplier)
-class SupplierAdmin(admin.ModelAdmin):
+class SupplierAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('name', 'contact_name', 'country', 'phone', 'wechat_id', 'is_active', 'created_at')
     list_filter = ('is_active', 'country')
     search_fields = ('name', 'contact_name', 'email', 'phone', 'wechat_id')
 
 
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
+class ProductAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('name', 'category', 'supplier', 'slug', 'is_special_class', 'is_active', 'file_count', 'variation_count', 'created_at')
     list_filter = ('is_active', 'is_special_class', 'category', 'supplier')
     search_fields = ('name', 'slug', 'description')
@@ -88,7 +100,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProductFile)
-class ProductFileAdmin(admin.ModelAdmin):
+class ProductFileAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('product', 'variation', 'media_type', 'preview', 'is_primary', 'sort_order', 'created_at')
     list_filter = ('media_type', 'is_primary')
     search_fields = ('product__name', 'variation__sku', 'caption')
@@ -106,14 +118,14 @@ class ProductFileAdmin(admin.ModelAdmin):
         return obj.file.name
 
 
-class ProductOptionValueInline(admin.TabularInline):
+class ProductOptionValueInline(TenantOwnedInlineMixin, admin.TabularInline):
     model = ProductOptionValue
     extra = 1
     fields = ('value', 'sort_order')
 
 
 @admin.register(ProductOption)
-class ProductOptionAdmin(admin.ModelAdmin):
+class ProductOptionAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('name', 'product', 'value_count', 'sort_order', 'created_at')
     search_fields = ('name', 'product__name')
     autocomplete_fields = ('product',)
@@ -125,7 +137,7 @@ class ProductOptionAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProductOptionValue)
-class ProductOptionValueAdmin(admin.ModelAdmin):
+class ProductOptionValueAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('value', 'option', 'product_name', 'sort_order', 'created_at')
     search_fields = ('value', 'option__name', 'option__product__name')
     autocomplete_fields = ('option',)
@@ -136,7 +148,7 @@ class ProductOptionValueAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProductVariation)
-class ProductVariationAdmin(admin.ModelAdmin):
+class ProductVariationAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('sku', 'product', 'display_name', 'price', 'file_count', 'is_active', 'created_at')
     list_filter = ('is_active', 'product')
     search_fields = ('sku', 'product__name')
@@ -153,7 +165,7 @@ class ProductVariationAdmin(admin.ModelAdmin):
         return obj.files.count()
 
 
-class ProductVariationFileInline(admin.TabularInline):
+class ProductVariationFileInline(TenantOwnedInlineMixin, admin.TabularInline):
     model = ProductFile
     fk_name = 'variation'
     extra = 1
@@ -166,7 +178,7 @@ ProductVariationAdmin.inlines = (ProductVariationFileInline,)
 
 
 @admin.register(ProductAttribute)
-class ProductAttributeAdmin(admin.ModelAdmin):
+class ProductAttributeAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('title', 'product', 'variation', 'sort_order', 'created_at')
     list_filter = ('product__category',)
     search_fields = ('title', 'description', 'product__name', 'variation__sku')
@@ -174,20 +186,20 @@ class ProductAttributeAdmin(admin.ModelAdmin):
 
 
 @admin.register(ShippingRate)
-class ShippingRateAdmin(admin.ModelAdmin):
+class ShippingRateAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('mode', 'goods_class', 'charge_basis', 'rate', 'currency', 'is_active', 'updated_at')
     list_filter = ('mode', 'goods_class', 'is_active', 'currency')
     search_fields = ('notes',)
 
 
-class GroupBuyEntryInline(admin.TabularInline):
+class GroupBuyEntryInline(TenantOwnedInlineMixin, admin.TabularInline):
     model = GroupBuyEntry
     extra = 0
     autocomplete_fields = ('user', 'variation')
     readonly_fields = ('created_at',)
 
 
-class ImportBatchInline(admin.StackedInline):
+class ImportBatchInline(TenantOwnedInlineMixin, admin.StackedInline):
     model = ImportBatch
     extra = 0
     max_num = 1
@@ -200,7 +212,7 @@ class ImportBatchInline(admin.StackedInline):
 
 
 @admin.register(ImportBatch)
-class ImportBatchAdmin(admin.ModelAdmin):
+class ImportBatchAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = (
         'pk', 'group_buy', 'product_name', 'supplier', 'status',
         'supplier_reference', 'estimated_arrival', 'arrived_at', 'created_at',
@@ -243,7 +255,7 @@ class ImportBatchAdmin(admin.ModelAdmin):
 
 
 @admin.register(GroupBuy)
-class GroupBuyAdmin(admin.ModelAdmin):
+class GroupBuyAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = (
         'product', 'moq', 'pledged_units_display', 'unit_price',
         'status', 'import_batch_status', 'closes_at', 'created_at',
@@ -285,7 +297,7 @@ class GroupBuyAdmin(admin.ModelAdmin):
 
 
 @admin.register(Address)
-class AddressAdmin(admin.ModelAdmin):
+class AddressAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('recipient_name', 'user', 'county', 'area', 'phone', 'is_default', 'updated_at')
     list_filter = ('is_default', 'county')
     search_fields = ('recipient_name', 'user__phone', 'user__email', 'area', 'street_address')
@@ -293,7 +305,7 @@ class AddressAdmin(admin.ModelAdmin):
 
 
 @admin.register(Fulfillment)
-class FulfillmentAdmin(admin.ModelAdmin):
+class FulfillmentAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = (
         'order', 'buyer_name', 'status', 'tracking_reference',
         'import_batch', 'shipped_at', 'delivered_at',
@@ -309,7 +321,7 @@ class FulfillmentAdmin(admin.ModelAdmin):
 
 
 @admin.register(NotificationLog)
-class NotificationLogAdmin(admin.ModelAdmin):
+class NotificationLogAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('event', 'channel', 'recipient', 'status', 'user', 'created_at')
     list_filter = ('event', 'channel', 'status')
     search_fields = ('recipient', 'body', 'user__phone', 'user__email')
@@ -326,7 +338,7 @@ class NotificationLogAdmin(admin.ModelAdmin):
 
 
 @admin.register(Refund)
-class RefundAdmin(admin.ModelAdmin):
+class RefundAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = (
         'reference', 'order', 'amount', 'refund_type', 'status',
         'created_by', 'completed_at', 'created_at',
@@ -337,7 +349,7 @@ class RefundAdmin(admin.ModelAdmin):
     readonly_fields = ('reference', 'completed_at', 'created_at', 'updated_at')
 
 
-class ComplaintMessageInline(admin.TabularInline):
+class ComplaintMessageInline(TenantOwnedInlineMixin, admin.TabularInline):
     model = ComplaintMessage
     extra = 0
     readonly_fields = ('author', 'is_staff_reply', 'created_at')
@@ -345,7 +357,7 @@ class ComplaintMessageInline(admin.TabularInline):
 
 
 @admin.register(Complaint)
-class ComplaintAdmin(admin.ModelAdmin):
+class ComplaintAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = (
         'reference', 'user', 'order', 'category', 'subject', 'status', 'created_at',
     )
@@ -359,7 +371,7 @@ class ComplaintAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProductImportDraft)
-class ProductImportDraftAdmin(admin.ModelAdmin):
+class ProductImportDraftAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('display_name', 'created_by', 'status', 'current_step', 'product', 'updated_at')
     list_filter = ('status', 'current_step')
     search_fields = ('draft_data', 'raw_paste', 'created_by__email', 'created_by__phone')
@@ -368,21 +380,21 @@ class ProductImportDraftAdmin(admin.ModelAdmin):
 
 
 @admin.register(GroupBuyEntry)
-class GroupBuyEntryAdmin(admin.ModelAdmin):
+class GroupBuyEntryAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('group_buy', 'user', 'variation', 'quantity', 'created_at')
     list_filter = ('group_buy__status',)
     search_fields = ('group_buy__product__name', 'user__phone', 'user__email')
     autocomplete_fields = ('group_buy', 'user', 'variation')
 
 
-class CartItemInline(admin.TabularInline):
+class CartItemInline(TenantOwnedInlineMixin, admin.TabularInline):
     model = CartItem
     extra = 0
     autocomplete_fields = ('group_buy', 'variation')
 
 
 @admin.register(Cart)
-class CartAdmin(admin.ModelAdmin):
+class CartAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('user', 'item_count_display', 'updated_at')
     search_fields = ('user__phone', 'user__email')
     autocomplete_fields = ('user',)
@@ -393,7 +405,7 @@ class CartAdmin(admin.ModelAdmin):
         return obj.item_count
 
 
-class OrderItemInline(admin.TabularInline):
+class OrderItemInline(TenantOwnedInlineMixin, admin.TabularInline):
     model = OrderItem
     extra = 0
     autocomplete_fields = ('variation',)
@@ -407,7 +419,7 @@ class OrderItemInline(admin.TabularInline):
 
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('pk', 'user', 'group_buy', 'status', 'total_amount', 'delivery_area_display', 'created_at')
     list_filter = ('status', 'group_buy__product__category')
     search_fields = ('user__phone', 'user__email', 'group_buy__product__name', 'delivery_recipient_name')
@@ -424,7 +436,7 @@ class OrderAdmin(admin.ModelAdmin):
 
 
 @admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
+class PaymentAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = (
         'reference', 'user', 'group_buy', 'amount', 'amount_kes',
         'status', 'provider', 'mpesa_receipt_number', 'completed_at',
@@ -442,7 +454,7 @@ class PaymentAdmin(admin.ModelAdmin):
 
 
 @admin.register(WishlistItem)
-class WishlistItemAdmin(admin.ModelAdmin):
+class WishlistItemAdmin(TenantOwnedAdminMixin, admin.ModelAdmin):
     list_display = ('user', 'product', 'created_at')
     list_filter = ('created_at',)
     search_fields = ('user__phone', 'user__email', 'product__name', 'product__slug')

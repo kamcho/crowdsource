@@ -78,7 +78,7 @@
             </ul>
         </div>
 
-        {% if user.is_admin_user %}
+        {% if tenant_is_admin %}
         <div>
             <p class="dashboard-nav-section-label">Catalog</p>
             <ul class="dashboard-nav-list">
@@ -137,7 +137,7 @@
                         <span class="dashboard-nav-label">Create group buy</span>
                     </a>
                 </li>
-                {% if user.is_admin_user %}
+                {% if tenant_is_admin %}
                 <li>
                     <a href="{% url 'core:product_create' %}" class="dashboard-nav-link">
                         <span class="dashboard-nav-icon dashboard-nav-icon--green" aria-hidden="true">
@@ -184,7 +184,7 @@
             <div class="dashboard-user-avatar" aria-hidden="true">{{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}</div>
             <div class="dashboard-user-info">
                 <div class="dashboard-user-name">{{ user.get_full_name }}</div>
-                <div class="dashboard-user-meta">{% if user.is_admin_user %}Administrator{% else %}Operations{% endif %}</div>
+                <div class="dashboard-user-meta">{% if tenant_is_admin %}Administrator{% else %}Operations{% endif %}</div>
             </div>
         </div>
     </div>

@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.db import models
 
+from tenants.models import TenantOwnedModel
 
 class ImportCostType(models.TextChoices):
     CHINA_WAREHOUSE = 'china_warehouse', 'China → warehouse'
@@ -11,7 +12,7 @@ class ImportCostType(models.TextChoices):
     OTHER = 'other', 'Other'
 
 
-class ImportShipment(models.Model):
+class ImportShipment(TenantOwnedModel):
     """Physical run (container / air) grouping many product import batches — costing is per product."""
 
     name = models.CharField(max_length=120)
@@ -33,7 +34,7 @@ class ImportShipment(models.Model):
         return total
 
 
-class ImportBatchAdditionalCost(models.Model):
+class ImportBatchAdditionalCost(TenantOwnedModel):
     """Extra charges for this product only (warehouse, freight, customs, Nakuru, etc.)."""
 
     import_batch = models.ForeignKey(
@@ -53,7 +54,7 @@ class ImportBatchAdditionalCost(models.Model):
         return f'{self.get_cost_type_display()} ${self.amount}'
 
 
-class ImportShipmentSharedCost(models.Model):
+class ImportShipmentSharedCost(TenantOwnedModel):
     shipment = models.ForeignKey(
         ImportShipment,
         on_delete=models.CASCADE,

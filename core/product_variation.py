@@ -3,8 +3,10 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from tenants.models import TenantOwnedModel
 
-class ProductOption(models.Model):
+
+class ProductOption(TenantOwnedModel):
     product = models.ForeignKey(
         'Product',
         on_delete=models.CASCADE,
@@ -27,7 +29,7 @@ class ProductOption(models.Model):
         return f'{self.product.name} — {self.name}'
 
 
-class ProductOptionValue(models.Model):
+class ProductOptionValue(TenantOwnedModel):
     option = models.ForeignKey(
         ProductOption,
         on_delete=models.CASCADE,
@@ -54,7 +56,7 @@ class ProductOptionValue(models.Model):
         return self.option.product
 
 
-class ProductVariation(models.Model):
+class ProductVariation(TenantOwnedModel):
     product = models.ForeignKey(
         'Product',
         on_delete=models.CASCADE,
@@ -64,7 +66,7 @@ class ProductVariation(models.Model):
         ProductOptionValue,
         related_name='variations',
     )
-    sku = models.CharField(max_length=80, unique=True)
+    sku = models.CharField(max_length=80)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -72,6 +74,12 @@ class ProductVariation(models.Model):
 
     class Meta:
         ordering = ['sku']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'sku'],
+                name='unique_variation_sku_per_tenant',
+            ),
+        ]
 
     def __str__(self):
         return self.display_name

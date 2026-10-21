@@ -3,6 +3,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from core.complaint import Complaint, ComplaintMessage
+from tenants.permissions import user_is_tenant_ops
+from tenants.context import get_current_tenant
 
 
 def create_complaint(*, user, category, subject, description, order=None):
@@ -25,7 +27,7 @@ def add_complaint_message(*, complaint, author, body, is_staff_reply=False):
 
     if not is_staff_reply and complaint.user_id != author.pk:
         raise ValidationError('You can only reply to your own complaint.')
-    if is_staff_reply and not author.is_ops_user:
+    if is_staff_reply and not user_is_tenant_ops(author, get_current_tenant()):
         raise ValidationError('Only staff can send internal replies.')
 
     if not complaint.is_open and not is_staff_reply:

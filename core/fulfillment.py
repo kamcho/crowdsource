@@ -1,8 +1,10 @@
 from django.db import models
 from django.utils import timezone
 
+from tenants.models import TenantOwnedModel
 
-class Fulfillment(models.Model):
+
+class Fulfillment(TenantOwnedModel):
     class Status(models.TextChoices):
         PENDING = 'pending', 'Pending'
         PACKED = 'packed', 'Packed'

@@ -598,6 +598,36 @@ class ProductDetailGroupBuyTests(TestCase):
         self.assertEqual(self.product.group_buys.count(), 1)
         self.assertEqual(self.product.group_buys.first().pk, existing.pk)
 
+    def test_product_detail_lazy_loads_gallery_media_but_prioritizes_hero(self):
+        from django.core.cache import cache
+
+        from core.product_file import ProductFile
+
+        cache.delete(f'product_detail:{self.product.pk}')
+        ProductFile.objects.create(
+            product=self.product,
+            file='products/hero.jpg',
+            media_type=ProductFile.MediaType.IMAGE,
+            is_primary=True,
+        )
+        ProductFile.objects.create(
+            product=self.product,
+            file='products/secondary.jpg',
+            media_type=ProductFile.MediaType.IMAGE,
+        )
+
+        response = self.client.get(
+            reverse('product_detail', kwargs={'slug': self.product.slug}),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'fetchpriority="high" decoding="async"')
+        self.assertContains(response, 'loading="lazy" decoding="async"')
+        self.assertContains(
+            response,
+            """'<img src="' + item.url + '" alt="" loading="lazy" decoding="async">'""",
+        )
+
     def test_cached_product_details_render_fresh_group_buy_progress(self):
         from django.core.cache import cache
         from django.template.defaultfilters import date as format_date

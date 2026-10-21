@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django.contrib.sitemaps',
     'phonenumber_field',
+    'tenants.apps.TenantsConfig',
     'users',
     'core',
     'home.apps.HomeConfig',
@@ -68,6 +69,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'tenants.middleware.TenantMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -87,6 +89,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.tenant_context',
                 'core.context_processors.cart_summary',
                 'core.context_processors.wishlist_summary',
                 'core.context_processors.admin_sidebar',
@@ -173,6 +176,26 @@ SITE_PROTOCOL = os.environ.get(
     'SITE_PROTOCOL',
     'http' if DEBUG else 'https',
 ).strip().rstrip(':')
+TENANT_BASE_DOMAIN = os.environ.get(
+    'TENANT_BASE_DOMAIN',
+    'localhost' if DEBUG else SITE_DOMAIN.split(':', 1)[0].removeprefix('www.'),
+).strip().lower().rstrip('.')
+
+tenant_allowed_host = f'.{TENANT_BASE_DOMAIN}'
+if tenant_allowed_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(tenant_allowed_host)
+if DEBUG:
+    for local_subdomain_host in ('.localhost', '.testserver'):
+        if local_subdomain_host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(local_subdomain_host)
+
+CSRF_TRUSTED_ORIGINS.extend([
+    f'{SITE_PROTOCOL}://*.{TENANT_BASE_DOMAIN}',
+    f'{SITE_PROTOCOL}://{TENANT_BASE_DOMAIN}',
+])
+if not DEBUG:
+    SESSION_COOKIE_DOMAIN = f'.{TENANT_BASE_DOMAIN}'
+    CSRF_COOKIE_DOMAIN = f'.{TENANT_BASE_DOMAIN}'
 
 # Primary customer contact (WhatsApp / voice)
 SITE_CONTACT_PHONE = os.environ.get('SITE_CONTACT_PHONE', '+254180653706').strip()

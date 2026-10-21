@@ -2,8 +2,10 @@ from decimal import Decimal
 
 from django.db import models
 
+from tenants.models import TenantOwnedModel
 
-class ShippingRate(models.Model):
+
+class ShippingRate(TenantOwnedModel):
     class Mode(models.TextChoices):
         AIR = 'air', 'Air freight'
         SEA = 'sea', 'Sea freight'
@@ -29,8 +31,8 @@ class ShippingRate(models.Model):
         ordering = ['mode', 'goods_class']
         constraints = [
             models.UniqueConstraint(
-                fields=['mode', 'goods_class'],
-                name='unique_shipping_rate_mode_class',
+                fields=['tenant', 'mode', 'goods_class'],
+                name='unique_shipping_rate_per_tenant_mode_class',
             ),
         ]
 

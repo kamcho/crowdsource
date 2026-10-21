@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.db import models
 
+from tenants.models import TenantOwnedModel
 
-class ProductImportDraft(models.Model):
+
+class ProductImportDraft(TenantOwnedModel):
     class Step(models.TextChoices):
         SUPPLIER = 'supplier', 'Supplier'
         CATEGORIES = 'categories', 'Categories'
@@ -76,7 +78,7 @@ class ProductImportDraft(models.Model):
         return self.step_index + 1
 
 
-class ProductImportMedia(models.Model):
+class ProductImportMedia(TenantOwnedModel):
     draft = models.ForeignKey(
         ProductImportDraft,
         on_delete=models.CASCADE,

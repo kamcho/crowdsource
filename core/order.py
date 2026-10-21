@@ -4,8 +4,10 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from tenants.models import TenantOwnedModel
 
-class Order(models.Model):
+
+class Order(TenantOwnedModel):
     class Status(models.TextChoices):
         PENDING_PAYMENT = 'pending_payment', 'Pending Payment'
         PAID = 'paid', 'Paid'
@@ -88,7 +90,7 @@ class Order(models.Model):
         return get_order_refundable_amount(self)
 
 
-class OrderItem(models.Model):
+class OrderItem(TenantOwnedModel):
     order = models.ForeignKey(
         Order,
         on_delete=models.CASCADE,

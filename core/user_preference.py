@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.db import models
 
+from tenants.models import TenantOwnedModel
 
-class UserCategoryPreference(models.Model):
+
+class UserCategoryPreference(TenantOwnedModel):
     class Source(models.TextChoices):
         MANUAL = 'manual', 'Manual'
         VIEWED = 'viewed', 'From browsing'
@@ -38,7 +40,7 @@ class UserCategoryPreference(models.Model):
         return f'{self.user} prefers {self.category.name}'
 
 
-class UserProductView(models.Model):
+class UserProductView(TenantOwnedModel):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -61,7 +63,7 @@ class UserProductView(models.Model):
         return f'{self.user} viewed {self.product.name}'
 
 
-class UserCategoryViewStat(models.Model):
+class UserCategoryViewStat(TenantOwnedModel):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
