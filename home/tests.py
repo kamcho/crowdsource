@@ -53,6 +53,9 @@ class SeoViewsTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Kenya Imports')
+        self.assertContains(response, 'class="landing-editorial container container-wide"')
+        self.assertContains(response, 'class="landing-editorial-card"')
+        self.assertContains(response, 'class="landing-editorial-note"')
 
     def test_homepage_seo_meta_and_structured_data(self):
         response = self.client.get(reverse('home:landing'))

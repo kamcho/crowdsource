@@ -1814,10 +1814,83 @@
     color: var(--color-text);
 }
 
+.landing-editorial {
+    padding-top: 3.5rem;
+    padding-bottom: 4rem;
+}
+
+.landing-editorial-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
+    gap: 2.5rem;
+    align-items: start;
+    padding: clamp(1.5rem, 4vw, 3rem);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-xl);
+    background:
+        radial-gradient(ellipse at top left, rgba(249, 115, 22, 0.07), transparent 52%),
+        var(--color-bg);
+    box-shadow: 0 12px 36px rgba(15, 23, 42, 0.05);
+}
+
+.landing-editorial-main h2 {
+    max-width: 18ch;
+    margin: 0.5rem 0 1rem;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    line-height: 1.2;
+    letter-spacing: -0.035em;
+}
+
+.landing-editorial-main p,
+.landing-editorial-note p {
+    color: var(--color-text-secondary);
+    line-height: 1.75;
+}
+
+.landing-editorial-main p {
+    max-width: 72ch;
+    margin: 0 0 1rem;
+}
+
+.landing-editorial-main a {
+    color: var(--color-primary);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+.landing-editorial-note {
+    padding: 1.5rem;
+    border: 1px solid rgba(249, 115, 22, 0.18);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 247, 237, 0.72);
+}
+
+.landing-editorial-note h3 {
+    margin: 0 0 0.65rem;
+    font-size: 1.0625rem;
+    line-height: 1.4;
+}
+
+.landing-editorial-note p {
+    margin: 0;
+    font-size: 0.9375rem;
+}
+
 @media (max-width: 720px) {
     .landing-how-strip-inner {
         grid-template-columns: 1fr;
         gap: 0.75rem;
+    }
+
+    .landing-editorial {
+        padding-top: 2.5rem;
+        padding-bottom: 3rem;
+    }
+
+    .landing-editorial-card {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
     }
 
     .landing-market-top {
