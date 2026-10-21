@@ -53,6 +53,11 @@ class SeoViewsTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Kenya Imports')
+        self.assertContains(
+            response,
+            '<link rel="icon" type="image/png" sizes="192x192" '
+            'href="/static/img/favicon-192.png">',
+        )
         self.assertContains(response, 'class="landing-editorial container container-wide"')
         self.assertContains(response, 'class="landing-editorial-card"')
         self.assertContains(response, 'class="landing-editorial-note"')

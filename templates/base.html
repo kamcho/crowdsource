@@ -7,6 +7,8 @@
     <meta name="robots" content="{% if seo_robots %}{{ seo_robots }}{% else %}index, follow, max-image-preview:large{% endif %}">
     <meta name="description" content="{% if seo_description %}{{ seo_description }}{% else %}{% block meta_description %}Source wholesale products from Chinese suppliers for Kenya. Join group buys to meet MOQ and find stock for your shop or online business.{% endblock %}{% endif %}">
     <title>{% if seo_title %}{{ seo_title }}{% else %}{% block title %}China Imports & Wholesale Group Buys in Kenya — Kenya Imports{% endblock %}{% endif %}</title>
+    <link rel="icon" type="image/png" sizes="192x192" href="{% static 'img/favicon-192.png' %}">
+    <link rel="apple-touch-icon" sizes="192x192" href="{% static 'img/favicon-192.png' %}">
     <link rel="canonical" href="{% if seo_canonical_url %}{{ seo_canonical_url }}{% else %}{% block canonical_url %}{{ request.build_absolute_uri }}{% endblock %}{% endif %}">
     <meta property="og:site_name" content="{{ current_tenant.name|default:'Kenya Imports' }}">
     <meta property="og:locale" content="en_KE">
