@@ -2,7 +2,6 @@ import json
 from calendar import month_abbr
 from decimal import Decimal
 
-from django.contrib.auth import get_user_model
 from django.db.models import Count, Exists, OuterRef, Sum
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
@@ -16,10 +15,12 @@ from core.supplier import Supplier
 from core.order import Order
 from core.payment import Payment
 from core.whatsapp_services import get_whatsapp_activity_feed
+from tenants.context import get_current_tenant
+from tenants.models import Tenant, TenantMembership
 
 
 def get_admin_dashboard_context(*, full_admin_access=True):
-    User = get_user_model()
+    tenant = get_current_tenant() or Tenant.objects.filter(is_default=True).first()
 
     pledged_units = GroupBuyEntry.objects.aggregate(total=Sum('quantity'))['total'] or 0
 
@@ -50,7 +51,13 @@ def get_admin_dashboard_context(*, full_admin_access=True):
             total=Sum('total_amount'),
         )['total'] or Decimal('0.00')
         stats.update({
-            'users': User.objects.count(),
+            'users': (
+                TenantMembership.objects.filter(tenant=tenant)
+                .values('user_id')
+                .distinct()
+                .count()
+                if tenant else 0
+            ),
             'products': Product.objects.count(),
             'products_active': Product.objects.filter(is_active=True).count(),
             'categories': Category.objects.filter(is_active=True).count(),

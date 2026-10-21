@@ -54,8 +54,8 @@ STEP_ROUTES = {
 }
 
 
-def _draft_queryset(user):
-    return ProductImportDraft.objects.filter(created_by=user).exclude(
+def _draft_queryset():
+    return ProductImportDraft.objects.exclude(
         status=ProductImportDraft.Status.DISCARDED,
     )
 
@@ -87,7 +87,7 @@ def _redirect_step(draft):
 
 @admin_required
 def product_import_list(request):
-    drafts = _draft_queryset(request.user).select_related('product', 'created_by')
+    drafts = _draft_queryset().select_related('product', 'created_by')
     return render(request, 'core/product_import/list.html', {
         'drafts': drafts,
         'openai_configured': is_openai_configured(),
@@ -147,7 +147,7 @@ def product_import_start(request):
 
 @admin_required
 def product_import_supplier(request, draft_id):
-    draft = get_object_or_404(_draft_queryset(request.user), pk=draft_id)
+    draft = get_object_or_404(_draft_queryset(), pk=draft_id)
     if draft.status == ProductImportDraft.Status.FAILED:
         messages.error(request, draft.parse_error or 'Parsing failed.')
         return redirect('core:product_import_list')
@@ -190,7 +190,7 @@ def product_import_supplier(request, draft_id):
 
 @admin_required
 def product_import_categories(request, draft_id):
-    draft = get_object_or_404(_draft_queryset(request.user), pk=draft_id)
+    draft = get_object_or_404(_draft_queryset(), pk=draft_id)
     if draft.status == ProductImportDraft.Status.FAILED:
         messages.error(request, draft.parse_error or 'Parsing failed.')
         return redirect('core:product_import_list')
@@ -233,7 +233,7 @@ def product_import_categories(request, draft_id):
 
 @admin_required
 def product_import_basics(request, draft_id):
-    draft = get_object_or_404(_draft_queryset(request.user), pk=draft_id)
+    draft = get_object_or_404(_draft_queryset(), pk=draft_id)
     if draft.status == ProductImportDraft.Status.FAILED:
         messages.error(request, draft.parse_error or 'Parsing failed.')
         return redirect('core:product_import_list')
@@ -280,7 +280,7 @@ def product_import_basics(request, draft_id):
 
 @admin_required
 def product_import_attributes(request, draft_id):
-    draft = get_object_or_404(_draft_queryset(request.user), pk=draft_id)
+    draft = get_object_or_404(_draft_queryset(), pk=draft_id)
     attributes = (draft.draft_data or {}).get('attributes', [])
 
     if request.method == 'POST':
@@ -305,7 +305,7 @@ def product_import_attributes(request, draft_id):
 
 @admin_required
 def product_import_variations(request, draft_id):
-    draft = get_object_or_404(_draft_queryset(request.user), pk=draft_id)
+    draft = get_object_or_404(_draft_queryset(), pk=draft_id)
     data = draft.draft_data or {}
 
     if request.method == 'POST':
@@ -351,7 +351,7 @@ def product_import_variations(request, draft_id):
 
 @admin_required
 def product_import_product_media(request, draft_id):
-    draft = get_object_or_404(_draft_queryset(request.user), pk=draft_id)
+    draft = get_object_or_404(_draft_queryset(), pk=draft_id)
     product_media = draft.media_files.filter(variation_sku='')
 
     if request.method == 'POST':
@@ -427,7 +427,7 @@ def product_import_product_media(request, draft_id):
 
 @admin_required
 def product_import_variation_media(request, draft_id):
-    draft = get_object_or_404(_draft_queryset(request.user), pk=draft_id)
+    draft = get_object_or_404(_draft_queryset(), pk=draft_id)
     variations = (draft.draft_data or {}).get('variations', [])
 
     if request.method == 'POST':
@@ -476,7 +476,7 @@ def product_import_variation_media(request, draft_id):
 
 @admin_required
 def product_import_review(request, draft_id):
-    draft = get_object_or_404(_draft_queryset(request.user), pk=draft_id)
+    draft = get_object_or_404(_draft_queryset(), pk=draft_id)
     data = draft.draft_data or {}
 
     category = Category.objects.filter(pk=data.get('category_id')).first()
@@ -508,7 +508,7 @@ def product_import_review(request, draft_id):
 @admin_required
 @require_POST
 def product_import_discard(request, draft_id):
-    draft = get_object_or_404(_draft_queryset(request.user), pk=draft_id)
+    draft = get_object_or_404(_draft_queryset(), pk=draft_id)
     draft.status = ProductImportDraft.Status.DISCARDED
     draft.save(update_fields=['status', 'updated_at'])
     messages.info(request, 'Import draft discarded.')

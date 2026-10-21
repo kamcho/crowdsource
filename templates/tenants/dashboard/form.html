@@ -9,7 +9,11 @@
             <div>
                 <p class="commerce-breadcrumb">
                     <a href="{% url 'core:admin_dashboard' %}">Dashboard</a> /
+                    {% if request.user.is_superuser %}
                     <a href="{% url 'core:tenant_list' %}">Tenants</a> /
+                    {% else %}
+                    {{ tenant.name }} /
+                    {% endif %}
                     {{ page_title }}
                 </p>
                 <h1>{{ page_title }}</h1>
@@ -25,7 +29,11 @@
                 <p>Each tenant gets its own catalog and store at a subdomain.</p>
                 {% endif %}
             </div>
+            {% if request.user.is_superuser %}
             <a href="{% url 'core:tenant_list' %}" class="btn btn-outline">All tenants</a>
+            {% else %}
+            <a href="{% url 'core:admin_dashboard' %}" class="btn btn-outline">Dashboard</a>
+            {% endif %}
         </div>
 
         <div class="admin-card admin-card-narrow">
@@ -42,7 +50,11 @@
                 {% for error in form.non_field_errors %}<p class="form-error">{{ error }}</p>{% endfor %}
                 <div class="admin-form-actions">
                     <button type="submit" class="btn btn-primary">{% if tenant %}Save changes{% else %}Create tenant{% endif %}</button>
+                    {% if request.user.is_superuser %}
                     <a href="{% url 'core:tenant_list' %}" class="btn btn-outline">Cancel</a>
+                    {% else %}
+                    <a href="{% url 'core:admin_dashboard' %}" class="btn btn-outline">Cancel</a>
+                    {% endif %}
                 </div>
             </form>
         </div>

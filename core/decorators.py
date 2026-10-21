@@ -36,3 +36,17 @@ def admin_required(view_func):
         return redirect('home:landing')
 
     return wrapper
+
+
+def superuser_required(view_func):
+    """Allow platform-wide operations that cannot be scoped to one tenant."""
+
+    @login_required(login_url='users:signin')
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if request.user.is_superuser:
+            return view_func(request, *args, **kwargs)
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('home:landing')
+
+    return wrapper

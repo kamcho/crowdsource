@@ -794,6 +794,50 @@ class ProductImportTests(TestCase):
         SKU CTB-BLK L — Black / Large — $3.10
         """
 
+    def test_admin_can_manage_import_drafts_from_other_shop_users(self):
+        from django.contrib.auth import get_user_model
+
+        from core.product_import import ProductImportDraft
+        from tenants.models import Tenant
+
+        User = get_user_model()
+        shop_staff = User.objects.create_user(
+            phone='+254700111223',
+            password='pass',
+            role='staff',
+        )
+        shop_draft = ProductImportDraft.objects.create(
+            created_by=shop_staff,
+            draft_data={'name': 'Shop-wide draft'},
+        )
+        other_tenant = Tenant.objects.create(name='Another Shop', slug='another-shop')
+        other_staff = User.objects.create_user(
+            phone='+254700111224',
+            password='pass',
+            role='staff',
+        )
+        foreign_draft = ProductImportDraft.objects.create(
+            tenant=other_tenant,
+            created_by=other_staff,
+            draft_data={'name': 'Other shop draft'},
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.get(reverse('core:product_import_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Shop-wide draft')
+        self.assertNotContains(response, 'Other shop draft')
+
+        with override_settings(FRIENDLY_ERRORS=False):
+            response = self.client.get(
+                reverse(
+                    'core:product_import_basics',
+                    kwargs={'draft_id': foreign_draft.pk},
+                ),
+            )
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(shop_draft.tenant, Tenant.objects.get(is_default=True))
+
     def test_normalize_parsed_draft(self):
         from core.openai_product_import import normalize_parsed_draft
 
@@ -1596,6 +1640,37 @@ class CategoryGoTogetherTests(TestCase):
 
 
 class AdminDashboardCampaignProgressTests(TestCase):
+    def test_dashboard_user_count_is_limited_to_current_tenant(self):
+        from django.contrib.auth import get_user_model
+
+        from core.admin_dashboard import get_admin_dashboard_context
+        from tenants.models import Tenant, TenantMembership
+
+        User = get_user_model()
+        other_tenant = Tenant.objects.create(name='Other Shop', slug='other-dashboard')
+        other_user = User.objects.create_user(
+            phone='+254700000002',
+            password='pass',
+        )
+        TenantMembership.objects.filter(
+            tenant=Tenant.objects.get(is_default=True),
+            user=other_user,
+        ).delete()
+        TenantMembership.objects.create(
+            tenant=other_tenant,
+            user=other_user,
+            role=TenantMembership.Role.CUSTOMER,
+        )
+
+        context = get_admin_dashboard_context()
+
+        self.assertEqual(
+            context['stats']['users'],
+            TenantMembership.objects.filter(
+                tenant=Tenant.objects.get(is_default=True),
+            ).values('user_id').distinct().count(),
+        )
+
     def test_campaign_progress_counts_distinct_products_at_moq_milestones(self):
         from django.contrib.auth import get_user_model
 
@@ -2607,10 +2682,16 @@ class ImportCostTests(TestCase):
     def test_shipment_group_buy_search_returns_json(self):
         from core.import_services import link_group_buy_to_shipment
         from users.models import User
+        from tenants.models import Tenant, TenantMembership
 
         link_group_buy_to_shipment(self.group_buy, self.shipment)
         self.user.role = User.Role.ADMIN
         self.user.save(update_fields=['role'])
+        TenantMembership.objects.update_or_create(
+            tenant=Tenant.objects.get(is_default=True),
+            user=self.user,
+            defaults={'role': TenantMembership.Role.ADMIN},
+        )
         self.client.force_login(self.user)
 
         url = reverse('core:import_shipment_group_buy_search', kwargs={'shipment_id': self.shipment.pk})
@@ -2900,7 +2981,23 @@ class OpsOrderCustomerTests(TestCase):
         self.assertContains(manage, 'Amina Buyer')
         self.assertContains(manage, 'Update delivery')
 
-    def test_deactivate_customer(self):
+    def test_tenant_staff_cannot_deactivate_global_customer_account(self):
+        response = self.client.post(
+            reverse('core:customer_manage', kwargs={'user_id': self.buyer.pk}),
+            {'action': 'set_active', 'is_active': '0'},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.buyer.refresh_from_db()
+        self.assertTrue(self.buyer.is_active)
+
+    def test_platform_superuser_can_deactivate_customer_account(self):
+        from django.contrib.auth import get_user_model
+
+        superuser = get_user_model().objects.create_superuser(
+            phone='+254711222334',
+            password='pass',
+        )
+        self.client.force_login(superuser)
         response = self.client.post(
             reverse('core:customer_manage', kwargs={'user_id': self.buyer.pk}),
             {'action': 'set_active', 'is_active': '0'},
@@ -2908,6 +3005,60 @@ class OpsOrderCustomerTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.buyer.refresh_from_db()
         self.assertFalse(self.buyer.is_active)
+
+    def test_customer_management_only_shows_current_tenant_data(self):
+        from core.group_buy import GroupBuy
+        from core.order import Order
+        from tenants.models import Tenant, TenantMembership
+
+        other_tenant = Tenant.objects.create(name='Other Shop', slug='other-shop')
+        TenantMembership.objects.create(
+            tenant=other_tenant,
+            user=self.buyer,
+            role=TenantMembership.Role.CUSTOMER,
+        )
+        other_category = Category.objects.create(
+            tenant=other_tenant,
+            name='Other category',
+        )
+        other_product = Product.objects.create(
+            tenant=other_tenant,
+            category=other_category,
+            name='Other tenant product',
+            is_active=True,
+        )
+        other_group_buy = GroupBuy.objects.create(
+            tenant=other_tenant,
+            product=other_product,
+            moq=5,
+            unit_price='8.00',
+            closes_at=timezone.now() + timedelta(days=10),
+        )
+        Order.objects.create(
+            tenant=other_tenant,
+            group_buy=other_group_buy,
+            user=self.buyer,
+            status=Order.Status.PAID,
+            total_amount='80.00',
+            delivery_recipient_name='Amina Other Shop',
+        )
+
+        customers = self.client.get(
+            reverse('core:customer_list'),
+            {'q': 'Amina'},
+        )
+        self.assertEqual(customers.status_code, 200)
+        buyer_row = customers.context['customers'].get(pk=self.buyer.pk)
+        self.assertEqual(buyer_row.order_count, 1)
+        self.assertEqual(buyer_row.paid_total, Decimal('16.00'))
+        self.assertNotContains(customers, 'Other tenant product')
+
+        detail = self.client.get(
+            reverse('core:customer_manage', kwargs={'user_id': self.buyer.pk}),
+        )
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(len(detail.context['orders']), 1)
+        self.assertNotContains(detail, 'Other tenant product')
 
     def test_customer_cannot_open_ops_orders(self):
         self.client.force_login(self.buyer)
@@ -2923,8 +3074,6 @@ class BackupTests(TestCase):
 
         from django.contrib.auth import get_user_model
 
-        from users.models import User
-
         self.backup_root = Path(tempfile.mkdtemp(prefix='crowdsource-backup-test-'))
         self._settings = self.settings(
             BACKUP_ROOT=str(self.backup_root),
@@ -2933,10 +3082,9 @@ class BackupTests(TestCase):
         self._settings.enable()
 
         User = get_user_model()
-        self.admin = User.objects.create_user(
+        self.admin = User.objects.create_superuser(
             phone='+254700000099',
             password='pass',
-            role=User.Role.ADMIN,
         )
         self.client = Client()
         self.client.force_login(self.admin)
@@ -2969,3 +3117,18 @@ class BackupTests(TestCase):
         self.assertEqual(download['Content-Type'], 'application/zip')
         b''.join(download.streaming_content)
         download.close()
+
+    def test_tenant_admin_cannot_access_platform_backups(self):
+        from django.contrib.auth import get_user_model
+
+        tenant_admin = get_user_model().objects.create_user(
+            phone='+254700000098',
+            password='pass',
+            role='admin',
+        )
+        self.client.force_login(tenant_admin)
+
+        response = self.client.get(reverse('core:backup_list'))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('home:landing'))

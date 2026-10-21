@@ -187,7 +187,10 @@ values. The root domain serves the default Kenya Imports tenant; each
 Create tenant records in Django admin with a unique slug; the slug is the
 subdomain, for example `nairobi-shop.kenyaimports.com`. User accounts are
 shared across tenant stores, while staff/admin access is granted separately
-through each tenant's membership.
+through each tenant's membership. Tenant admins use the custom admin console
+on their tenant's host to manage that shop and its staff; they cannot manage
+other tenants or platform-wide backups. Only platform superusers can create
+tenants or use Django admin and platform backup tools.
 
 ```bash
 cp /srv/crowdsource/deploy/nginx.conf /etc/nginx/sites-available/crowdsource

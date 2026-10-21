@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 
 from .forms import TenantForm, TenantMembershipForm
 from .models import Tenant, TenantMembership
-from .permissions import user_can_manage_tenants
+from .permissions import user_can_manage_tenant, user_can_manage_tenants
 
 
 def tenant_management_required(view_func):
@@ -18,6 +18,20 @@ def tenant_management_required(view_func):
     def wrapped(request, *args, **kwargs):
         if not user_can_manage_tenants(request.user):
             messages.error(request, 'You do not have permission to manage tenants.')
+            return redirect('home:landing')
+        return view_func(request, *args, **kwargs)
+
+    return wrapped
+
+
+def tenant_admin_required(view_func):
+    @login_required(login_url='users:signin')
+    @wraps(view_func)
+    def wrapped(request, *args, **kwargs):
+        tenant_id = kwargs.get('tenant_id')
+        tenant = Tenant.objects.filter(pk=tenant_id).first()
+        if not user_can_manage_tenant(request.user, tenant):
+            messages.error(request, 'You do not have permission to manage this tenant.')
             return redirect('home:landing')
         return view_func(request, *args, **kwargs)
 
@@ -51,10 +65,15 @@ def tenant_create(request):
     })
 
 
-@tenant_management_required
+@tenant_admin_required
 def tenant_edit(request, tenant_id):
     tenant = get_object_or_404(Tenant, pk=tenant_id)
-    form = TenantForm(request.POST or None, instance=tenant)
+    form = TenantForm(
+        request.POST or None,
+        instance=tenant,
+        allow_deactivation=request.user.is_superuser,
+        allow_slug_change=request.user.is_superuser,
+    )
     if request.method == 'POST' and form.is_valid():
         form.save()
         messages.success(request, f'Tenant "{tenant.name}" was updated.')
@@ -75,7 +94,7 @@ def tenant_edit(request, tenant_id):
     })
 
 
-@tenant_management_required
+@tenant_admin_required
 @require_POST
 def tenant_add_membership(request, tenant_id):
     tenant = get_object_or_404(Tenant, pk=tenant_id)
@@ -101,7 +120,7 @@ def tenant_add_membership(request, tenant_id):
     return redirect('core:tenant_edit', tenant_id=tenant.pk)
 
 
-@tenant_management_required
+@tenant_admin_required
 @require_POST
 def tenant_remove_membership(request, tenant_id, membership_id):
     tenant = get_object_or_404(Tenant, pk=tenant_id)

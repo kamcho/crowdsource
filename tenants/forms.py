@@ -49,6 +49,19 @@ class TenantForm(forms.ModelForm):
             'contact_phone_display': 'Optional display format. If empty, the contact phone is shown as entered.',
         }
 
+    def __init__(
+        self,
+        *args,
+        allow_deactivation=True,
+        allow_slug_change=True,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        if not allow_deactivation:
+            self.fields.pop('is_active')
+        if not allow_slug_change:
+            self.fields.pop('slug')
+
     def clean_contact_phone(self):
         phone = self.cleaned_data.get('contact_phone')
         return str(phone) if phone else ''

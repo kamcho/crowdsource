@@ -29,7 +29,7 @@
                 <p>{{ customer.phone|default:"No phone" }}{% if customer.email %} · {{ customer.email }}{% endif %} · Joined {{ customer.date_joined|date:"M j, Y" }}</p>
             </div>
             <div class="admin-header-actions">
-                {% if customer.role == 'customer' %}
+                {% if customer.role == 'customer' and request.user.is_superuser %}
                 <form method="post">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="set_active">

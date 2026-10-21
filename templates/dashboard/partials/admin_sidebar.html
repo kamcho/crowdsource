@@ -34,6 +34,15 @@
                         <span class="dashboard-nav-label">Tenants</span>
                     </a>
                 </li>
+                {% elif tenant_is_admin %}
+                <li>
+                    <a href="{% url 'core:tenant_edit' current_tenant.pk %}" class="dashboard-nav-link{% if request.resolver_match.url_name == 'tenant_edit' %} is-active{% endif %}">
+                        <span class="dashboard-nav-icon dashboard-nav-icon--indigo" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+                        </span>
+                        <span class="dashboard-nav-label">Shop settings</span>
+                    </a>
+                </li>
                 {% endif %}
                 <li>
                     <a href="{% url 'core:admin_order_list' %}" class="dashboard-nav-link{% if 'admin_order' in request.resolver_match.url_name %} is-active{% endif %}">
@@ -166,6 +175,7 @@
                         <span class="dashboard-nav-label">Add product</span>
                     </a>
                 </li>
+                {% if request.user.is_superuser %}
                 <li>
                     <a href="{% url 'core:backup_list' %}" class="dashboard-nav-link{% if request.resolver_match.url_name == 'backup_list' %} is-active{% endif %}">
                         <span class="dashboard-nav-icon dashboard-nav-icon--blue" aria-hidden="true">
@@ -182,6 +192,7 @@
                         <span class="dashboard-nav-label">Django admin</span>
                     </a>
                 </li>
+                {% endif %}
                 {% endif %}
             </ul>
         </div>

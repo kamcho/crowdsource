@@ -6,6 +6,8 @@ from django.db.models import Count, DecimalField, OuterRef, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, redirect, render
 
+from tenants.context import get_current_tenant
+from tenants.models import Tenant
 from users.models import User
 
 from .address import Address
@@ -51,9 +53,12 @@ def _order_search(query):
 
 
 def customers_queryset(*, customers_only=True):
+    tenant = get_current_tenant() or Tenant.objects.filter(is_default=True).first()
+    tenant_id = tenant.pk if tenant else None
     paid_total = (
         Order.objects.filter(
             user_id=OuterRef('pk'),
+            tenant_id=tenant_id,
             status=Order.Status.PAID,
         )
         .order_by()
@@ -62,23 +67,43 @@ def customers_queryset(*, customers_only=True):
         .values('total')
     )
     users = User.objects.all()
+    if tenant_id is not None:
+        users = users.filter(tenant_memberships__tenant_id=tenant_id)
     if customers_only:
         users = users.filter(role=User.Role.CUSTOMER)
-    return users.annotate(
-        order_count=Count('orders', distinct=True),
-        paid_order_count=Count(
+    return users.distinct().annotate(
+        order_count=Count(
             'orders',
-            filter=Q(orders__status=Order.Status.PAID),
+            filter=Q(orders__tenant_id=tenant_id),
             distinct=True,
         ),
-        refund_count=Count('orders__refunds', distinct=True),
-        complaint_count=Count('complaints', distinct=True),
+        paid_order_count=Count(
+            'orders',
+            filter=Q(
+                orders__tenant_id=tenant_id,
+                orders__status=Order.Status.PAID,
+            ),
+            distinct=True,
+        ),
+        refund_count=Count(
+            'orders__refunds',
+            filter=Q(orders__tenant_id=tenant_id),
+            distinct=True,
+        ),
+        complaint_count=Count(
+            'complaints',
+            filter=Q(complaints__tenant_id=tenant_id),
+            distinct=True,
+        ),
         open_complaint_count=Count(
             'complaints',
-            filter=Q(complaints__status__in=[
-                Complaint.Status.OPEN,
-                Complaint.Status.IN_PROGRESS,
-            ]),
+            filter=Q(
+                complaints__tenant_id=tenant_id,
+                complaints__status__in=[
+                    Complaint.Status.OPEN,
+                    Complaint.Status.IN_PROGRESS,
+                ],
+            ),
             distinct=True,
         ),
         paid_total=Coalesce(
@@ -242,7 +267,12 @@ def customer_list(request):
 def customer_manage(request, user_id):
     customer = get_object_or_404(customers_queryset(customers_only=False), pk=user_id)
     if request.method == 'POST' and request.POST.get('action') == 'set_active':
-        if customer.role != User.Role.CUSTOMER:
+        if not request.user.is_superuser:
+            messages.error(
+                request,
+                'Account activation is platform-wide and cannot be changed by a tenant admin.',
+            )
+        elif customer.role != User.Role.CUSTOMER:
             messages.error(request, 'Only customer accounts can be activated from this page.')
         else:
             customer.is_active = request.POST.get('is_active') == '1'

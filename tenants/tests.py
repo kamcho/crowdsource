@@ -212,14 +212,33 @@ class TenantManagementTests(TestCase):
         ).update(role=TenantMembership.Role.ADMIN)
         self.client.force_login(self.admin)
 
-    def test_default_tenant_admin_can_open_management_page(self):
+    def test_tenant_admin_can_manage_own_shop_but_not_platform_tenants(self):
         response = self.client.get(reverse('core:tenant_list'))
 
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('home:landing'))
+
+        response = self.client.get(
+            reverse('core:tenant_edit', kwargs={'tenant_id': self.default_tenant.pk}),
+        )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Tenants')
-        self.assertContains(response, reverse('core:tenant_create'))
+        self.assertContains(response, 'Tenant staff and admins')
+        self.assertNotContains(response, 'name="is_active"')
+        self.assertNotContains(response, 'name="slug"')
+
+        other_tenant = Tenant.objects.create(name='Other Shop', slug='other-shop')
+        response = self.client.get(
+            reverse('core:tenant_edit', kwargs={'tenant_id': other_tenant.pk}),
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('home:landing'))
 
     def test_admin_can_create_and_edit_tenant(self):
+        platform_admin = self.user_model.objects.create_superuser(
+            phone='+254700000094',
+            password='test-pass-123',
+        )
+        self.client.force_login(platform_admin)
         response = self.client.post(
             reverse('core:tenant_create'),
             {
@@ -244,6 +263,11 @@ class TenantManagementTests(TestCase):
         )
 
     def test_admin_can_assign_and_remove_tenant_admin(self):
+        platform_admin = self.user_model.objects.create_superuser(
+            phone='+254700000093',
+            password='test-pass-123',
+        )
+        self.client.force_login(platform_admin)
         tenant = Tenant.objects.create(name='Alpha Shop', slug='alpha')
         manager = self.user_model.objects.create_user(
             phone='+254700000096',
@@ -261,7 +285,6 @@ class TenantManagementTests(TestCase):
             response,
             reverse('core:tenant_edit', kwargs={'tenant_id': tenant.pk}),
         )
-
         response = self.client.post(
             reverse(
                 'core:tenant_remove_membership',
@@ -273,6 +296,45 @@ class TenantManagementTests(TestCase):
         self.assertRedirects(
             response,
             reverse('core:tenant_edit', kwargs={'tenant_id': tenant.pk}),
+        )
+
+    def test_tenant_admin_can_manage_members_of_own_shop(self):
+        manager = self.user_model.objects.create_user(
+            phone='+254700000092',
+            password='test-pass-123',
+        )
+
+        response = self.client.post(
+            reverse(
+                'core:tenant_add_membership',
+                kwargs={'tenant_id': self.default_tenant.pk},
+            ),
+            {'phone': str(manager.phone), 'role': TenantMembership.Role.STAFF},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            TenantMembership.objects.get(
+                tenant=self.default_tenant,
+                user=manager,
+            ).role,
+            TenantMembership.Role.STAFF,
+        )
+
+        other_tenant = Tenant.objects.create(name='Other Shop', slug='other-shop')
+        response = self.client.post(
+            reverse(
+                'core:tenant_add_membership',
+                kwargs={'tenant_id': other_tenant.pk},
+            ),
+            {'phone': str(manager.phone), 'role': TenantMembership.Role.ADMIN},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            TenantMembership.objects.filter(
+                tenant=other_tenant,
+                user=manager,
+            ).exists(),
         )
 
     def test_other_tenant_admin_cannot_manage_platform_tenants(self):

@@ -27,10 +27,13 @@ def user_is_tenant_admin(user, tenant):
 def user_can_manage_tenants(user):
     if not user or not user.is_authenticated:
         return False
-    if user.is_superuser:
-        return True
-    default_tenant = Tenant.objects.filter(is_default=True).first()
-    return user_is_tenant_admin(user, default_tenant)
+    return user.is_superuser
+
+
+def user_can_manage_tenant(user, tenant):
+    if not user or not user.is_authenticated:
+        return False
+    return user.is_superuser or user_is_tenant_admin(user, tenant)
 
 
 def user_is_tenant_ops(user, tenant):

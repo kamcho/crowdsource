@@ -5,10 +5,10 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET, require_http_methods
 
 from core.backup_services import backup_zip_path, create_site_backup, list_backups
-from core.decorators import admin_required
+from core.decorators import superuser_required
 
 
-@admin_required
+@superuser_required
 @require_http_methods(['GET', 'POST'])
 def backup_list(request):
     if request.method == 'POST':
@@ -32,7 +32,7 @@ def backup_list(request):
     })
 
 
-@admin_required
+@superuser_required
 @require_GET
 def backup_download(request, filename):
     try:
