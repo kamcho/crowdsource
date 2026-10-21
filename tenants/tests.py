@@ -157,3 +157,97 @@ class TenantResolutionTests(TestCase):
 
         self.assertTrue(user_is_tenant_admin(user, self.alpha))
         self.assertFalse(user_is_tenant_admin(user, self.beta))
+
+
+@override_settings(
+    DEBUG=True,
+    TENANT_BASE_DOMAIN='localhost',
+    ALLOWED_HOSTS=['testserver', 'localhost', '127.0.0.1', '.localhost'],
+)
+class TenantManagementTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        self.user_model = get_user_model()
+        self.default_tenant = Tenant.objects.get(is_default=True)
+        self.admin = self.user_model.objects.create_user(
+            phone='+254700000097',
+            password='test-pass-123',
+        )
+        TenantMembership.objects.filter(
+            tenant=self.default_tenant,
+            user=self.admin,
+        ).update(role=TenantMembership.Role.ADMIN)
+        self.client.force_login(self.admin)
+
+    def test_default_tenant_admin_can_open_management_page(self):
+        response = self.client.get(reverse('core:tenant_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Tenants')
+        self.assertContains(response, reverse('core:tenant_create'))
+
+    def test_admin_can_create_and_edit_tenant(self):
+        response = self.client.post(
+            reverse('core:tenant_create'),
+            {'name': 'Nairobi Wholesale', 'slug': 'nairobi-wholesale', 'is_active': 'on'},
+        )
+
+        tenant = Tenant.objects.get(slug='nairobi-wholesale')
+        self.assertRedirects(
+            response,
+            reverse('core:tenant_edit', kwargs={'tenant_id': tenant.pk}),
+        )
+        self.assertContains(
+            self.client.get(reverse('core:tenant_edit', kwargs={'tenant_id': tenant.pk})),
+            'nairobi-wholesale.localhost',
+        )
+
+    def test_admin_can_assign_and_remove_tenant_admin(self):
+        tenant = Tenant.objects.create(name='Alpha Shop', slug='alpha')
+        manager = self.user_model.objects.create_user(
+            phone='+254700000096',
+            password='test-pass-123',
+        )
+
+        response = self.client.post(
+            reverse('core:tenant_add_membership', kwargs={'tenant_id': tenant.pk}),
+            {'phone': str(manager.phone), 'role': TenantMembership.Role.ADMIN},
+        )
+
+        membership = TenantMembership.objects.get(tenant=tenant, user=manager)
+        self.assertEqual(membership.role, TenantMembership.Role.ADMIN)
+        self.assertRedirects(
+            response,
+            reverse('core:tenant_edit', kwargs={'tenant_id': tenant.pk}),
+        )
+
+        response = self.client.post(
+            reverse(
+                'core:tenant_remove_membership',
+                kwargs={'tenant_id': tenant.pk, 'membership_id': membership.pk},
+            ),
+        )
+
+        self.assertFalse(TenantMembership.objects.filter(pk=membership.pk).exists())
+        self.assertRedirects(
+            response,
+            reverse('core:tenant_edit', kwargs={'tenant_id': tenant.pk}),
+        )
+
+    def test_other_tenant_admin_cannot_manage_platform_tenants(self):
+        tenant = Tenant.objects.create(name='Alpha Shop', slug='alpha')
+        other_admin = self.user_model.objects.create_user(
+            phone='+254700000095',
+            password='test-pass-123',
+        )
+        TenantMembership.objects.create(
+            tenant=tenant,
+            user=other_admin,
+            role=TenantMembership.Role.ADMIN,
+        )
+        self.client.force_login(other_admin)
+
+        response = self.client.get(reverse('core:tenant_list'))
+
+        self.assertRedirects(response, reverse('core:admin_dashboard'))

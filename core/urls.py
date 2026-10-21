@@ -4,11 +4,29 @@ from . import backup_views
 from . import ops_views
 from . import product_import_views
 from . import views
+from tenants import dashboard_views as tenant_views
 
 app_name = 'core'
 
 urlpatterns = [
     path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('dashboard/tenants/', tenant_views.tenant_list, name='tenant_list'),
+    path('dashboard/tenants/create/', tenant_views.tenant_create, name='tenant_create'),
+    path(
+        'dashboard/tenants/<int:tenant_id>/',
+        tenant_views.tenant_edit,
+        name='tenant_edit',
+    ),
+    path(
+        'dashboard/tenants/<int:tenant_id>/members/add/',
+        tenant_views.tenant_add_membership,
+        name='tenant_add_membership',
+    ),
+    path(
+        'dashboard/tenants/<int:tenant_id>/members/<int:membership_id>/remove/',
+        tenant_views.tenant_remove_membership,
+        name='tenant_remove_membership',
+    ),
     path('suppliers/', views.supplier_list, name='supplier_list'),
     path('suppliers/create/', views.supplier_create, name='supplier_create'),
     path('suppliers/<int:supplier_id>/', views.supplier_manage, name='supplier_manage'),

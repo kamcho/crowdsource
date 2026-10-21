@@ -1,0 +1,109 @@
+{% extends 'dashboard/admin_base.html' %}
+
+{% block title %}{{ page_title }} — CrowdSource Import{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb">
+                    <a href="{% url 'core:admin_dashboard' %}">Dashboard</a> /
+                    <a href="{% url 'core:tenant_list' %}">Tenants</a> /
+                    {{ page_title }}
+                </p>
+                <h1>{{ page_title }}</h1>
+                {% if tenant %}
+                <p>
+                    {% if tenant.is_default %}
+                    This is the default store on {{ tenant_domain }}.
+                    {% else %}
+                    Store address: <strong>{{ tenant.slug }}.{{ tenant_domain }}</strong>
+                    {% endif %}
+                </p>
+                {% else %}
+                <p>Each tenant gets its own catalog and store at a subdomain.</p>
+                {% endif %}
+            </div>
+            <a href="{% url 'core:tenant_list' %}" class="btn btn-outline">All tenants</a>
+        </div>
+
+        <div class="admin-card admin-card-narrow">
+            <form method="post" class="admin-form">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small class="category-desc">{{ field.help_text }}</small>{% endif %}
+                    {% for error in field.errors %}<small class="form-error">{{ error }}</small>{% endfor %}
+                </div>
+                {% endfor %}
+                {% for error in form.non_field_errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">{% if tenant %}Save changes{% else %}Create tenant{% endif %}</button>
+                    <a href="{% url 'core:tenant_list' %}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+
+        {% if tenant %}
+        <div class="admin-card manage-table-card">
+            <div class="dashboard-section-header">
+                <div>
+                    <h2 class="manage-section-title">Tenant staff and admins</h2>
+                    <p>Add an existing account by phone number and give it access to this tenant.</p>
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'core:tenant_add_membership' tenant.pk %}" class="admin-form admin-form-inline">
+                {% csrf_token %}
+                {% for field in membership_form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small class="category-desc">{{ field.help_text }}</small>{% endif %}
+                    {% for error in field.errors %}<small class="form-error">{{ error }}</small>{% endfor %}
+                </div>
+                {% endfor %}
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Save access</button>
+                </div>
+            </form>
+
+            {% if memberships %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Phone</th>
+                            <th>Tenant role</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for membership in memberships %}
+                        <tr>
+                            <td>{{ membership.user.get_full_name }}</td>
+                            <td>{{ membership.user.phone|default:"—" }}</td>
+                            <td>{{ membership.get_role_display }}</td>
+                            <td class="table-actions">
+                                <form method="post" action="{% url 'core:tenant_remove_membership' tenant.pk membership.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline btn-sm">Remove access</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-box"><p>No tenant staff or admins assigned.</p></div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

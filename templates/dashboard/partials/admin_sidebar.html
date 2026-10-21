@@ -25,6 +25,16 @@
                         <span class="dashboard-nav-label">Dashboard</span>
                     </a>
                 </li>
+                {% if can_manage_tenants %}
+                <li>
+                    <a href="{% url 'core:tenant_list' %}" class="dashboard-nav-link{% if 'tenant_' in request.resolver_match.url_name %} is-active{% endif %}">
+                        <span class="dashboard-nav-icon dashboard-nav-icon--indigo" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+                        </span>
+                        <span class="dashboard-nav-label">Tenants</span>
+                    </a>
+                </li>
+                {% endif %}
                 <li>
                     <a href="{% url 'core:admin_order_list' %}" class="dashboard-nav-link{% if 'admin_order' in request.resolver_match.url_name %} is-active{% endif %}">
                         <span class="dashboard-nav-icon dashboard-nav-icon--green" aria-hidden="true">

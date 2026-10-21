@@ -51,7 +51,12 @@ def admin_sidebar(request):
 
 
 def tenant_context(request):
-    from tenants.permissions import get_tenant_membership, user_is_tenant_admin, user_is_tenant_ops
+    from tenants.permissions import (
+        get_tenant_membership,
+        user_can_manage_tenants,
+        user_is_tenant_admin,
+        user_is_tenant_ops,
+    )
 
     tenant = getattr(request, 'tenant', None)
     user = getattr(request, 'user', None)
@@ -61,6 +66,7 @@ def tenant_context(request):
         'tenant_membership': membership,
         'tenant_is_admin': user_is_tenant_admin(user, tenant),
         'tenant_is_ops': user_is_tenant_ops(user, tenant),
+        'can_manage_tenants': user_can_manage_tenants(user),
     }
 
 

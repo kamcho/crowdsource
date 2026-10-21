@@ -1,0 +1,69 @@
+{% extends 'dashboard/admin_base.html' %}
+
+{% block title %}Tenants — CrowdSource Import{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <div>
+                <p class="commerce-breadcrumb"><a href="{% url 'core:admin_dashboard' %}">Dashboard</a> / Tenants</p>
+                <h1>Tenants</h1>
+                <p>Create and manage the businesses using this platform.</p>
+            </div>
+            <a href="{% url 'core:tenant_create' %}" class="btn btn-primary">Add tenant</a>
+        </div>
+
+        <div class="admin-card manage-table-card">
+            {% if tenants %}
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Tenant</th>
+                            <th>Store address</th>
+                            <th>Members</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tenant in tenants %}
+                        <tr>
+                            <td>
+                                <strong>{{ tenant.name }}</strong>
+                                {% if tenant.is_default %}<br><span class="category-desc">Default store</span>{% endif %}
+                            </td>
+                            <td>
+                                {% if tenant.is_default %}
+                                {{ tenant_domain }}
+                                {% else %}
+                                {{ tenant.slug }}.{{ tenant_domain }}
+                                {% endif %}
+                            </td>
+                            <td>{{ tenant.membership_count }}</td>
+                            <td>
+                                {% if tenant.is_active %}
+                                <span class="status-badge status-badge-active">Active</span>
+                                {% else %}
+                                <span class="status-badge status-badge-inactive">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="table-actions">
+                                <a href="{% url 'core:tenant_edit' tenant.pk %}" class="btn btn-outline btn-sm">Manage</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-box">
+                <p>No tenants have been created.</p>
+                <a href="{% url 'core:tenant_create' %}" class="btn btn-primary">Add tenant</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

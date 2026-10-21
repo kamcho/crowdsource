@@ -24,6 +24,15 @@ def user_is_tenant_admin(user, tenant):
     return user_has_tenant_role(user, tenant, TenantMembership.Role.ADMIN)
 
 
+def user_can_manage_tenants(user):
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    default_tenant = Tenant.objects.filter(is_default=True).first()
+    return user_is_tenant_admin(user, default_tenant)
+
+
 def user_is_tenant_ops(user, tenant):
     return user_has_tenant_role(
         user,
