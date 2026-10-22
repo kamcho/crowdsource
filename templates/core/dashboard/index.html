@@ -11,6 +11,35 @@
     <p>{{ dashboard_subtitle }}</p>
 </div>
 
+{% if not has_products %}
+<section class="dashboard-product-onboarding" aria-labelledby="product-onboarding-title">
+    <div class="dashboard-product-onboarding-copy">
+        <span class="dashboard-product-onboarding-eyebrow">Get your shop started</span>
+        <h2 id="product-onboarding-title">Your shop is ready for its first product</h2>
+        <p>Use AI Import to turn a supplier listing into a product. Review the details, add images and variations, then publish it to your shop.</p>
+        {% if full_admin_access %}
+        <a href="{% url 'core:product_import_list' %}" class="btn btn-primary dashboard-product-onboarding-cta">
+            Start with AI import
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+        {% else %}
+        <p class="dashboard-product-onboarding-note">Ask your shop admin to start an AI import from the Catalog section.</p>
+        {% endif %}
+    </div>
+    <div class="dashboard-product-onboarding-visual" aria-hidden="true">
+        <span class="dashboard-product-onboarding-orbit dashboard-product-onboarding-orbit--outer"></span>
+        <span class="dashboard-product-onboarding-orbit dashboard-product-onboarding-orbit--middle"></span>
+        <span class="dashboard-product-onboarding-orbit dashboard-product-onboarding-orbit--inner"></span>
+        <span class="dashboard-product-onboarding-spark dashboard-product-onboarding-spark--one"></span>
+        <span class="dashboard-product-onboarding-spark dashboard-product-onboarding-spark--two"></span>
+        <span class="dashboard-product-onboarding-core">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="8"/></svg>
+        </span>
+        <span class="dashboard-product-onboarding-visual-label">AI import</span>
+    </div>
+</section>
+{% endif %}
+
 <div class="profile-stat-grid{% if not full_admin_access %} profile-stat-grid-3{% endif %}">
     {% if full_admin_access %}
     <article class="profile-stat-card">

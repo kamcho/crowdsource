@@ -665,6 +665,190 @@ a.profile-stat-card-link:hover {
     align-self: center;
 }
 
+.dashboard-product-onboarding {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.7fr);
+    align-items: center;
+    gap: 2rem;
+    min-height: 270px;
+    margin: 0 0 1.5rem;
+    padding: 2rem 2.5rem;
+    overflow: hidden;
+    color: #fff;
+    background:
+        radial-gradient(ellipse at 85% 50%, rgba(129, 140, 248, 0.3), transparent 34%),
+        linear-gradient(120deg, #111827, #312e81 70%, #4338ca);
+    border: 1px solid rgba(129, 140, 248, 0.35);
+    border-radius: 1.25rem;
+    box-shadow: 0 18px 40px rgba(49, 46, 129, 0.18);
+}
+
+.dashboard-product-onboarding-copy {
+    position: relative;
+    z-index: 1;
+    max-width: 620px;
+}
+
+.dashboard-product-onboarding-eyebrow {
+    display: inline-block;
+    margin-bottom: 0.6rem;
+    color: #c7d2fe;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.dashboard-product-onboarding-copy h2 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.2;
+}
+
+.dashboard-product-onboarding-copy > p {
+    max-width: 560px;
+    margin: 0.8rem 0 1.25rem;
+    color: #e0e7ff;
+    font-size: 0.95rem;
+    line-height: 1.65;
+}
+
+.dashboard-product-onboarding-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: #fff;
+    border-color: #fff;
+    color: #312e81;
+    font-weight: 800;
+}
+
+.dashboard-product-onboarding-cta:hover {
+    background: #eef2ff;
+    border-color: #eef2ff;
+    color: #1e1b4b;
+}
+
+.dashboard-product-onboarding-copy .dashboard-product-onboarding-note {
+    margin-bottom: 0;
+    color: #c7d2fe;
+    font-size: 0.875rem;
+}
+
+.dashboard-product-onboarding-visual {
+    position: relative;
+    display: grid;
+    width: min(100%, 250px);
+    aspect-ratio: 1;
+    place-items: center;
+    justify-self: center;
+}
+
+.dashboard-product-onboarding-orbit {
+    position: absolute;
+    display: block;
+    border: 1px solid rgba(199, 210, 254, 0.35);
+    border-radius: 50%;
+    animation: product-onboarding-orbit 4s ease-out infinite;
+}
+
+.dashboard-product-onboarding-orbit--outer {
+    width: 100%;
+    height: 100%;
+}
+
+.dashboard-product-onboarding-orbit--middle {
+    width: 76%;
+    height: 76%;
+    animation-delay: 0.6s;
+}
+
+.dashboard-product-onboarding-orbit--inner {
+    width: 52%;
+    height: 52%;
+    animation-delay: 1.2s;
+}
+
+.dashboard-product-onboarding-core {
+    display: grid;
+    width: 76px;
+    height: 76px;
+    place-items: center;
+    color: #fff;
+    background: linear-gradient(145deg, #818cf8, #6366f1);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    border-radius: 50%;
+    box-shadow: 0 0 38px rgba(129, 140, 248, 0.55);
+}
+
+.dashboard-product-onboarding-spark {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #a5f3fc;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    box-shadow: 0 0 14px rgba(165, 243, 252, 0.9);
+}
+
+.dashboard-product-onboarding-spark--one {
+    top: 16%;
+    right: 20%;
+}
+
+.dashboard-product-onboarding-spark--two {
+    bottom: 18%;
+    left: 20%;
+    width: 7px;
+    height: 7px;
+    animation: product-onboarding-spark 2.5s ease-in-out infinite;
+}
+
+.dashboard-product-onboarding-visual-label {
+    position: absolute;
+    bottom: 2%;
+    color: #c7d2fe;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+@keyframes product-onboarding-orbit {
+    0% { transform: scale(0.88); opacity: 0.15; }
+    50% { opacity: 0.7; }
+    100% { transform: scale(1.08); opacity: 0.15; }
+}
+
+@keyframes product-onboarding-spark {
+    0%, 100% { transform: scale(0.8); opacity: 0.55; }
+    50% { transform: scale(1.25); opacity: 1; }
+}
+
+@media (max-width: 700px) {
+    .dashboard-product-onboarding {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        padding: 1.5rem;
+    }
+
+    .dashboard-product-onboarding-visual {
+        width: min(58vw, 190px);
+        grid-row: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-product-onboarding-orbit,
+    .dashboard-product-onboarding-spark--two {
+        animation: none;
+    }
+}
+
 /* SMS-main payroll style accent stat cards (horizontal icon + value) */
 .stat-cards-accent-grid {
     display: grid;

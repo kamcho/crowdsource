@@ -1640,6 +1640,37 @@ class CategoryGoTogetherTests(TestCase):
 
 
 class AdminDashboardCampaignProgressTests(TestCase):
+    def test_dashboard_guides_empty_shop_to_ai_import_only_until_products_exist(self):
+        from django.contrib.auth import get_user_model
+
+        from tenants.models import Tenant, TenantMembership
+
+        user = get_user_model().objects.create_user(
+            phone='+254700000003',
+            password='pass',
+        )
+        tenant = Tenant.objects.get(is_default=True)
+        TenantMembership.objects.update_or_create(
+            tenant=tenant,
+            user=user,
+            defaults={'role': TenantMembership.Role.ADMIN},
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('core:admin_dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Your shop is ready for its first product')
+        self.assertContains(response, 'Start with AI import')
+        self.assertContains(response, reverse('core:product_import_list'))
+
+        category = Category.objects.create(name='Onboarding category')
+        Product.objects.create(category=category, name='First shop product')
+        response = self.client.get(reverse('core:admin_dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Your shop is ready for its first product')
+
     def test_dashboard_user_count_is_limited_to_current_tenant(self):
         from django.contrib.auth import get_user_model
 

@@ -209,6 +209,7 @@ def get_admin_dashboard_context(*, full_admin_access=True):
 
     return {
         'stats': stats,
+        'has_products': Product.objects.exists(),
         'group_buy_pipeline': group_buy_pipeline,
         'fulfillment_pipeline': fulfillment_pipeline,
         'moq_without_batch': list(moq_without_batch),
