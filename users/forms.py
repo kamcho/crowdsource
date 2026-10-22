@@ -112,6 +112,18 @@ class AccountPasswordChangeForm(PasswordChangeForm):
         self.fields['new_password2'].widget.attrs['autocomplete'] = 'new-password'
 
 
+class TenantAdminPasswordForm(forms.Form):
+    new_password = forms.CharField(
+        label='New password',
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-input',
+            'autocomplete': 'new-password',
+            'autofocus': True,
+        }),
+    )
+
+
 class AccountPasswordResetForm(PasswordResetForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

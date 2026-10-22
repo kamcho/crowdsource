@@ -153,6 +153,11 @@ def admin_dashboard(request):
     full_admin_access = user_is_tenant_admin(request.user, request.tenant)
     context = get_admin_dashboard_context(full_admin_access=full_admin_access)
     context['full_admin_access'] = full_admin_access
+    context['show_tenant_admin_password_modal'] = (
+        full_admin_access
+        and not request.user.is_superuser
+        and not request.user.has_changed_password
+    )
     context['dashboard_title'] = 'Admin dashboard' if full_admin_access else 'Ops dashboard'
     context['dashboard_subtitle'] = (
         'Platform overview, analytics, and management shortcuts.'

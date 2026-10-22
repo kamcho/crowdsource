@@ -665,6 +665,84 @@ a.profile-stat-card-link:hover {
     align-self: center;
 }
 
+.tenant-password-modal-backdrop {
+    position: fixed;
+    z-index: 2000;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    overflow-y: auto;
+    background: rgba(15, 23, 42, 0.72);
+    backdrop-filter: blur(5px);
+}
+
+.tenant-password-modal {
+    width: min(100%, 440px);
+    padding: 2rem;
+    color: #1e293b;
+    background: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 1.25rem;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.32);
+}
+
+.tenant-password-modal-icon {
+    display: grid;
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 1.25rem;
+    place-items: center;
+    color: #4f46e5;
+    background: #eef2ff;
+    border-radius: 0.9rem;
+}
+
+.tenant-password-modal-eyebrow {
+    margin: 0 0 0.4rem;
+    color: #4f46e5;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.tenant-password-modal h2 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.tenant-password-modal > p:not(.tenant-password-modal-eyebrow) {
+    margin: 0.65rem 0 1.4rem;
+    color: #64748b;
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.tenant-password-modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.tenant-password-modal-form label {
+    color: #334155;
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.tenant-password-modal-form .field-hint {
+    margin: 0 0 0.4rem;
+}
+
+.tenant-password-modal-form .btn {
+    justify-content: center;
+    margin-top: 0.4rem;
+}
+
 .dashboard-product-onboarding {
     position: relative;
     display: grid;

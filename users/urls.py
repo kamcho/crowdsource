@@ -33,6 +33,11 @@ urlpatterns = [
         views.AccountPasswordChangeDoneView.as_view(),
         name='password_change_done',
     ),
+    path(
+        'tenant-admin/change-password/',
+        views.tenant_admin_password_change_view,
+        name='tenant_admin_password_change',
+    ),
     path('signout/', views.signout_view, name='signout'),
     path('auth/google/', views.google_auth_view, name='google_auth'),
     path('complete-profile/', views.complete_profile_view, name='complete_profile'),

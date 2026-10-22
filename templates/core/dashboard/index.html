@@ -11,6 +11,40 @@
     <p>{{ dashboard_subtitle }}</p>
 </div>
 
+{% if show_tenant_admin_password_modal %}
+<div class="tenant-password-modal-backdrop">
+    <section
+        class="tenant-password-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tenant-password-modal-title"
+        aria-describedby="tenant-password-modal-description"
+    >
+        <div class="tenant-password-modal-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="10" width="18" height="11" rx="2"/><path d="M7 10V7a5 5 0 0 1 10 0v3"/><circle cx="12" cy="15.5" r="1"/></svg>
+        </div>
+        <p class="tenant-password-modal-eyebrow">Secure your shop account</p>
+        <h2 id="tenant-password-modal-title">Create a new password</h2>
+        <p id="tenant-password-modal-description">For your security, set a password you control before continuing to your shop dashboard.</p>
+        <form method="post" action="{% url 'users:tenant_admin_password_change' %}" class="tenant-password-modal-form">
+            {% csrf_token %}
+            <label for="tenant-admin-new-password">New password</label>
+            <input
+                id="tenant-admin-new-password"
+                class="form-input"
+                type="password"
+                name="new_password"
+                autocomplete="new-password"
+                required
+                autofocus
+            >
+            <p class="field-hint">Enter the new password you want to use when signing in.</p>
+            <button type="submit" class="btn btn-primary">Save new password</button>
+        </form>
+    </section>
+</div>
+{% endif %}
+
 {% if not has_products %}
 <section class="dashboard-product-onboarding" aria-labelledby="product-onboarding-title">
     <div class="dashboard-product-onboarding-copy">

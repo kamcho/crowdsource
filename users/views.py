@@ -4,7 +4,12 @@ from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from django.contrib.auth import (
+    authenticate,
+    login as auth_login,
+    logout as auth_logout,
+    update_session_auth_hash,
+)
 from django.contrib.auth.views import (
     PasswordChangeDoneView,
     PasswordChangeView,
@@ -26,6 +31,7 @@ from .forms import (
     CompleteProfileForm,
     SignInForm,
     SignUpForm,
+    TenantAdminPasswordForm,
     TwoFactorCodeForm,
     AccountPasswordChangeForm,
     AccountPasswordResetForm,
@@ -79,6 +85,12 @@ class AccountPasswordResetConfirmView(PasswordResetConfirmView):
     template_name = 'users/password_reset_confirm.html'
     success_url = reverse_lazy('users:password_reset_complete')
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        self.user.has_changed_password = True
+        self.user.save(update_fields=['has_changed_password', 'updated_at'])
+        return response
+
 
 class AccountPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = 'users/password_reset_complete.html'
@@ -89,6 +101,12 @@ class AccountPasswordChangeView(PasswordChangeView):
     template_name = 'users/password_change_form.html'
     success_url = reverse_lazy('users:password_change_done')
     login_url = 'users:signin'
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        self.request.user.has_changed_password = True
+        self.request.user.save(update_fields=['has_changed_password', 'updated_at'])
+        return response
 
 
 class AccountPasswordChangeDoneView(PasswordChangeDoneView):
@@ -348,6 +366,39 @@ def signout_view(request):
     auth_logout(request)
     messages.success(request, 'You have been signed out.')
     return redirect('home:landing')
+
+
+@login_required(login_url='users:signin')
+@require_POST
+def tenant_admin_password_change_view(request):
+    tenant = getattr(request, 'tenant', None)
+    is_tenant_admin = (
+        not request.user.is_superuser
+        and tenant is not None
+        and TenantMembership.objects.filter(
+            tenant=tenant,
+            user=request.user,
+            role=TenantMembership.Role.ADMIN,
+        ).exists()
+    )
+    if not is_tenant_admin:
+        messages.error(request, 'Only this shop’s tenant admin can change this password here.')
+        return redirect('home:landing')
+
+    form = TenantAdminPasswordForm(request.POST)
+    if not form.is_valid():
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(request, error)
+        return redirect('core:admin_dashboard')
+
+    user = request.user
+    user.set_password(form.cleaned_data['new_password'])
+    user.has_changed_password = True
+    user.save(update_fields=['password', 'has_changed_password', 'updated_at'])
+    update_session_auth_hash(request, user)
+    messages.success(request, 'Your password has been updated.')
+    return redirect('core:admin_dashboard')
 
 
 def two_factor_verify_view(request):

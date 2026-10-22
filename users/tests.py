@@ -206,6 +206,60 @@ class TenantStaffLoginRedirectTests(TestCase):
         )
 
 
+@override_settings(
+    DEBUG=True,
+    TENANT_BASE_DOMAIN='localhost',
+    ALLOWED_HOSTS=['testserver', 'localhost', '127.0.0.1', '.localhost'],
+)
+class TenantAdminPasswordPromptTests(TestCase):
+    def setUp(self):
+        self.tenant = Tenant.objects.get(is_default=True)
+        self.admin = User.objects.create_user(
+            phone='+254700000088',
+            password='temporary-password',
+        )
+        TenantMembership.objects.update_or_create(
+            tenant=self.tenant,
+            user=self.admin,
+            defaults={'role': TenantMembership.Role.ADMIN},
+        )
+        self.client.force_login(self.admin)
+
+    def test_tenant_admin_must_set_password_once(self):
+        dashboard_url = reverse('core:admin_dashboard')
+        response = self.client.get(dashboard_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Create a new password')
+        self.assertContains(response, reverse('users:tenant_admin_password_change'))
+
+        response = self.client.post(
+            reverse('users:tenant_admin_password_change'),
+            {'new_password': 'shop-password'},
+        )
+
+        self.assertRedirects(
+            response,
+            dashboard_url,
+            fetch_redirect_response=False,
+        )
+        self.admin.refresh_from_db()
+        self.assertTrue(self.admin.has_changed_password)
+        self.assertTrue(self.admin.check_password('shop-password'))
+
+        response = self.client.get(dashboard_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Create a new password')
+
+    def test_tenant_staff_is_not_prompted_to_change_password(self):
+        self.admin.tenant_memberships.update(role=TenantMembership.Role.STAFF)
+
+        response = self.client.get(reverse('core:admin_dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Create a new password')
+
+
 class TwoFactorAuthTests(TestCase):
     def setUp(self):
         cache.clear()
@@ -384,6 +438,7 @@ class UserProfileTests(TestCase):
         user.refresh_from_db()
         self.assertTrue(user.check_password('Better-new-password-456!'))
         self.assertFalse(user.check_password('old-password-456!'))
+        self.assertTrue(user.has_changed_password)
 
     def test_password_reset_response_does_not_disclose_unknown_email(self):
         response = self.client.post(
@@ -438,6 +493,7 @@ class UserProfileTests(TestCase):
         )
         user.refresh_from_db()
         self.assertTrue(user.check_password('Brand-new-password-789!'))
+        self.assertTrue(user.has_changed_password)
         self.assertEqual(
             self.client.get(reverse('users:profile')).status_code,
             200,

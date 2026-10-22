@@ -60,6 +60,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
         help_text='Tenant where this account was first created.',
     )
+    has_changed_password = models.BooleanField(default=False)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
