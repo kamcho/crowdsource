@@ -16,9 +16,33 @@
             <div>
                 <p class="commerce-breadcrumb"><a href="{% url 'core:product_import_list' %}">AI import</a> / Paste content</p>
                 <h1>Paste supplier content</h1>
-                <p>Copy everything from the listing — title, description, specs, packaging, MOQ, and variation/SKU table.</p>
+                <p>Follow this guide to give AI enough detail to prepare a product draft for your review.</p>
             </div>
         </div>
+
+        <section class="import-start-guide" aria-labelledby="import-start-guide-title">
+            <div class="import-start-guide-heading">
+                <span class="import-start-guide-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v3m0 12v3M3 12h3m12 0h3"/><path d="m5.64 5.64 2.12 2.12m8.48 8.48 2.12 2.12m0-12.72-2.12 2.12m-8.48 8.48-2.12 2.12"/><circle cx="12" cy="12" r="5"/></svg>
+                </span>
+                <div>
+                    <h2 id="import-start-guide-title">How to prepare your import</h2>
+                    <p>More accurate supplier details usually mean less editing later.</p>
+                </div>
+            </div>
+            <ol class="import-start-guide-steps">
+                <li><strong>Open the supplier’s public product listing.</strong> Copy the product title, description, specifications, packaging details, minimum order quantity (MOQ), and available options.</li>
+                <li><strong>Include the variation and price table.</strong> Copy rows for sizes, colors, SKUs, and per-unit prices if the supplier provides them. If a detail is missing, leave it out rather than guessing.</li>
+                <li><strong>Add supplier details when available.</strong> Include the supplier company or store name and a public supplier/store link in the pasted text if you want to use the supplier step.</li>
+                <li><strong>Paste a public product URL (optional).</strong> The importer may try to fetch listing images later. Some supplier sites block automated image fetching, so you can upload images in the product wizard instead.</li>
+                <li><strong>Parse, then review every step.</strong> AI prepares a draft; it does not publish immediately. Check the product details, category, supplier, variations, and images, then publish only when everything is correct.</li>
+            </ol>
+            <div class="import-start-guide-example">
+                <strong>Useful details to copy</strong>
+                <p>Product name · material/specifications · package size or weight · MOQ · color/size options · SKU · unit price · supplier name</p>
+            </div>
+            <p class="import-start-guide-warning">Use information from a public listing. Do not paste account passwords, payment details, or other private information.</p>
+        </section>
 
         <div class="admin-card admin-card-narrow import-start-card">
             <form method="post" class="admin-form" novalidate>
@@ -32,14 +56,14 @@
                     <label for="{{ form.source_url.id_for_label }}">{{ form.source_url.label }}</label>
                     {{ form.source_url }}
                     {% if form.source_url.errors %}<span class="field-error">{{ form.source_url.errors.0 }}</span>{% endif %}
-                    <p class="field-hint">Optional but recommended — used on the images step to auto-download gallery photos from Alibaba. Include supplier company/store links in the paste to trigger the supplier step.</p>
+                    <p class="field-hint">Optional. The image step may use this public URL to try to fetch gallery photos; fetching can fail if the supplier site blocks automated requests.</p>
                 </div>
 
                 <div class="form-group">
                     <label for="{{ form.raw_paste.id_for_label }}">{{ form.raw_paste.label }}</label>
                     {{ form.raw_paste }}
                     {% if form.raw_paste.errors %}<span class="field-error">{{ form.raw_paste.errors.0 }}</span>{% endif %}
-                    <p class="field-hint">Tip: include variation rows with SKU, color/size, and unit price if available.</p>
+                    <p class="field-hint">Paste at least 40 characters. Include the listing text and variation rows with SKU, color/size, and unit price when available. AI will create a draft for you to review.</p>
                 </div>
 
                 <div class="admin-form-actions">

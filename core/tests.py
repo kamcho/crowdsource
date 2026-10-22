@@ -1761,6 +1761,34 @@ class AdminDashboardCampaignProgressTests(TestCase):
         )
 
 
+@override_settings(OPENAI_API_KEY='test-openai-key')
+class ProductImportGuideTests(TestCase):
+    def test_product_import_form_explains_input_and_review_steps(self):
+        from django.contrib.auth import get_user_model
+
+        from tenants.models import Tenant, TenantMembership
+
+        user = get_user_model().objects.create_user(
+            phone='+254700000004',
+            password='pass',
+        )
+        TenantMembership.objects.update_or_create(
+            tenant=Tenant.objects.get(is_default=True),
+            user=user,
+            defaults={'role': TenantMembership.Role.ADMIN},
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('core:product_import_start'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'How to prepare your import')
+        self.assertContains(response, 'minimum order quantity (MOQ)')
+        self.assertContains(response, 'public product URL')
+        self.assertContains(response, 'AI prepares a draft; it does not publish immediately')
+        self.assertContains(response, 'Do not paste account passwords')
+
+
 class WhatsAppServiceTests(TestCase):
     def setUp(self):
         from django.contrib.auth import get_user_model
